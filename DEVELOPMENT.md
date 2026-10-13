@@ -222,3 +222,17 @@ No in-game results for the unreleased sound changes have been recorded yet.
   source hashes verified after copying; version remains 0.1.18.
 - Verified backup:
   `<workspace>/addon-deployment-backups/PallySealCooldowns-before-244e5a4-94cd2f8107e54ad88b55ee3a964e10d9`.
+
+### 2026-10-12: native manual cancellation confirmed
+
+- User confirmed that the NATIVE SEAL TEST icon disappears immediately when
+  the seal is cancelled during the requested in-game trial of `244e5a4`.
+- This validates native visual removal for manual cancellation in combat,
+  without requiring Lua to inspect restricted aura state.
+- Enemy dispel, all seal ranks, both production layouts, and sound behavior
+  remain unverified. The existing estimated tracker has not been replaced.
+- Next implementation step: integrate native aura bindings into the production
+  display, then verify the icon/bar layouts and missing-seal presentation.
+  Sound notifications require a supported native trigger and separate testing.
+- Version remains 0.1.18; this confirmation is prototype acceptance, not release
+  acceptance for the complete addon.
