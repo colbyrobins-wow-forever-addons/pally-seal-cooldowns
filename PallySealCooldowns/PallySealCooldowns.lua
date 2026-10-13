@@ -325,10 +325,16 @@ local function Render()
 end
 
 local function ScanAuras()
-    local current
-    current, accessRestricted = addon.FindSeal(sealNames,
-        C_UnitAuras.GetAuraDataBySpellName)
+    local current, diagnostic
+    current, accessRestricted, diagnostic = addon.FindSeal(sealNames,
+        C_UnitAuras.GetAuraDataBySpellName, addon.DebugEnabled())
+    local previous = diagnostic and addon.DebugAura(activeAura)
     activeAura = addon.ResolveSeal(activeAura, current, accessRestricted, GetTime())
+    if diagnostic then
+        addon.DebugRecord(db, "scan", "combat=" .. tostring(inCombat)
+            .. " queries=[" .. diagnostic .. "] previous=" .. previous
+            .. " resolved=" .. addon.DebugAura(activeAura))
+    end
     cooldown:Hide()
     if activeAura then
         if not activeAura.estimated and addon.IsFiniteNumber(activeAura.duration)
@@ -376,6 +382,9 @@ SlashCmdList.PALLYSEALCOOLDOWNS = function(input)
     command = command:lower()
     if command == "" or command == "settings" then
         OpenSettings()
+    elseif command == "debug" then
+        addon.DebugCommand(db, argument, Message, sealNames)
+        if argument:lower() == "on" then ScanAuras() end
     elseif command == "lock" or command == "unlock" then
         db.locked = command == "lock"
         ApplyPosition()
@@ -419,7 +428,7 @@ SlashCmdList.PALLYSEALCOOLDOWNS = function(input)
         Message(string.format("Client %s / build %s / interface %s; aura API %s.",
             version, build, interface, C_UnitAuras and "available" or "missing"))
     else
-        Message("/psc unlock | lock | warn 5 | counter refresh/always | sound | scale 1 | reset | status")
+        Message("/psc unlock | lock | warn 5 | counter refresh/always | sound | scale 1 | reset | status | debug")
     end
 end
 
@@ -486,6 +495,10 @@ frame:SetScript("OnEvent", function(_, event, unit, castGUID, spellID)
         if unit ~= "player" or not addon.IsReadable(spellID)
             or type(spellID) ~= "number" then return end
         local name = C_Spell.GetSpellName(spellID)
+        if addon.DebugEnabled() and addon.IsReadable(name) and type(name) == "string" then
+            addon.DebugRecord(db, "cast", "spell=" .. spellID .. " name=" .. name
+                .. " recognized=" .. tostring(sealNames[name] == true))
+        end
         if not name or not sealNames[name] then return end
         local duration = db.sealDurations[name]
         if not addon.IsFiniteNumber(duration) or duration <= 0 then
@@ -514,10 +527,14 @@ frame:SetScript("OnEvent", function(_, event, unit, castGUID, spellID)
             ScanAuras()
         end
     elseif event == "PLAYER_REGEN_DISABLED" then
+        if addon.DebugEnabled() then
+            addon.DebugRecord(db, "combat", "enter previous=" .. addon.DebugAura(activeAura))
+        end
         inCombat = true
         ScanAuras()
         Render()
     elseif event == "PLAYER_REGEN_ENABLED" or event == "PLAYER_ENTERING_WORLD" then
+        addon.DebugRecord(db, "event", event)
         addon.RegisterSettings(db, ApplySettings)
         if event == "PLAYER_ENTERING_WORLD" then ApplyPosition() end
         inCombat = event == "PLAYER_ENTERING_WORLD" and UnitAffectingCombat("player") == true

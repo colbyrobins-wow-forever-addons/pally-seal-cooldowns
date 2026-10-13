@@ -1,23 +1,31 @@
 local _, addon = ...
 
 -- Query only known seals, avoiding unrelated secret combat auras.
-function addon.FindSeal(names, query)
+function addon.FindSeal(names, query, diagnostics)
     local restricted = false
+    local results = diagnostics and {} or nil
     for name in pairs(names) do
         local ok, aura = pcall(query, "player", name, "HELPFUL")
+        if results then
+            local outcome = not ok and "error" or
+                (not addon.IsReadable(aura) and "restricted" or (aura and "found" or "empty"))
+            results[#results + 1] = name .. "=" .. outcome
+        end
         if not ok or not addon.IsReadable(aura) then
             restricted = true
         elseif aura then
+            if results then table.sort(results) end
             return {
                 name = name,
                 icon = aura.icon,
                 duration = aura.duration,
                 expirationTime = aura.expirationTime,
                 auraInstanceID = aura.auraInstanceID,
-            }, false
+            }, false, results and table.concat(results, "; ")
         end
     end
-    return nil, restricted
+    if results then table.sort(results) end
+    return nil, restricted, results and table.concat(results, "; ")
 end
 
 function addon.IsReadable(value)

@@ -64,6 +64,7 @@ SOUNDKIT = {RAID_WARNING = 1}
 PlaySound = function() earlySounds = earlySounds + 1 end
 local addon = {}
 assert(loadfile("PallySealCooldowns/SealLogic.lua"))("PallySealCooldowns", addon)
+assert(loadfile("PallySealCooldowns/Diagnostics.lua"))("PallySealCooldowns", addon)
 assert(loadfile("PallySealCooldowns/Appearance.lua"))("PallySealCooldowns", addon)
 assert(loadfile("PallySealCooldowns/Minimap.lua"))("PallySealCooldowns", addon)
 assert(loadfile("PallySealCooldowns/Settings.lua"))("PallySealCooldowns", addon)
@@ -331,4 +332,16 @@ local repaired = ReloadWithSettings({soundChoice = "invalid", missingSoundChoice
     soundChannel = "invalid"})
 assert(repaired.soundChoice == "chime" and repaired.missingSoundChoice == "raid"
     and repaired.soundChannel == "Master", "Invalid audio choices use supported defaults")
+GetBuildInfo = function() return "test-client", "12345", "date", 16001 end
+SlashCmdList.PALLYSEALCOOLDOWNS("debug on")
+scripts.OnEvent(widget, "PLAYER_REGEN_DISABLED")
+local log = PallySealCooldownsDB.debugLog
+assert(table.concat(log, "\n"):find("combat enter", 1, true))
+assert(table.concat(log, "\n"):find("=empty", 1, true))
+local count = #log
+for index = 1, 100 do scripts.OnUpdate(widget, 0.5) end
+assert(#log == count, "Stable polling does not flood the diagnostic buffer")
+scripts.OnEvent(widget, "UNIT_SPELLCAST_SUCCEEDED", "player", "debug-cast", 20154)
+assert(table.concat(log, "\n"):find("recognized=true", 1, true))
+SlashCmdList.PALLYSEALCOOLDOWNS("debug off")
 io.write("Addon event regression tests passed.\n")

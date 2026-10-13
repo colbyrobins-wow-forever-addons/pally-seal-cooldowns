@@ -57,6 +57,7 @@ acceptance. No remote repository is configured.
 | Gentle refresh chime and separate missing-seal alert, independent choices/toggles/combat filters and previews | All five Lua suites pass; WAV validated and Windows playback succeeded | Pending |
 | Sound settings persistence, restricted-data silence, hidden-tracker audio, channels, and fallback | Regression checks pass; see `tests/SOUND-VERIFICATION.md` | Pending |
 | Report of false missing-seal display on combat entry for a level 22 paladin | Cause unconfirmed; waiting for seal/rank, addon version, and reproduction details | Unresolved |
+| Optional `/psc debug` capture for combat-entry detection | Bounded, deduplicated capture and query classification covered by diagnostics and event tests | Pending reproduction; detection behavior unchanged |
 
 No new release is ready based on local tests alone.
 

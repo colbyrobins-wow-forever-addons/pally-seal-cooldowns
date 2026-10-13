@@ -17,6 +17,23 @@ this alert. The animation does not change the saved position.
 
 ## Install
 
+### Diagnostic test mode
+
+For a false missing-seal warning, run `/psc debug on`, cast a seal outside combat,
+then enter combat. Compare the tracker with the actual buff, and try recasting
+in combat. Run `/psc debug off`, then `/psc debug dump` to print the capture.
+Share the output along with the seal/rank and whether the real buff stayed active.
+
+Diagnostics retain the latest 100 entries, suppress unchanged polling results,
+and do not print automatically during combat. The capture records resolved seal
+names, client build, cast recognition, query outcomes, and timer transitions.
+It does not record character names or raw API errors. `/psc debug clear` removes
+the capture; enabling diagnostics starts a fresh capture. Diagnostics turn off
+on reload, but the captured entries are retained in the addon's saved variables
+when WoW saves them on reload/logout. This mode does not fix detection itself.
+
+### Copy addon files
+
 Copy the entire `PallySealCooldowns` folder into your Forever client's
 `Interface/AddOns` directory. The resulting path must be
 `Interface/AddOns/PallySealCooldowns/PallySealCooldowns.toc`.
