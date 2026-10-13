@@ -58,6 +58,7 @@ acceptance. No remote repository is configured.
 | Sound settings persistence, restricted-data silence, hidden-tracker audio, channels, and fallback | Regression checks pass; see `tests/SOUND-VERIFICATION.md` | Pending |
 | Report of false missing-seal display on combat entry for a level 22 paladin | Cause unconfirmed; waiting for seal/rank, addon version, and reproduction details | Unresolved |
 | Optional `/psc debug` capture for combat-entry detection | Bounded, deduplicated capture and query classification covered by diagnostics and event tests | Pending reproduction; detection behavior unchanged |
+| Saved diagnostic capture export to UTF-8 text | Python exporter tested for extraction, escapes, malformed data, and source/output safety; exported 40 saved entries | Report saved locally under ignored `diagnostics/`; diagnosis pending review |
 
 No new release is ready based on local tests alone.
 

@@ -32,6 +32,17 @@ the capture; enabling diagnostics starts a fresh capture. Diagnostics turn off
 on reload, but the captured entries are retained in the addon's saved variables
 when WoW saves them on reload/logout. This mode does not fix detection itself.
 
+For a text file, run `/psc debug off` and `/reload` after reproducing. Export
+the saved capture from a terminal with:
+
+```powershell
+python scripts/export_diagnostics.py "<client>/WTF/Account/<account>/SavedVariables/PallySealCooldowns.lua" "capture.txt"
+```
+
+The exporter reads only diagnostic strings without executing Lua or exporting
+other settings. It replaces the output file on a successful export. Use the
+ignored `diagnostics/` directory for local reports.
+
 ### Copy addon files
 
 Copy the entire `PallySealCooldowns` folder into your Forever client's
