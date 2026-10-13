@@ -103,3 +103,19 @@ No in-game results for the unreleased sound changes have been recorded yet.
   recast/switch/cancel, then leave combat and compare against actual buffs.
   Cancellation without readable removal events may remain estimated until
   reconciliation; this limitation is documented. User acceptance is pending.
+
+### 2026-10-12: cancellation/dispel test deployment
+
+- User confirmed the combat countdown fix works; reported cancellation/dispel
+  still retained the estimate.
+- Deployed clean source commit `43cbefc` to the same Forever beta addon folder;
+  version remains 0.1.18. All eight installed source file hashes verified.
+- Verified backup:
+  `<workspace>/addon-deployment-backups/PallySealCooldowns-before-43cbefc-3e5f4d99e5254276bdd6304e278987af`.
+- Six Lua suites passed with new coverage for added-aura instance IDs, matched
+  removal, player-specific combat-log removal, unrelated events, secret values,
+  and unavailable combat-log reads.
+- Pending: reload, enable diagnostics, cast during combat and cancel/dispel the
+  buff. Verify immediate removal and one missing-seal alert, then save the capture
+  with `/psc debug off` and `/reload`. Client support for these removal signals
+  remains unconfirmed; no release acceptance is recorded.
