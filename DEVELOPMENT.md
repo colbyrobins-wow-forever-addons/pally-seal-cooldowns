@@ -284,3 +284,10 @@ No in-game results for the unreleased sound changes have been recorded yet.
   none/solid borders pass. All eight Lua 5.1 suites pass after the repair.
 - Repaired native integration still needs in-game cancellation and appearance
   confirmation. Earlier mock-only acceptance missed the backdrop dependency.
+- User noted recovery no longer detected cancellation; explained that the restored
+  legacy build retains that limitation. Deployed repaired native source commit
+  `80a1059` to the same beta addon folder, clean at deployment; ten hashes verified.
+- Verified recovery backup:
+  `<workspace>/addon-deployment-backups/PallySealCooldowns-before-80a1059-cdb5bfca1b0f4fc98194b6954251e4ad`.
+- Pending: reload, use the gold preset, move/restyle the main tracker, and cancel
+  a seal during combat. Native integration acceptance is still pending.
