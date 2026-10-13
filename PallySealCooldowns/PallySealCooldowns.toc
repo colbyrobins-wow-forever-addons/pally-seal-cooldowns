@@ -1,0 +1,13 @@
+## Interface: 16001
+## Title: Pally Seal Cooldowns
+## Notes: Paladin seal duration and refresh reminders for Forever beta.
+## Author: Colby
+## Version: 0.1.18
+## OptionalDeps: LibSharedMedia-3.0, SharedMedia
+## SavedVariables: PallySealCooldownsDB
+
+SealLogic.lua
+Appearance.lua
+Settings.lua
+Minimap.lua
+PallySealCooldowns.lua

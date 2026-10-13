@@ -1,0 +1,4 @@
+.test-deps/
+dist/
+__pycache__/
+*.pyc
