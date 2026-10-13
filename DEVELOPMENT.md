@@ -134,3 +134,11 @@ No in-game results for the unreleased sound changes have been recorded yet.
   Its damage effect now cannot start or restart a seal timer.
 - Cancellation/dispel remains unresolved until a usable combat removal signal
   is identified. Expanded diagnostics require a short focused retest.
+
+- Expanded diagnostic source commit `19024ad` deployed clean to the same beta
+  addon folder; all eight file hashes verified, version still 0.1.18.
+- Verified backup:
+  `<workspace>/addon-deployment-backups/PallySealCooldowns-before-19024ad-6a1540b0dfe24b5a959bd0025699ab41`.
+- Next capture: reload, enable diagnostics, cast in combat, manually cancel the
+  buff, disable diagnostics, and reload. This is an investigation build, not a
+  confirmed combat cancellation/dispel fix.
