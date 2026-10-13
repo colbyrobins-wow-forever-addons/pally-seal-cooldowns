@@ -265,3 +265,22 @@ No in-game results for the unreleased sound changes have been recorded yet.
   `<workspace>/addon-deployment-backups/PallySealCooldowns-before-b69846d-b9536051a40c4769ad43ba61f4adac41`.
 - After reload the main tracker uses native display automatically when available;
   no prototype command is required. In-game integration acceptance is pending.
+
+### 2026-10-12: native integration failure and recovery
+
+- User reported the integrated build failed and supplied a Backdrop.lua error:
+  native descendant width was secret during a SetBackdrop call from Apply.
+  The native gold/tooltip border with thickness 12 reproduced the path.
+- Restored the nine-file pre-integration `244e5a4` backup and verified hashes.
+  Preserved the failed installation at
+  `<workspace>/addon-deployment-backups/PallySealCooldowns-failed-b69846d-14a2f530b332428d8fa243a3612b2dec`.
+- Recovery restored the legacy main tracker and its known cancellation limitation;
+  this was not acceptance or a fix of the native integration.
+- Repair removes BackdropTemplate and backdrop calls from native descendants.
+  Borders use eight precreated textures with sizes/coordinates derived only from
+  configured icon size and border thickness, without querying frame geometry.
+- Regression tests now reject backdrop templates/calls and all native size/scale
+  queries. Reapplying the gold border, switching icon/bar layouts, and selecting
+  none/solid borders pass. All eight Lua 5.1 suites pass after the repair.
+- Repaired native integration still needs in-game cancellation and appearance
+  confirmation. Earlier mock-only acceptance missed the backdrop dependency.

@@ -16,8 +16,12 @@ local function Widget(kind)
         if key == "GetFont" then return function() return "default.ttf", 12, "" end end
         if key == "SetFont" then return function() return true end end
         if key == "GetFrameLevel" then return function() return 1 end end
-        if key == "GetWidth" or key == "GetText" or key == "IsShown" then
+        if key == "GetWidth" or key == "GetHeight" or key == "GetSize"
+            or key == "GetEffectiveScale" or key == "GetText" or key == "IsShown" then
             return function() error("No native state/geometry inspection allowed") end
+        end
+        if key == "SetBackdrop" or key == "SetBackdropBorderColor" then
+            return function() error("Backdrop arithmetic cannot consume secret native geometry") end
         end
         if key == "CreateTexture" or key == "CreateFontString" or key == "CreateAnimationGroup"
             or key == "CreateAnimation" then return function() return Widget(key) end end
@@ -52,7 +56,10 @@ local function Widget(kind)
     end})
 end
 C_CurveUtil = {CreateColorCurve = function() return Widget("Curve") end}
-CreateFrame = function(kind) return Widget(kind) end
+CreateFrame = function(kind, _, _, template)
+    assert(template ~= "BackdropTemplate", "Native descendants must not install backdrop size callbacks")
+    return Widget(kind)
+end
 local root = Widget("Root")
 local db = {displayStyle = "icon", barWidth = 188, counterMode = "refresh", threshold = 5,
     showSealName = true, showStatusText = true}
@@ -79,6 +86,16 @@ db.displayStyle = "icon"
 assert(not display:Apply(db) and configurations == before, "Native styling defers in combat")
 combat = false
 assert(display:Apply(db) and display.present.frame.width == 56)
+-- Reproduce the reported gold-preset failure on reconfiguration after binding.
+db.border, db.borderSize, db.borderColor = "tooltip", 12, "gold"
+assert(display:Apply(db), "Gold border must not invoke BackdropTemplate or read secret geometry")
+assert(display.present.edges[1].width == 12)
+db.displayStyle = "bar"
+assert(display:Apply(db), "Gold border must also work on the bar layout")
+db.border = "none"
+assert(display:Apply(db) and not display.present.edges[1].shown)
+db.border = "solid"
+assert(display:Apply(db) and display.present.edges[1].shown)
 failGroup = true
 assert(addon.CreateNativeDisplay(root, db, Message) == nil)
 assert(messages[#messages]:find("using estimated tracker", 1, true))

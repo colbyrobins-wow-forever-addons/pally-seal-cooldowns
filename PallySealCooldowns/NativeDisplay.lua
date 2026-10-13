@@ -17,8 +17,12 @@ local function CreateWidgets(parent)
     view.overlay = CreateFrame("Frame", nil, parent)
     view.overlay:SetAllPoints(parent)
     view.overlay:SetFrameLevel(view.cooldown:GetFrameLevel() + 1)
-    view.edge = CreateFrame("Frame", nil, view.overlay, "BackdropTemplate")
-    view.edge:EnableMouse(false)
+    -- BackdropTemplate reads inherited geometry in Lua, which is secret for
+    -- native aura descendants. Draw borders from fixed configuration instead.
+    view.edges = {}
+    for index = 1, 8 do
+        view.edges[index] = view.overlay:CreateTexture(nil, "OVERLAY")
+    end
     view.border = view.overlay:CreateTexture(nil, "OVERLAY")
     if C_Texture and C_Texture.GetAtlasInfo
         and C_Texture.GetAtlasInfo("UI-HUD-CoolDownManager-IconOverlay") then
@@ -37,10 +41,53 @@ local function Dimensions(db)
         db.displayStyle == "bar" and 30 or 56
 end
 
+local function StyleBorder(view, db, missing)
+    local path = addon.MediaPath("border", db.border)
+    local iconSize = db.displayStyle == "bar" and 30 or 52
+    local size = db.borderSize
+    local span = math.max(1, iconSize + 4 - 2 * size)
+    local definitions = {
+        {"TOPLEFT", 0, -size, size, span},
+        {"TOPRIGHT", 0, -size, size, span},
+        {"TOPLEFT", size, 0, span, size},
+        {"BOTTOMLEFT", size, 0, span, size},
+        {"TOPLEFT", 0, 0, size, size},
+        {"TOPRIGHT", 0, 0, size, size},
+        {"BOTTOMLEFT", 0, 0, size, size},
+        {"BOTTOMRIGHT", 0, 0, size, size},
+    }
+    for index, definition in ipairs(definitions) do
+        local texture = view.edges[index]
+        texture:ClearAllPoints()
+        texture:SetShown(path ~= nil)
+        if path then
+            local point, x, y, width, height = unpack(definition)
+            texture:SetSize(width, height)
+            -- The surrounding box is iconSize+4; anchors use configured offsets.
+            if point:find("LEFT", 1, true) then x = x - 2 else x = x + 2 end
+            if point:find("TOP", 1, true) then y = y + 2 else y = y - 2 end
+            texture:SetPoint(point, view.icon, point, x, y)
+            if db.border == "solid" then
+                texture:SetColorTexture(addon.BorderRGB(db, missing))
+            else
+                texture:SetTexture(path)
+                local left, right = (index - 1 + 0.0625) / 8, (index - 0.0625) / 8
+                if index == 3 or index == 4 then
+                    texture:SetTexCoord(left, 0.9375, right, 0.9375,
+                        left, 0.0625, right, 0.0625)
+                else
+                    texture:SetTexCoord(left, right, 0.0625, 0.9375)
+                end
+                texture:SetVertexColor(addon.BorderRGB(db, missing))
+            end
+        end
+    end
+end
+
 local function Style(view, db, missing)
     local width, height = Dimensions(db)
     view.frame:SetSize(width, height)
-    for _, region in ipairs({view.icon, view.cooldown, view.bar, view.name, view.timer, view.status, view.edge}) do
+    for _, region in ipairs({view.icon, view.cooldown, view.bar, view.name, view.timer, view.status}) do
         region:ClearAllPoints()
     end
     if db.displayStyle == "bar" then
@@ -77,16 +124,12 @@ local function Style(view, db, missing)
     addon.ApplyFont(view.name, db, db.nameSize)
     addon.ApplyFont(view.timer, db, db.timerSize)
     addon.ApplyFont(view.status, db, 0)
-    local edge = addon.MediaPath("border", db.border)
     view.border:ClearAllPoints()
     view.border:SetPoint("TOPLEFT", view.icon, "TOPLEFT", -8, 7)
     view.border:SetPoint("BOTTOMRIGHT", view.icon, "BOTTOMRIGHT", 8, -7)
     view.border:SetShown(db.border == "default")
     view.border:SetVertexColor(addon.BorderRGB(db, missing))
-    view.edge:SetPoint("TOPLEFT", view.icon, "TOPLEFT", -2, 2)
-    view.edge:SetPoint("BOTTOMRIGHT", view.icon, "BOTTOMRIGHT", 2, -2)
-    view.edge:SetBackdrop(edge and {edgeFile = edge, edgeSize = db.borderSize} or nil)
-    view.edge:SetBackdropBorderColor(addon.BorderRGB(db, missing))
+    StyleBorder(view, db, missing)
     if missing then
         view.icon:SetTexture("Interface\\Icons\\Spell_Holy_SealOfMight")
         view.icon:SetDesaturated(true)
