@@ -3,6 +3,7 @@ local frame = CreateFrame("Frame", "PallySealCooldownsFrame", UIParent)
 frame:Hide()
 local db, activeAura, warnedKey
 local sealNames = {}
+local sealSpellIDs = {}
 -- Base spell IDs resolve localized names; all ranks share those names.
 local sealIDs = {20154, 21084, 20375, 20164, 20165, 20166, 21082, 20163}
 local elapsedTotal = 0
@@ -20,9 +21,12 @@ end
 
 local function BuildSealNames()
     wipe(sealNames)
+    wipe(sealSpellIDs)
     for _, spellID in ipairs(sealIDs) do
         local name = C_Spell and C_Spell.GetSpellName and C_Spell.GetSpellName(spellID)
-        if name then sealNames[name] = true end
+        if addon.IsReadable(name) and type(name) == "string" then
+            sealNames[name], sealSpellIDs[spellID] = true, true
+        end
     end
 end
 
@@ -330,6 +334,9 @@ local function ScanAuras(addedSeal)
     current, accessRestricted, diagnostic = addon.FindSeal(sealNames,
         C_UnitAuras.GetAuraDataBySpellName, addon.DebugEnabled())
     if addedSeal then current = addedSeal end
+    if addon.DebugEnabled() then
+        addon.DebugProbe(db, inCombat, current or activeAura, sealSpellIDs)
+    end
     -- Forever can return nil for an active seal throughout combat. Once a
     -- known seal disappears from queries, absence alone cannot confirm removal.
     if current then
@@ -517,6 +524,7 @@ frame:SetScript("OnEvent", function(_, event, unit, castGUID, spellID)
                 .. " recognized=" .. tostring(recognized))
         end
         if not recognized then return end
+        sealSpellIDs[spellID] = true
         local duration = db.sealDurations[name]
         if not addon.IsFiniteNumber(duration) or duration <= 0 then
             duration = 30 -- Forever beta baseline; replaced by observed aura duration.

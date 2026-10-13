@@ -1,6 +1,8 @@
 local _, addon = ...
 local enabled = false
 local lastScan
+local lastProbe
+local lastInstance
 local limit = 100
 
 function addon.DebugEnabled()
@@ -45,18 +47,67 @@ function addon.DebugRecord(db, event, detail)
     if event == "scan" then
         if entry == lastScan then return end
         lastScan = entry
+    elseif event == "probe" then
+        if entry == lastProbe then return end
+        lastProbe = entry
     else
-        lastScan = nil
+        lastScan, lastProbe = nil, nil
     end
     if type(db.debugLog) ~= "table" then db.debugLog = {} end
     while #db.debugLog >= limit do table.remove(db.debugLog, 1) end
     db.debugLog[#db.debugLog + 1] = string.format("%.1f %s", GetTime(), entry)
 end
 
+local function ProbeAura(query, ...)
+    if type(query) ~= "function" then return "unsupported" end
+    local ok, aura = pcall(query, ...)
+    if not ok then return "error" end
+    if not addon.IsReadable(aura) then return "restricted" end
+    if aura == nil then return "empty" end
+    if type(aura) ~= "table" then return "unexpected" end
+    return "found:instance=" .. SafeValue(aura.auraInstanceID)
+        .. ":expires=" .. SafeValue(aura.expirationTime)
+end
+
+-- Only report safe query outcomes. Probes never alter the tracked seal.
+function addon.DebugProbe(db, combat, aura, spellIDs)
+    if not enabled then return end
+    local apis = C_UnitAuras or {}
+    local ids = {}
+    for id in pairs(spellIDs) do
+        if addon.IsFiniteNumber(id) then ids[#ids + 1] = id end
+    end
+    table.sort(ids)
+    local outcomes = {"combat=" .. tostring(combat)}
+    for _, id in ipairs(ids) do
+        outcomes[#outcomes + 1] = "player-spell[" .. id .. "]="
+            .. ProbeAura(apis.GetPlayerAuraBySpellID, id)
+        outcomes[#outcomes + 1] = "unit-spell[" .. id .. "]="
+            .. ProbeAura(apis.GetUnitAuraBySpellID, "player", id)
+    end
+    if aura then
+        lastInstance = addon.IsFiniteNumber(aura.auraInstanceID) and aura.auraInstanceID or nil
+    end
+    if lastInstance then
+        local id = lastInstance
+        outcomes[#outcomes + 1] = "instance[" .. id .. "]="
+            .. ProbeAura(apis.GetAuraDataByAuraInstanceID, "player", id)
+        if type(apis.IsAuraFilteredOutByInstanceID) == "function" then
+            local ok, filtered = pcall(apis.IsAuraFilteredOutByInstanceID, "player", id, "HELPFUL")
+            outcomes[#outcomes + 1] = "filtered[" .. id .. "]="
+                .. (ok and SafeValue(filtered) or "error")
+        end
+    else
+        outcomes[#outcomes + 1] = "instance=unknown"
+    end
+    addon.DebugRecord(db, "probe", table.concat(outcomes, "; "))
+end
+
 function addon.DebugCommand(db, argument, message, names)
     argument = argument:lower()
     if argument == "on" then
-        enabled, lastScan = true, nil
+        enabled, lastScan, lastProbe = true, nil, nil
+        lastInstance = nil
         db.debugLog = {}
         local version, build, _, interface = GetBuildInfo()
         addon.DebugRecord(db, "client", SafeValue(version) .. " build=" .. SafeValue(build)
@@ -75,10 +126,10 @@ function addon.DebugCommand(db, argument, message, names)
         end
         message("Diagnostics enabled for this session. Reproduce the issue, then /psc debug dump.")
     elseif argument == "off" then
-        enabled, lastScan = false, nil
+        enabled, lastScan, lastProbe = false, nil, nil
         message("Diagnostics disabled; captured entries retained.")
     elseif argument == "clear" then
-        db.debugLog, lastScan = {}, nil
+        db.debugLog, lastScan, lastProbe = {}, nil, nil
         message("Diagnostic entries cleared.")
     elseif argument == "dump" then
         local entries = type(db.debugLog) == "table" and db.debugLog or {}

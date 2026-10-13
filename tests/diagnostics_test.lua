@@ -53,3 +53,53 @@ end
 local _, _, detail = addon.FindSeal({Seal = true}, function() return nil end)
 assert(detail == nil, "Disabled diagnostics do not collect query text")
 io.write("Diagnostics tests passed.\n")
+-- Compare supported APIs without executing probes when diagnostics are off.
+local calls = 0
+local result = {auraInstanceID = 77, expirationTime = secret}
+C_UnitAuras = {
+    GetPlayerAuraBySpellID = function(id)
+        calls = calls + 1
+        assert(id == 20375)
+        return result
+    end,
+    GetUnitAuraBySpellID = function(unit, id)
+        assert(unit == "player" and id == 20375)
+        return result
+    end,
+    GetAuraDataByAuraInstanceID = function(unit, id)
+        assert(unit == "player" and id == 77)
+        return result
+    end,
+    IsAuraFilteredOutByInstanceID = function(unit, id, filter)
+        assert(unit == "player" and id == 77 and filter == "HELPFUL")
+        return false
+    end,
+}
+addon.DebugProbe(db, true, {auraInstanceID = 77}, {[20375] = true})
+assert(calls == 0, "Disabled diagnostics make no compatibility API calls")
+addon.DebugCommand(db, "on", Message, {Seal = true})
+local tracked = {auraInstanceID = 77, expirationTime = 200}
+addon.DebugProbe(db, true, tracked, {[20375] = true})
+local entry = db.debugLog[#db.debugLog]
+assert(entry:find("player-spell[20375]=found:instance=77:expires=restricted", 1, true))
+assert(entry:find("instance[77]=found", 1, true))
+assert(entry:find("filtered[77]=false", 1, true))
+assert(tracked.expirationTime == 200, "Probe must not mutate the tracked timer")
+local count = #db.debugLog
+addon.DebugRecord(db, "scan", "stable")
+addon.DebugProbe(db, true, tracked, {[20375] = true})
+assert(#db.debugLog == count + 1, "Scan recording must not defeat probe deduplication")
+result = nil
+addon.DebugProbe(db, true, nil, {[20375] = true})
+assert(db.debugLog[#db.debugLog]:find("instance[77]=empty", 1, true),
+    "Retain last instance for the after-removal comparison")
+result = secret
+addon.DebugProbe(db, true, tracked, {[20375] = true})
+assert(db.debugLog[#db.debugLog]:find("player-spell[20375]=restricted", 1, true))
+C_UnitAuras.GetPlayerAuraBySpellID = function() error("Do not log raw error") end
+addon.DebugProbe(db, true, {}, {[20375] = true})
+assert(db.debugLog[#db.debugLog]:find("player-spell[20375]=error", 1, true))
+assert(db.debugLog[#db.debugLog]:find("instance=unknown", 1, true))
+C_UnitAuras = {}
+addon.DebugProbe(db, true, nil, {[20375] = true})
+assert(db.debugLog[#db.debugLog]:find("player-spell[20375]=unsupported", 1, true))

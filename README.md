@@ -43,6 +43,14 @@ The exporter reads only diagnostic strings without executing Lua or exporting
 other settings. It replaces the output file on a successful export. Use the
 ignored `diagnostics/` directory for local reports.
 
+The compatibility probe runs only with diagnostics enabled. It compares seal
+lookups by spell ID (including ranks cast this session) and by a known aura
+instance ID, recording safe found/empty/restricted/error results. Cast a seal
+outside combat first to establish an instance ID, enter combat, wait two seconds,
+then cancel the buff and wait two seconds. Separately cast and cancel in combat
+to test spell-ID lookups without a precombat instance. Probes do not change the
+timer or infer removal from empty results. Stop diagnostics and logout to save.
+
 ### Copy addon files
 
 Copy the entire `PallySealCooldowns` folder into your Forever client's

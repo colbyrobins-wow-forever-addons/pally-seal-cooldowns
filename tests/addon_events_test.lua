@@ -447,3 +447,16 @@ local startBefore = cooldownStart
 now = now + 1
 scripts.OnEvent(widget, "UNIT_SPELLCAST_SUCCEEDED", "player", "damage-effect", 20424)
 assert(cooldownStart == startBefore, "Command damage effect must not restart a buff timer")
+local spellProbeCalls = 0
+C_Spell.GetSpellName = function(id)
+    if id == 20305 then return "Seal 21082" end
+    return originalSpellName(id)
+end
+C_UnitAuras.GetPlayerAuraBySpellID = function(id)
+    if id == 20305 then spellProbeCalls = spellProbeCalls + 1 end
+end
+SlashCmdList.PALLYSEALCOOLDOWNS("debug on")
+scripts.OnEvent(widget, "UNIT_SPELLCAST_SUCCEEDED", "player", "rank-probe", 20305)
+scripts.OnUpdate(widget, 0.5)
+assert(spellProbeCalls > 0, "Compatibility probes include the exact seal rank cast")
+assert(counterText ~= "!", "Empty probe results do not clear the combat estimate")
