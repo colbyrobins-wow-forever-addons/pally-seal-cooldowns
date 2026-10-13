@@ -178,3 +178,25 @@ No in-game results for the unreleased sound changes have been recorded yet.
 - Verified backup:
   `<workspace>/addon-deployment-backups/PallySealCooldowns-before-5788153-a943a360fb534f56a8b3e702d5363a5d`.
 - In-game compatibility results and cancellation/dispel acceptance remain pending.
+
+### 2026-10-12: compatibility results
+
+- Fresh capture: 65 entries exported to ignored
+  `diagnostics/seal-compatibility-final.txt`.
+- Command instance 139 was found outside combat at 1951.6 and briefly on combat
+  entry at 1954.3. By 1954.6 both spell-ID queries returned empty and both the
+  instance lookup and HELPFUL filter probe returned errors. Command damage
+  spell 20424 occurred at 1955.5, supporting that empty queries were not proof
+  the seal was absent. The damage effect was correctly ignored as a buff cast.
+- Restricted removal events arrived during combat without readable IDs. No
+  successful alternative lookup distinguished cancellation in combat.
+- On combat exit at 1972.4, instance lookup returned empty and filter returned
+  true, and the tracker reconciled to missing. That does not solve immediate
+  combat cancellation/dispel tracking.
+- This capture contains one observed seal application; it does not separately
+  verify a fresh seal cast entirely during combat. Repeating that case is not
+  needed to justify rejecting empty lookup results as confirmed removal.
+- Remaining investigation: a supported native aura display that can consume
+  restricted data. Such a mechanism has not been established for this client.
+  Current estimate tracking remains the verified fallback; cancellation/dispel
+  acceptance is still unresolved. Do not establish a release from these results.
