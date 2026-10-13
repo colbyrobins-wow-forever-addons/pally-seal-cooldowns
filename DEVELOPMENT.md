@@ -88,3 +88,17 @@ No in-game results for the unreleased sound changes have been recorded yet.
   Use `/psc debug off` and `/psc debug dump` to collect the results.
 - Client build, character level, seal/rank, observed results, and acceptance
   remain pending. This deployment is not a release or a confirmed detection fix.
+
+### 2026-10-12: combat lookup fix deployment
+
+- Deployed clean source commit `bc87432` to the same Forever beta addon folder;
+  version remains 0.1.18. All eight source file hashes matched after copying.
+- Verified backup:
+  `<workspace>/addon-deployment-backups/PallySealCooldowns-before-bc87432-35850e4f929845ae89e106335dfc6dd5`.
+- All six Lua suites passed, including the captured cast/empty lookup/combat-exit
+  sequence, precombat seal retention, confirmed removal, expired uncertain
+  estimates without false audio, seal switching, and out-of-combat absence.
+- Pending in-game retest: `/reload`, enable diagnostics, cast and enter combat,
+  recast/switch/cancel, then leave combat and compare against actual buffs.
+  Cancellation without readable removal events may remain estimated until
+  reconciliation; this limitation is documented. User acceptance is pending.
