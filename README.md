@@ -139,16 +139,19 @@ interface with `/psc status`; future beta builds may require TOC/API changes.
 The addon queries known seals by name rather than enumerating all buffs, which
 can encounter unrelated secret auras. Scans run on aura events; frame updates
 refresh the display every 0.1 seconds and retry aura scans every 0.5 seconds,
-including during combat. Readable cancellations, replacements, and duration
-changes reconcile the timer. Readable removal events for the tracked aura also
+including during combat. Readable replacements and duration changes reconcile
+the timer. Empty combat lookups after a known seal retain its live estimate,
+because Forever can return empty results while the buff remains active. Empty
+lookups outside combat clear the timer after the cast grace period. Readable
+removal events for the tracked aura also
 clear its timer when a fresh aura query is blocked.
 Successful player seal casts immediately start/reset the timer and stop the
 missing-seal animation. Cast estimates use the last observed
 duration for that seal, or the Forever beta baseline of 30 seconds until a
 duration is learned. **ESTIMATED TIMER** identifies a countdown retained while
 live data is restricted. A successful cast has a 0.5-second grace period for
-the aura API to catch up before an empty or stale snapshot replaces it.
-If both aura queries and removal information are restricted, early cancellation,
+the aura API to catch up before an empty out-of-combat or stale snapshot replaces it.
+If combat aura queries are empty/restricted and removal information is unavailable, early cancellation,
 dispels, or changes cannot be confirmed and the estimate may differ from the buff.
 Expired estimates show unavailable status instead of a confirmed missing-seal
 alert. If aura timing is secret and no matching live estimate remains, the addon

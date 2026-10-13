@@ -207,13 +207,17 @@ scripts.OnEvent(widget, "UNIT_AURA", "player", {removedAuraInstanceIDs = {42}})
 assert(counterText == "30", "Replacement wins over the old aura removal")
 liveAura = nil
 scripts.OnEvent(widget, "UNIT_AURA", "player")
+assert(counterText == "30" and cooldownShown,
+    "Empty combat lookup preserves the known seal as an estimate")
+scripts.OnEvent(widget, "UNIT_AURA", "player", {removedAuraInstanceIDs = {43}})
 assert(counterText == "!" and not cooldownShown, "Cancellation clears timer and swipe in combat")
 scripts.OnEvent(widget, "UNIT_SPELLCAST_SUCCEEDED", "player", "delayed", 20154)
 scripts.OnEvent(widget, "UNIT_AURA", "player")
 assert(counterText == "30", "Empty snapshot immediately after cast must allow API catch-up")
 now = 200.6
 scripts.OnUpdate(widget, 0.5)
-assert(counterText == "!", "Polling clears confirmed absence after cast grace period")
+assert(counterText ~= "!" and cooldownShown,
+    "Empty combat polling must preserve casts beyond the grace period")
 liveAura = {icon = 124, duration = 30, expirationTime = 230, auraInstanceID = 44}
 scripts.OnEvent(widget, "UNIT_AURA", "player")
 C_UnitAuras.GetAuraDataBySpellName = function() error("restricted") end
@@ -236,13 +240,13 @@ scripts.OnEvent(widget, "UNIT_AURA", "player")
 C_UnitAuras.GetAuraDataBySpellName = function() return nil end
 scripts.OnEvent(widget, "UNIT_AURA", "player")
 assert(soundCount == before + 1, "Restricted reads do not rearm missing warning")
-local aura = {icon = 123, duration = 30, expirationTime = now + 30}
+local aura = {icon = 123, duration = 30, expirationTime = now + 30, auraInstanceID = 45}
 C_UnitAuras.GetAuraDataBySpellName = function(_, name)
     if name == "Seal 20154" then return aura end
 end
 scripts.OnEvent(widget, "UNIT_AURA", "player")
 aura = nil
-scripts.OnEvent(widget, "UNIT_AURA", "player")
+scripts.OnEvent(widget, "UNIT_AURA", "player", {removedAuraInstanceIDs = {45}})
 assert(soundCount == before + 2, "Recovery rearms missing warning")
 db.missingSound = false
 scripts.OnEvent(widget, "PLAYER_REGEN_ENABLED")
@@ -344,4 +348,42 @@ assert(#log == count, "Stable polling does not flood the diagnostic buffer")
 scripts.OnEvent(widget, "UNIT_SPELLCAST_SUCCEEDED", "player", "debug-cast", 20154)
 assert(table.concat(log, "\n"):find("recognized=true", 1, true))
 SlashCmdList.PALLYSEALCOOLDOWNS("debug off")
+
+-- Captured Forever regression: a successful cast is invisible throughout
+-- combat, then returns with the same expiration immediately on combat exit.
+SlashCmdList.PALLYSEALCOOLDOWNS("counter always")
+now = 133199.8
+local restored = {icon = 123, duration = 30, expirationTime = 133229.8, auraInstanceID = 99}
+C_UnitAuras.GetAuraDataBySpellName = function() return nil end
+scripts.OnEvent(widget, "UNIT_SPELLCAST_SUCCEEDED", "player", "regression", 20375)
+now = 133200.9
+local soundsBefore = soundCount
+scripts.OnUpdate(widget, 0.5)
+assert(counterText ~= "!" and counterText ~= "?" and cooldownShown,
+    "Captured combat lookup must keep the cast countdown")
+assert(soundCount == soundsBefore, "Empty lookup must not play a false missing alert")
+C_UnitAuras.GetAuraDataBySpellName = function(_, name)
+    if name == "Seal 20375" then return restored end
+end
+now = 133201.5
+scripts.OnEvent(widget, "PLAYER_REGEN_ENABLED")
+assert(cooldownStart == 133199.8 and cooldownDuration == 30,
+    "Combat exit reconciles the captured expiration")
+scripts.OnEvent(widget, "PLAYER_REGEN_DISABLED")
+C_UnitAuras.GetAuraDataBySpellName = function() return nil end
+scripts.OnEvent(widget, "UNIT_AURA", "player")
+assert(counterText ~= "!" and cooldownShown, "Combat entry retains a precombat seal")
+now = 133230
+scripts.OnUpdate(widget, 0.5)
+scripts.OnUpdate(widget, 0.5)
+assert(counterText == "?" and not cooldownShown,
+    "Expired combat estimate stays unavailable instead of falsely missing")
+assert(soundCount == soundsBefore, "Unknown expiration must not play missing audio")
+scripts.OnEvent(widget, "UNIT_SPELLCAST_SUCCEEDED", "player", "switch", 20154)
+now = 133231
+scripts.OnUpdate(widget, 0.5)
+assert(counterText ~= "!" and cooldownShown, "Switching seals survives empty combat queries")
+scripts.OnEvent(widget, "PLAYER_REGEN_ENABLED")
+assert(counterText == "!" and not cooldownShown,
+    "Readable empty lookup outside combat clears the estimate")
 io.write("Addon event regression tests passed.\n")

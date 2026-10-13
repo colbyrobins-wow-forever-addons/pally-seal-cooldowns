@@ -8,6 +8,7 @@ local sealIDs = {20154, 21084, 20375, 20164, 20165, 20166, 21082, 20163}
 local elapsedTotal = 0
 local pollElapsed = 0
 local accessRestricted = false
+local combatLookupUncertain = false
 local inCombat = false
 local missingAlertPlaying = false
 local missingSoundPlayed = false
@@ -328,11 +329,20 @@ local function ScanAuras()
     local current, diagnostic
     current, accessRestricted, diagnostic = addon.FindSeal(sealNames,
         C_UnitAuras.GetAuraDataBySpellName, addon.DebugEnabled())
+    -- Forever can return nil for an active seal throughout combat. Once a
+    -- known seal disappears from queries, absence alone cannot confirm removal.
+    if current then
+        combatLookupUncertain = false
+    elseif inCombat and (activeAura or combatLookupUncertain) then
+        combatLookupUncertain = true
+        accessRestricted = true
+    end
     local previous = diagnostic and addon.DebugAura(activeAura)
     activeAura = addon.ResolveSeal(activeAura, current, accessRestricted, GetTime())
     if diagnostic then
         addon.DebugRecord(db, "scan", "combat=" .. tostring(inCombat)
             .. " queries=[" .. diagnostic .. "] previous=" .. previous
+            .. " uncertain=" .. tostring(combatLookupUncertain)
             .. " resolved=" .. addon.DebugAura(activeAura))
     end
     cooldown:Hide()
@@ -522,6 +532,7 @@ frame:SetScript("OnEvent", function(_, event, unit, castGUID, spellID)
         if unit == "player" then
             if addon.WasSealRemoved(activeAura, castGUID) then
                 activeAura = nil
+                combatLookupUncertain = false
                 cooldown:Hide()
             end
             ScanAuras()
@@ -535,6 +546,7 @@ frame:SetScript("OnEvent", function(_, event, unit, castGUID, spellID)
         Render()
     elseif event == "PLAYER_REGEN_ENABLED" or event == "PLAYER_ENTERING_WORLD" then
         addon.DebugRecord(db, "event", event)
+        combatLookupUncertain = false
         addon.RegisterSettings(db, ApplySettings)
         if event == "PLAYER_ENTERING_WORLD" then ApplyPosition() end
         inCombat = event == "PLAYER_ENTERING_WORLD" and UnitAffectingCombat("player") == true
