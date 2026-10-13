@@ -173,3 +173,8 @@ No in-game results for the unreleased sound changes have been recorded yet.
   detection logic, timers, or release version.
 - Pending: compare active versus cancelled seals in combat, first with a known
   precombat instance, then with a fresh cast made entirely in combat.
+- All six Lua 5.1 suites passed. Deployed clean source commit `5788153` to the
+  same beta addon folder, with all eight file hashes verified; version is 0.1.18.
+- Verified backup:
+  `<workspace>/addon-deployment-backups/PallySealCooldowns-before-5788153-a943a360fb534f56a8b3e702d5363a5d`.
+- In-game compatibility results and cancellation/dispel acceptance remain pending.
