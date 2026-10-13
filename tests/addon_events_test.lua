@@ -65,6 +65,7 @@ PlaySound = function() earlySounds = earlySounds + 1 end
 local addon = {}
 assert(loadfile("PallySealCooldowns/SealLogic.lua"))("PallySealCooldowns", addon)
 assert(loadfile("PallySealCooldowns/Diagnostics.lua"))("PallySealCooldowns", addon)
+assert(loadfile("PallySealCooldowns/NativePrototype.lua"))("PallySealCooldowns", addon)
 assert(loadfile("PallySealCooldowns/Appearance.lua"))("PallySealCooldowns", addon)
 assert(loadfile("PallySealCooldowns/Minimap.lua"))("PallySealCooldowns", addon)
 assert(loadfile("PallySealCooldowns/Settings.lua"))("PallySealCooldowns", addon)

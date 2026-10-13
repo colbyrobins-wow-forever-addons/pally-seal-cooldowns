@@ -51,6 +51,22 @@ then cancel the buff and wait two seconds. Separately cast and cancel in combat
 to test spell-ID lookups without a precombat instance. Probes do not change the
 timer or infer removal from empty results. Stop diagnostics and logout to save.
 
+### Native seal display prototype
+
+Outside combat, use `/psc native on` to show a second icon labelled
+**NATIVE SEAL TEST**, 150 pixels to the right of the saved tracker position.
+Blizzard manages this icon's seal selection, cooldown, name, and visibility;
+the addon never reads its restricted state. Cancel/dispel the seal in combat
+and check whether this second icon disappears immediately. The existing tracker
+remains available for comparison. `/psc native off` hides the prototype outside
+combat; it starts disabled after reload. Unsupported clients report an error
+and retain the existing tracker.
+
+The prototype has a fixed icon layout and no sound alerts or missing-seal
+animation. It tests native visibility before integrating those features.
+Its seal rank ID data is adapted from talentsforever.com via the installed
+ForeverAuras dataset under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+
 ### Copy addon files
 
 Copy the entire `PallySealCooldowns` folder into your Forever client's

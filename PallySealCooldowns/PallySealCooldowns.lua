@@ -403,6 +403,8 @@ SlashCmdList.PALLYSEALCOOLDOWNS = function(input)
     elseif command == "debug" then
         addon.DebugCommand(db, argument, Message, sealNames)
         if argument:lower() == "on" then ScanAuras() end
+    elseif command == "native" then
+        addon.NativePrototypeCommand(argument, db, Message)
     elseif command == "lock" or command == "unlock" then
         db.locked = command == "lock"
         ApplyPosition()
@@ -446,7 +448,7 @@ SlashCmdList.PALLYSEALCOOLDOWNS = function(input)
         Message(string.format("Client %s / build %s / interface %s; aura API %s.",
             version, build, interface, C_UnitAuras and "available" or "missing"))
     else
-        Message("/psc unlock | lock | warn 5 | counter refresh/always | sound | scale 1 | reset | status | debug")
+        Message("/psc unlock | lock | warn 5 | counter refresh/always | sound | scale 1 | reset | status | debug | native")
     end
 end
 

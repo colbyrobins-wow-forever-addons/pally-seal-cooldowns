@@ -200,3 +200,21 @@ No in-game results for the unreleased sound changes have been recorded yet.
   restricted data. Such a mechanism has not been established for this client.
   Current estimate tracking remains the verified fallback; cancellation/dispel
   acceptance is still unresolved. Do not establish a release from these results.
+
+### Native aura-container prototype
+
+- `/psc native on|off` controls a separate session-only test icon outside combat.
+  It uses CustomAuraContainerTemplate, a HELPFUL slot filtered to seal ranks,
+  and native icon, duration, and spell-name bindings. It never reads restricted
+  button state, visibility, geometry, or text.
+- Rank IDs are attributed to talentsforever.com via the installed ForeverAuras
+  dataset under CC BY 4.0; implementation uses Blizzard's public container API
+  independently, with no ForeverAuras runtime dependency.
+- Fixed-size icon appears beside the existing tracker. Sound, missing-seal
+  animation, bar layout, and replacement of the original display are deferred
+  until native presence/removal is verified in this client.
+- Seven Lua 5.1 suites pass, including native binding setup, rank filtering,
+  combat guards, repeated enable/disable, and graceful initialization failure.
+- Pending: enable outside combat, test precombat and in-combat casts, cancel and
+  dispel, and confirm the native icon disappears immediately while its label
+  remains. Do not interpret initialization tests as in-game acceptance.
