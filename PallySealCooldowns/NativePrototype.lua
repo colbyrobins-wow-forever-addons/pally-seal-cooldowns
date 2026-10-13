@@ -16,7 +16,7 @@ local sealRanks = {
     21082, 20162, 20305, 20306, 20307, 20308, -- Crusader
 }
 
-local function SealFilters()
+function addon.NativeSealFilters()
     local ids = {}
     for _, id in ipairs(sealRanks) do ids[id] = true end
     return {includeSpellIDs = ids}
@@ -68,7 +68,7 @@ local function CreatePrototype(db)
     container:SetPoint("TOPLEFT", panel, "TOPLEFT")
     container:SetUnit("player")
     container:AddAuraSlot("Seal", "HELPFUL", {
-        candidateFilters = SealFilters(),
+        candidateFilters = addon.NativeSealFilters(),
         sortMethod = AuraContainerSortMethod.Default,
         sortDirection = AuraContainerSortDirection.Normal,
         initializeFrame = InitializeButton,

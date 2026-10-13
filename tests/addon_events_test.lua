@@ -69,6 +69,7 @@ assert(loadfile("PallySealCooldowns/NativePrototype.lua"))("PallySealCooldowns",
 assert(loadfile("PallySealCooldowns/Appearance.lua"))("PallySealCooldowns", addon)
 assert(loadfile("PallySealCooldowns/Minimap.lua"))("PallySealCooldowns", addon)
 assert(loadfile("PallySealCooldowns/Settings.lua"))("PallySealCooldowns", addon)
+assert(loadfile("PallySealCooldowns/NativeDisplay.lua"))("PallySealCooldowns", addon)
 assert(loadfile("PallySealCooldowns/PallySealCooldowns.lua"))("PallySealCooldowns", addon)
 scripts.OnEvent(widget, "ADDON_LOADED", "PallySealCooldowns")
 assert(queries > 0)
@@ -461,3 +462,26 @@ scripts.OnEvent(widget, "UNIT_SPELLCAST_SUCCEEDED", "player", "rank-probe", 2030
 scripts.OnUpdate(widget, 0.5)
 assert(spellProbeCalls > 0, "Compatibility probes include the exact seal rank cast")
 assert(counterText ~= "!", "Empty probe results do not clear the combat estimate")
+-- Native presentation must not be overwritten by legacy polling/cast timers.
+local appliedNative, combatUpdates = 0, 0
+addon.CreateNativeDisplay = function()
+    return {
+        Apply = function() appliedNative = appliedNative + 1 end,
+        UpdateCombat = function() combatUpdates = combatUpdates + 1 end,
+    }
+end
+ReloadWithSettings({sound = false, missingSound = false})
+local legacyText = counterText
+scripts.OnEvent(widget, "PLAYER_REGEN_DISABLED")
+scripts.OnEvent(widget, "UNIT_SPELLCAST_SUCCEEDED", "player", "native-cast", 20154)
+scripts.OnUpdate(widget, 0.5)
+assert(counterText == legacyText and not cooldownShown,
+    "Legacy timer renders must stay hidden once native display owns the tracker")
+assert(combatUpdates > 0)
+local lockdown = true
+InCombatLockdown = function() return lockdown end
+SlashCmdList.PALLYSEALCOOLDOWNS("style bar")
+assert(appliedNative == 0, "Native layout changes are deferred during lockdown")
+lockdown = false
+scripts.OnEvent(widget, "PLAYER_REGEN_ENABLED")
+assert(appliedNative > 0, "Pending native layout applies after combat")

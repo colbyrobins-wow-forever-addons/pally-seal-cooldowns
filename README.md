@@ -3,6 +3,24 @@
 Development follows [the test-before-version workflow](DEVELOPMENT.md): changes
 are tracked in Git and tested in game before a new release version is assigned.
 
+The current development build uses Blizzard-managed aura displays for the main
+icon and bar when supported by the client. Seal visibility, name, countdown, and
+bar progress update natively, including removal during restricted combat. The
+missing-seal icon/text and combat animation use native layout clipping, without
+reading the restricted buff state in Lua. No `/psc native on` command is needed
+for the main tracker. That command retains the separate diagnostic prototype.
+
+Layout and appearance changes made during combat apply after combat ends.
+Saved position, scale, layout, font, border, bar texture, text visibility, and
+refresh-only countdown settings remain supported. Unsupported clients retain
+the older estimated tracker described below.
+
+Sound previews still work. Refresh sounds require a live observed timer;
+estimated timers cannot trigger them in native mode. Automatic cancellation/
+dispel sounds and combat-entry missing sounds are pending native sound
+integration; they are not driven by the restricted native display. Outside
+combat, confirmed missing-seal sounds still honor the existing settings.
+
 A lightweight paladin seal refresh tracker targeting WoW Forever beta interface
 16001. Tracks buff expiration, rather than spell cast cooldowns: the time you
 need for refreshing a seal.

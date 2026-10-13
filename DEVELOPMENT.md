@@ -236,3 +236,26 @@ No in-game results for the unreleased sound changes have been recorded yet.
   Sound notifications require a supported native trigger and separate testing.
 - Version remains 0.1.18; this confirmation is prototype acceptance, not release
   acceptance for the complete addon.
+
+### Native display integration
+
+- Main tracker initializes a native aura slot automatically on supported clients,
+  binding the seal icon, countdown, name, and duration bar. The existing Lua
+  tracker is retained as an initialization fallback and a source of readable
+  diagnostics; its rendering is disabled when native owns presentation.
+- Native HELPFUL presence-group geometry clips the missing-seal icon/text and
+  combat glow/bounce without observing secret visibility, text, size, or values.
+- Both icon and bar layouts preserve saved position/scale and appearance/text
+  controls. Refresh-only countdown and warning text use native duration color
+  curves. Configuration changes during combat defer until combat ends.
+- No sound is inferred from restricted native visibility. Previews remain;
+  refresh sounds use only an observed timer, outside-combat missing sounds use
+  readable absence. Native combat removal/entry sounds remain pending rather
+  than issuing alerts from obsolete estimates.
+- Eight Lua 5.1 suites pass, including native layout/binding configuration,
+  missing clipping anchors, combat deferral, initialization fallback, stable
+  animations, and suppression of legacy renders. Actual native clipping and
+  layout must still be checked in game.
+- Pending acceptance: main icon and bar with active seals, combat casts and
+  cancellation, enemy dispel, missing presentation, refresh countdown/warning,
+  saved settings and visibility after reload. Version remains 0.1.18.

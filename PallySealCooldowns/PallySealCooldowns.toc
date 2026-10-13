@@ -11,5 +11,6 @@ Diagnostics.lua
 NativePrototype.lua
 Appearance.lua
 Settings.lua
+NativeDisplay.lua
 Minimap.lua
 PallySealCooldowns.lua

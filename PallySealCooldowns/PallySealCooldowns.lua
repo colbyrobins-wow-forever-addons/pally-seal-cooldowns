@@ -14,6 +14,10 @@ local inCombat = false
 local missingAlertPlaying = false
 local missingSoundPlayed = false
 local ApplyLayout
+local nativeDisplay
+local pendingNativeSettings = false
+local nativeAttempted = false
+local HideLegacyDisplay
 
 local function Message(text)
     DEFAULT_CHAT_FRAME:AddMessage("|cffffd36aPally Seals:|r " .. text)
@@ -31,11 +35,20 @@ local function BuildSealNames()
 end
 
 local function ApplyPosition()
+    if nativeDisplay and InCombatLockdown and InCombatLockdown() then
+        pendingNativeSettings = true
+        return
+    end
     frame:ClearAllPoints()
     frame:SetPoint("CENTER", UIParent, "CENTER", db.x, db.y)
     frame:SetScale(db.scale)
     frame:EnableMouse(not db.locked)
     if ApplyLayout then ApplyLayout() end
+    if nativeDisplay then
+        nativeDisplay:Apply(db)
+        HideLegacyDisplay()
+        pendingNativeSettings = false
+    end
 end
 
 frame:SetSize(56, 56)
@@ -258,7 +271,28 @@ local function UpdateSoundAlerts(state)
     end
 end
 
+HideLegacyDisplay = function()
+    for _, region in ipairs({background, icon, overlay, bar, cooldown}) do region:Hide() end
+    pulse:Stop()
+    bounce:Stop()
+    missingAlertPlaying = false
+end
+
 local function Render()
+    if nativeDisplay then
+        nativeDisplay:UpdateCombat(inCombat)
+        frame:SetShown(not db.hideOutOfCombat or inCombat)
+        -- Never let an obsolete estimated timer drive native presentation or audio.
+        if activeAura and not activeAura.estimated then
+            local state = addon.GetState(activeAura.duration, activeAura.expirationTime, GetTime(), db.threshold)
+            if state == "active" or state == "refresh" or state == "permanent" then
+                UpdateSoundAlerts(state)
+            end
+        elseif not inCombat and not accessRestricted and not activeAura then
+            UpdateSoundAlerts("missing")
+        end
+        return
+    end
     local state, remaining
     if activeAura then
         state, remaining = addon.GetState(activeAura.duration,
@@ -364,7 +398,7 @@ local function ScanAuras(addedSeal)
         if state == "active" or state == "refresh" then
             cooldown:SetCooldown(activeAura.expirationTime - activeAura.duration,
                 activeAura.duration)
-            cooldown:Show()
+            if not nativeDisplay then cooldown:Show() end
         end
     end
     Render()
@@ -427,6 +461,7 @@ SlashCmdList.PALLYSEALCOOLDOWNS = function(input)
             return
         end
         db.counterMode = argument
+        if nativeDisplay then ApplyPosition() end
         Render()
         Message(argument == "refresh" and "Countdown appears at the refresh warning threshold."
             or "Countdown is always visible.")
@@ -500,6 +535,11 @@ frame:SetScript("OnEvent", function(_, event, unit, castGUID, spellID)
         end
         BuildSealNames()
         ApplyPosition()
+        if addon.CreateNativeDisplay then
+            nativeDisplay = addon.CreateNativeDisplay(frame, db, Message)
+            nativeAttempted = not (InCombatLockdown and InCombatLockdown())
+            if nativeDisplay then HideLegacyDisplay() end
+        end
         addon.CreateMinimapButton(db, OpenSettings)
         addon.RegisterSettings(db, ApplySettings)
         frame:RegisterEvent("UNIT_AURA")
@@ -543,7 +583,7 @@ frame:SetScript("OnEvent", function(_, event, unit, castGUID, spellID)
         }
         accessRestricted, warnedKey = false, nil
         cooldown:SetCooldown(now, duration)
-        cooldown:Show()
+        if not nativeDisplay then cooldown:Show() end
         Render()
     elseif event == "UNIT_AURA" then
         if unit == "player" then
@@ -583,6 +623,13 @@ frame:SetScript("OnEvent", function(_, event, unit, castGUID, spellID)
     elseif event == "PLAYER_REGEN_ENABLED" or event == "PLAYER_ENTERING_WORLD" then
         addon.DebugRecord(db, "event", event)
         combatLookupUncertain = false
+        if not nativeAttempted and addon.CreateNativeDisplay
+            and not (InCombatLockdown and InCombatLockdown()) then
+            nativeAttempted = true
+            nativeDisplay = addon.CreateNativeDisplay(frame, db, Message)
+            if nativeDisplay then HideLegacyDisplay() end
+        end
+        if nativeDisplay and pendingNativeSettings then ApplyPosition() end
         addon.RegisterSettings(db, ApplySettings)
         if event == "PLAYER_ENTERING_WORLD" then ApplyPosition() end
         inCombat = event == "PLAYER_ENTERING_WORLD" and UnitAffectingCombat("player") == true
