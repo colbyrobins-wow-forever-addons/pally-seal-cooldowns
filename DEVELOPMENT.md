@@ -142,3 +142,22 @@ No in-game results for the unreleased sound changes have been recorded yet.
 - Next capture: reload, enable diagnostics, cast in combat, manually cancel the
   buff, disable diagnostics, and reload. This is an investigation build, not a
   confirmed combat cancellation/dispel fix.
+
+### 2026-10-12: combat removal signals are restricted
+
+- Fresh capture exported as 20 entries to ignored
+  `diagnostics/seal-removal-capabilities-latest.txt`.
+- Client 1.60.1/build 70338 reports `combat-log-api=false registered=false`.
+- Combat cast at 1350.5 reports restricted `isFullUpdate` and `addedAuras`;
+  no readable instance ID can be attached to this cast.
+- Cancellation event at 1353.4 reports restricted `removedAuraInstanceIDs`.
+  The event arrives, but the addon cannot identify the removed buff.
+- The available alternative aura APIs have not been verified to return usable
+  data in this client. Availability alone does not establish readable combat
+  results; no automatic combat cancellation/dispel fix is confirmed.
+- Do not clear a seal on every UNIT_AURA event, inspect restricted values, or
+  treat empty combat queries as proof of removal. These would reintroduce
+  false warnings or depend on unsupported access.
+- Further implementation requires a supported readable presence/removal signal
+  or a native UI mechanism that can consume restricted aura data. A manual
+  reset could be offered separately but would not solve automatic dispel tracking.
