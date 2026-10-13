@@ -5,11 +5,11 @@ Keep track of your paladin seals with clear countdowns, refresh reminders, and a
 ## Features
 
 - **Two display layouts:** a large icon with a radial timer or a compact horizontal duration bar.
-- **Combat-aware tracking:** checks buff data every half second and on aura events to update readable cancellations, seal replacements, and duration changes.
-- **Immediate cast feedback:** casting, recasting, or switching seals starts a countdown while the addon waits for updated buff data.
+- **Native seal tracking:** Blizzard manages the main icon and bar directly, including removal while combat aura data is restricted. Unsupported clients retain estimated tracking.
+- **Seal changes:** native bindings update the icon, name, countdown, and bar when the active seal changes. The fallback tracker uses cast estimates.
 - **Refresh reminders:** configurable warning threshold, red warning colors, and optional countdown numbers that appear only when a refresh is due.
-- **Missing-seal alerts:** a repeating glow and bounce when a seal is confirmed missing or readable timing shows it has expired in combat.
-- **Sound choices:** raid warning, whisper, or soft UI click, with audio-channel selection and a test button.
+- **Missing-seal visuals:** native layout shows the missing-seal icon, text, glow, and bounce without reading restricted buff state in addon Lua.
+- **Sound settings:** separate refresh/missing choices, including gentle chime, raid warning, whisper, and soft UI click, with audio-channel selection and previews. Combat sound limitations are described below.
 - **Flexible layout:** movable tracker, adjustable scale and bar width, optional combat-only visibility, and separate toggles for the seal name and status text.
 - **Saved preferences:** settings and minimap button position persist between sessions. No additional addons are required.
 
@@ -32,7 +32,7 @@ All presets work without extra downloads. Optional **LibSharedMedia-3.0** suppor
 
 Open **Options > AddOns > Pally Seal Cooldowns**, type **`/psc`**, or click the minimap seal icon.
 
-General options, alerts, appearance controls, and presets are all on one scrollable page. Wider windows show two columns; narrower windows stack the sections. Changes apply immediately. Presets change appearance without altering your timing, sound, position, or visibility settings.
+General options, alerts, appearance controls, and presets are all on one scrollable page. Wider windows show two columns; narrower windows stack the sections. Changes apply immediately outside combat; native layout/appearance changes made during combat apply afterward. Presets change appearance without altering your timing, sound, position, or visibility settings.
 
 ## Compatibility
 
@@ -42,11 +42,13 @@ Recognizes localized names for Seal of Righteousness, Command, Justice, Light, W
 
 ## How combat tracking works
 
-The addon uses actual buff data whenever the client allows it, both in and out of combat. Readable removal events also clear the tracked seal's timer when a fresh buff query is restricted.
+On supported Forever clients, Blizzard's native aura container filters paladin seal ranks and drives the icon, countdown, name, and duration bar. Native layout also shows the missing-seal presentation when the seal is absent. The addon does not inspect restricted native frame state. The native manual-cancellation prototype was verified in game; enemy dispel has not been independently confirmed in the recorded tests.
 
-When buff data is restricted, it can retain an **ESTIMATED TIMER** based on a successful cast or previously readable timing. Cast estimates use the last learned duration for that seal, or a **30-second baseline** until a duration is learned. Readable buff data corrects the estimate when available.
+Clients without the required native display retain the previous estimated tracker. Empty combat lookups can retain a live estimate until readable data returns. This fallback cannot reliably identify cancellation/dispel when all removal information is restricted.
 
-If both buff data and removal information are hidden, cancellations, dispels, or duration changes cannot be confirmed. An expired estimate shows unavailable status rather than claiming the seal is definitely missing. **The addon never casts or refreshes spells automatically.**
+**Sound limitations:** refresh sounds in native mode require readable observed timing; estimated timers do not trigger them. Automatic combat cancellation/dispel sounds and combat-entry missing sounds are pending native sound integration. Sound previews and readable out-of-combat missing sounds remain available. Saved sound choices are preserved.
+
+**The addon never casts or refreshes spells automatically.** No WeakAuras or ForeverAuras installation is required.
 
 ## Commands
 
@@ -58,7 +60,7 @@ If both buff data and removal information are hidden, cancellations, dispels, or
 | `/psc warn 5` | Warn with 5 seconds remaining; accepts 1–30 |
 | `/psc counter refresh` | Show countdown numbers only at the warning threshold |
 | `/psc counter always` | Always show countdown numbers (default) |
-| `/psc sound` | Toggle the audible warning |
+| `/psc sound` | Toggle the refresh warning sound |
 | `/psc scale 1` | Set display scale; accepts 0.5–2 |
 | `/psc reset` | Reset position and size |
 | `/psc status` | Show client version, build, interface, and aura API status |
@@ -72,3 +74,7 @@ Extract the `PallySealCooldowns` folder into your Forever client's `_classic_bet
 ## Feedback
 
 Forever is a beta client and future builds may need addon updates. When reporting a problem, include your client build (`/psc status`), addon version, game language, seal name, steps to reproduce, and any Lua error text.
+
+## Data attribution
+
+Native seal rank data is adapted from talentsforever.com under CC BY 4.0. The addon includes `NOTICE.md` with source, license, and modification details.

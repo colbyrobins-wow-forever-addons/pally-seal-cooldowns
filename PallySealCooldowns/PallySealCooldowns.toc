@@ -2,7 +2,7 @@
 ## Title: Pally Seal Cooldowns
 ## Notes: Paladin seal duration and refresh reminders for Forever beta.
 ## Author: Colby
-## Version: 0.1.18
+## Version: 0.1.19
 ## OptionalDeps: LibSharedMedia-3.0, SharedMedia
 ## SavedVariables: PallySealCooldownsDB
 

@@ -48,6 +48,13 @@ After in-game acceptance and a request to prepare a release:
 
 ## Current unreleased work
 
+Release **0.1.19** was authorized on 2026-10-12 from repaired runtime commit
+`80a1059`. The user requested release after the repair was installed; that is
+recorded as acceptance for release preparation, not as a detailed test report
+for every pending scenario. Enemy dispel and native combat sounds remain the
+documented limitations. The work/status notes below preserve the development
+history leading to this release.
+
 The TOC remains at **0.1.18**. The first Git commit captures the current working
 snapshot, including unreleased work; it is not a release tag or proof of in-game
 acceptance. No remote repository is configured.
@@ -291,3 +298,18 @@ No in-game results for the unreleased sound changes have been recorded yet.
   `<workspace>/addon-deployment-backups/PallySealCooldowns-before-80a1059-cdb5bfca1b0f4fc98194b6954251e4ad`.
 - Pending: reload, use the gold preset, move/restyle the main tracker, and cancel
   a seal during combat. Native integration acceptance is still pending.
+
+### 2026-10-12: 0.1.19 release preparation
+
+- User requested release of the repaired integration. Assigned next patch
+  version 0.1.19; updated the TOC, changelog, README, project description, and
+  upload guide together.
+- Runtime Lua code matches `80a1059`; only release metadata/documentation and
+  the packaged rank-data notice were added. No new behavior was introduced.
+- Eight Lua 5.1 suites and three Python exporter tests passed.
+- Release archive: `dist/PallySealCooldowns-0.1.19.zip`, built from the release
+  Git tag `v0.1.19`; one top-level addon folder, required sound asset and NOTICE,
+  no tests, scripts, settings captures, backups, or development dependencies.
+- Public upload/publishing is separate from preparation. No remote is configured;
+  the archive, commit, and tag are local. Native combat sound integration and
+  independently documented enemy-dispel confirmation remain outstanding.
