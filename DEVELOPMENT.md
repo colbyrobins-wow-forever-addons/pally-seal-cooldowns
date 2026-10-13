@@ -71,3 +71,19 @@ For each test session, append a dated record here containing:
 - Remaining issues and whether the user accepted the build for release.
 
 No in-game results for the unreleased sound changes have been recorded yet.
+
+### 2026-10-12: diagnostic test deployment
+
+- Deployed source commit: `507c2c1`, clean at deployment; TOC remains 0.1.18.
+- Target: `C:/Program Files (x86)/World of Warcraft/_classic_beta_/Interface/AddOns/PallySealCooldowns`.
+- Existing installation backed up to
+  `<workspace>/addon-deployment-backups/PallySealCooldowns-before-507c2c1-9abda78800f44a12b1c25d367ae4189a`.
+- Backup hashes verified before copying; all eight source files verified by hash
+  against the installed files afterward. Deployment includes the unreleased
+  sound changes and diagnostic mode.
+- All six local Lua 5.1 suites passed. No client gameplay was performed.
+- Pending: reload/restart the client, enable `/psc debug on`, cast a seal outside
+  combat, enter combat, compare the tracker with the buff, then recast in combat.
+  Use `/psc debug off` and `/psc debug dump` to collect the results.
+- Client build, character level, seal/rank, observed results, and acceptance
+  remain pending. This deployment is not a release or a confirmed detection fix.
