@@ -259,3 +259,9 @@ No in-game results for the unreleased sound changes have been recorded yet.
 - Pending acceptance: main icon and bar with active seals, combat casts and
   cancellation, enemy dispel, missing presentation, refresh countdown/warning,
   saved settings and visibility after reload. Version remains 0.1.18.
+- Deployed clean source commit `b69846d` to the same beta addon folder. All ten
+  addon file hashes verified against the source after copying.
+- Verified backup:
+  `<workspace>/addon-deployment-backups/PallySealCooldowns-before-b69846d-b9536051a40c4769ad43ba61f4adac41`.
+- After reload the main tracker uses native display automatically when available;
+  no prototype command is required. In-game integration acceptance is pending.
