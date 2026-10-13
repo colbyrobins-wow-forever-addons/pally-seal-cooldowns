@@ -387,3 +387,54 @@ scripts.OnEvent(widget, "PLAYER_REGEN_ENABLED")
 assert(counterText == "!" and not cooldownShown,
     "Readable empty lookup outside combat clears the estimate")
 io.write("Addon event regression tests passed.\n")
+-- Delta additions attach an instance ID to an invisible combat cast, allowing
+-- cancellation/dispel removal events to clear it without a name lookup.
+now = 300
+scripts.OnEvent(widget, "PLAYER_REGEN_DISABLED")
+scripts.OnEvent(widget, "UNIT_SPELLCAST_SUCCEEDED", "player", "delta-cast", 20154)
+local hiddenTiming = {}
+issecretvalue = function(value) return value == hiddenTiming end
+scripts.OnEvent(widget, "UNIT_AURA", "player", {addedAuras = {
+    {name = "Seal 20154", auraInstanceID = 200, duration = hiddenTiming, expirationTime = hiddenTiming},
+}})
+now = 301
+scripts.OnUpdate(widget, 0.5)
+assert(counterText ~= "!" and cooldownShown, "Addition retains the cast estimate with hidden timing")
+scripts.OnEvent(widget, "UNIT_AURA", "player", {removedAuraInstanceIDs = {999}})
+assert(counterText ~= "!", "Unrelated delta removals do not clear the seal")
+local beforeRemoval = soundCount
+scripts.OnEvent(widget, "UNIT_AURA", "player", {removedAuraInstanceIDs = {200}})
+scripts.OnUpdate(widget, 0.5)
+assert(counterText == "!" and not cooldownShown and soundCount == beforeRemoval + 1,
+    "Matched delta removal clears timer and warns once despite empty combat lookups")
+issecretvalue = nil
+
+-- Combat-log confirmation also handles a cast with no known instance ID.
+local destination, removedName, subevent = "player-guid", "Seal 20154", "SPELL_AURA_REMOVED"
+UnitGUID = function() return "player-guid" end
+CombatLogGetCurrentEventInfo = function()
+    return now, subevent, false, "source-guid", "unused", 0, 0,
+        destination, "unused", 0, 0, 20154, removedName, 2, "BUFF"
+end
+ReloadWithSettings({sound = false, missingSound = true})
+scripts.OnEvent(widget, "PLAYER_REGEN_DISABLED")
+scripts.OnEvent(widget, "UNIT_SPELLCAST_SUCCEEDED", "player", "log-cast", 20154)
+destination = "other-guid"
+scripts.OnEvent(widget, "COMBAT_LOG_EVENT_UNFILTERED")
+assert(counterText ~= "!", "Other characters' removals are ignored")
+destination, removedName = "player-guid", "Other buff"
+scripts.OnEvent(widget, "COMBAT_LOG_EVENT_UNFILTERED")
+assert(counterText ~= "!", "Other buffs are ignored")
+removedName, subevent = "Seal 20154", "SPELL_AURA_APPLIED"
+scripts.OnEvent(widget, "COMBAT_LOG_EVENT_UNFILTERED")
+assert(counterText ~= "!", "Application must not be treated as removal")
+subevent = "SPELL_AURA_REMOVED"
+beforeRemoval = soundCount
+scripts.OnEvent(widget, "COMBAT_LOG_EVENT_UNFILTERED")
+scripts.OnEvent(widget, "COMBAT_LOG_EVENT_UNFILTERED")
+assert(counterText == "!" and not cooldownShown and soundCount == beforeRemoval + 1,
+    "Confirmed combat-log removal clears a cast-only estimate and warns once")
+scripts.OnEvent(widget, "UNIT_SPELLCAST_SUCCEEDED", "player", "restricted-log", 20154)
+CombatLogGetCurrentEventInfo = function() error("restricted") end
+scripts.OnEvent(widget, "COMBAT_LOG_EVENT_UNFILTERED")
+assert(counterText ~= "!", "Unavailable combat log must not claim removal")

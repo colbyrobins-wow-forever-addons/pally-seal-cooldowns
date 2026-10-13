@@ -18,6 +18,7 @@ function addon.DebugAura(aura)
     if not aura then return "none" end
     return SafeValue(aura.name) .. ":expires=" .. SafeValue(aura.expirationTime)
         .. (aura.estimated and ":estimated" or ":observed")
+        .. (addon.IsFiniteNumber(aura.auraInstanceID) and ":instance=" .. aura.auraInstanceID or "")
 end
 
 function addon.DebugRecord(db, event, detail)
@@ -46,6 +47,9 @@ function addon.DebugCommand(db, argument, message, names)
         for name in pairs(names) do known[#known + 1] = name end
         table.sort(known)
         addon.DebugRecord(db, "seal-names", #known .. " resolved: " .. table.concat(known, ", "))
+        if addon.CombatLogAvailable ~= nil then
+            addon.DebugRecord(db, "removal-signals", "combat-log=" .. tostring(addon.CombatLogAvailable))
+        end
         message("Diagnostics enabled for this session. Reproduce the issue, then /psc debug dump.")
     elseif argument == "off" then
         enabled, lastScan = false, nil

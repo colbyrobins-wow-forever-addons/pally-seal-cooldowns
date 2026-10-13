@@ -325,10 +325,11 @@ local function Render()
     end
 end
 
-local function ScanAuras()
+local function ScanAuras(addedSeal)
     local current, diagnostic
     current, accessRestricted, diagnostic = addon.FindSeal(sealNames,
         C_UnitAuras.GetAuraDataBySpellName, addon.DebugEnabled())
+    if addedSeal then current = addedSeal end
     -- Forever can return nil for an active seal throughout combat. Once a
     -- known seal disappears from queries, absence alone cannot confirm removal.
     if current then
@@ -493,6 +494,9 @@ frame:SetScript("OnEvent", function(_, event, unit, castGUID, spellID)
         addon.CreateMinimapButton(db, OpenSettings)
         addon.RegisterSettings(db, ApplySettings)
         frame:RegisterEvent("UNIT_AURA")
+        if type(CombatLogGetCurrentEventInfo) == "function" and type(UnitGUID) == "function" then
+            addon.CombatLogAvailable = pcall(frame.RegisterEvent, frame, "COMBAT_LOG_EVENT_UNFILTERED")
+        end
         frame:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
         frame:RegisterEvent("PLAYER_ENTERING_WORLD")
         frame:RegisterEvent("SPELLS_CHANGED")
@@ -530,12 +534,28 @@ frame:SetScript("OnEvent", function(_, event, unit, castGUID, spellID)
         Render()
     elseif event == "UNIT_AURA" then
         if unit == "player" then
+            local addedSeal = addon.FindAddedSeal(sealNames, castGUID)
             if addon.WasSealRemoved(activeAura, castGUID) then
+                addon.DebugRecord(db, "removal", "source=UNIT_AURA")
                 activeAura = nil
                 combatLookupUncertain = false
+                accessRestricted = false
                 cooldown:Hide()
             end
-            ScanAuras()
+            if addedSeal then addon.DebugRecord(db, "addition", addon.DebugAura(addedSeal)) end
+            ScanAuras(addedSeal)
+        end
+    elseif event == "COMBAT_LOG_EVENT_UNFILTERED" then
+        if not activeAura or not addon.CombatLogAvailable then return end
+        local data = {pcall(CombatLogGetCurrentEventInfo)}
+        local ok, playerGUID = pcall(UnitGUID, "player")
+        if data[1] and ok and addon.IsSealCombatRemoval(activeAura,
+            data[3], playerGUID, data[9], data[14], data[16]) then
+            addon.DebugRecord(db, "removal", "source=combat-log")
+            activeAura = nil
+            combatLookupUncertain, accessRestricted = false, false
+            cooldown:Hide()
+            Render()
         end
     elseif event == "PLAYER_REGEN_DISABLED" then
         if addon.DebugEnabled() then

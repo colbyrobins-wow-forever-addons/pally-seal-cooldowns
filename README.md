@@ -145,13 +145,18 @@ because Forever can return empty results while the buff remains active. Empty
 lookups outside combat clear the timer after the cast grace period. Readable
 removal events for the tracked aura also
 clear its timer when a fresh aura query is blocked.
+Readable aura-addition events attach an instance ID to combat cast estimates,
+so later cancellation or dispel removal events can clear them. When the client
+supports combat-log events, a matching buff-removal event for the player's
+current seal also clears the timer, including estimates without an instance ID.
 Successful player seal casts immediately start/reset the timer and stop the
 missing-seal animation. Cast estimates use the last observed
 duration for that seal, or the Forever beta baseline of 30 seconds until a
 duration is learned. **ESTIMATED TIMER** identifies a countdown retained while
 live data is restricted. A successful cast has a 0.5-second grace period for
 the aura API to catch up before an empty out-of-combat or stale snapshot replaces it.
-If combat aura queries are empty/restricted and removal information is unavailable, early cancellation,
+If combat aura queries are empty/restricted and both aura-removal and combat-log
+information are unavailable, early cancellation,
 dispels, or changes cannot be confirmed and the estimate may differ from the buff.
 Expired estimates show unavailable status instead of a confirmed missing-seal
 alert. If aura timing is secret and no matching live estimate remains, the addon

@@ -82,6 +82,38 @@ function addon.WasSealRemoved(aura, update)
     return false
 end
 
+-- Delta events can identify a new seal even when name queries return nil.
+function addon.FindAddedSeal(names, update)
+    if not addon.IsReadable(update) or type(update) ~= "table" then return nil end
+    local added = update.addedAuras
+    if not addon.IsReadable(added) or type(added) ~= "table" then return nil end
+    local found
+    for _, aura in ipairs(added) do
+        if addon.IsReadable(aura) and type(aura) == "table"
+            and addon.IsReadable(aura.name) and type(aura.name) == "string"
+            and names[aura.name] and addon.IsReadable(aura.isHelpful)
+            and aura.isHelpful ~= false then
+            found = {
+                name = aura.name, icon = aura.icon, duration = aura.duration,
+                expirationTime = aura.expirationTime, auraInstanceID = aura.auraInstanceID,
+            }
+        end
+    end
+    return found
+end
+
+function addon.IsSealCombatRemoval(aura, event, playerGUID, destinationGUID, name, auraType)
+    if not aura then return false end
+    local function ReadableString(value)
+        return addon.IsReadable(value) and type(value) == "string"
+    end
+    return ReadableString(event) and ReadableString(playerGUID)
+        and ReadableString(destinationGUID) and ReadableString(name)
+        and ReadableString(auraType) and ReadableString(aura.name)
+        and event == "SPELL_AURA_REMOVED" and playerGUID == destinationGUID
+        and name == aura.name and auraType == "BUFF"
+end
+
 function addon.GetState(duration, expiration, now, threshold)
     if not addon.IsReadable(duration) or not addon.IsReadable(expiration) then
         return "restricted"

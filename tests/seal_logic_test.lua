@@ -58,3 +58,18 @@ local stale = {name = "Seal", duration = 30, expirationTime = 125}
 assert(addon.ResolveSeal(previous, stale, false, 100.2) == previous,
     "A stale snapshot cannot undo a successful recast")
 io.write("Seal logic tests passed.\n")
+local names = {Seal = true}
+assert(addon.FindAddedSeal(names, {addedAuras = {{name = "Other"}}}) == nil)
+local addition = addon.FindAddedSeal(names, {addedAuras = {
+    {name = "Seal", auraInstanceID = 88, duration = secret, expirationTime = secret},
+}})
+assert(addition.auraInstanceID == 88)
+assert(addon.FindAddedSeal(names, {addedAuras = secret}) == nil)
+assert(addon.FindAddedSeal(names, {addedAuras = {{name = secret}}}) == nil)
+assert(addon.FindAddedSeal(names, {addedAuras = {{name = "Seal", isHelpful = false}}}) == nil)
+assert(addon.IsSealCombatRemoval({name = "Seal"}, "SPELL_AURA_REMOVED", "player", "player", "Seal", "BUFF"))
+assert(not addon.IsSealCombatRemoval({name = "Seal"}, "SPELL_AURA_REMOVED", "player", "other", "Seal", "BUFF"))
+assert(not addon.IsSealCombatRemoval({name = "Seal"}, "SPELL_AURA_REMOVED", "player", "player", "Other", "BUFF"))
+assert(not addon.IsSealCombatRemoval({name = "Seal"}, "SPELL_AURA_APPLIED", "player", "player", "Seal", "BUFF"))
+assert(not addon.IsSealCombatRemoval({name = "Seal"}, "SPELL_AURA_REMOVED", nil, secret, "Seal", "BUFF"))
+assert(not addon.IsSealCombatRemoval({name = "Seal"}, "SPELL_AURA_REMOVED", "player", secret, "Seal", "BUFF"))
