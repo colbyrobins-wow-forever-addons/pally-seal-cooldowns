@@ -59,6 +59,7 @@ acceptance. No remote repository is configured.
 | False missing-seal display from empty combat lookups | Captured client 1.60.1/build 70338 returned empty after casts and recovered the matching expiration on combat exit. Fix preserves live estimates, honors known removal events, and reconciles outside combat; all six Lua suites pass | Fix awaiting in-game retest; the original reporter's exact seal/rank remains unknown |
 | Optional `/psc debug` capture for combat-entry detection | Bounded, deduplicated capture and query classification covered by diagnostics and event tests | Pending reproduction; detection behavior unchanged |
 | Cancellation/dispel during empty combat lookups | Added-aura instance tracking and guarded player combat-log removal covered by regression tests | Pending client confirmation of available removal signals |
+| Command damage effect incorrectly resets seal timer | Spell 20424 excluded from buff-cast recognition; regression test verifies no timer reset | Pending retest |
 | Saved diagnostic capture export to UTF-8 text | Python exporter tested for extraction, escapes, malformed data, and source/output safety; exported 40 saved entries | Report saved locally under ignored `diagnostics/`; diagnosis pending review |
 
 No new release is ready based on local tests alone.
@@ -119,3 +120,17 @@ No in-game results for the unreleased sound changes have been recorded yet.
   buff. Verify immediate removal and one missing-seal alert, then save the capture
   with `/psc debug off` and `/reload`. Client support for these removal signals
   remains unconfirmed; no release acceptance is recorded.
+
+### 2026-10-12: removal retest failed in combat
+
+- Exported 44 entries to ignored `diagnostics/seal-removal-retest.txt`.
+- Capture confirms matched UNIT_AURA removal outside combat. During combat,
+  casts produce estimates with no observed additions or recognized removals;
+  the user confirmed the timer kept counting after cancellation/dispel.
+- Combat-log availability was omitted when the API was absent, so the previous
+  capture cannot fully establish client capabilities. Expanded diagnostics now
+  always report capabilities and UNIT_AURA payload availability/counts.
+- The capture also shows spell 20424 repeatedly refreshing the Command estimate.
+  Its damage effect now cannot start or restart a seal timer.
+- Cancellation/dispel remains unresolved until a usable combat removal signal
+  is identified. Expanded diagnostics require a short focused retest.

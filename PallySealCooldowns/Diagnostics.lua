@@ -10,6 +10,7 @@ end
 local function SafeValue(value)
     if not addon.IsReadable(value) then return "restricted" end
     if type(value) == "string" then return value end
+    if type(value) == "boolean" then return tostring(value) end
     if addon.IsFiniteNumber(value) then return tostring(value) end
     return "unavailable"
 end
@@ -19,6 +20,23 @@ function addon.DebugAura(aura)
     return SafeValue(aura.name) .. ":expires=" .. SafeValue(aura.expirationTime)
         .. (aura.estimated and ":estimated" or ":observed")
         .. (addon.IsFiniteNumber(aura.auraInstanceID) and ":instance=" .. aura.auraInstanceID or "")
+end
+
+function addon.DebugAuraUpdate(update)
+    if not addon.IsReadable(update) then return "update=restricted" end
+    if type(update) ~= "table" then return "update=unavailable" end
+    local fields = {"full=" .. SafeValue(update.isFullUpdate)}
+    for _, key in ipairs({"addedAuras", "updatedAuraInstanceIDs", "removedAuraInstanceIDs"}) do
+        local values = update[key]
+        local description = "unavailable"
+        if not addon.IsReadable(values) then
+            description = "restricted"
+        elseif type(values) == "table" then
+            description = tostring(#values)
+        end
+        fields[#fields + 1] = key .. "=" .. description
+    end
+    return table.concat(fields, " ")
 end
 
 function addon.DebugRecord(db, event, detail)
@@ -47,8 +65,13 @@ function addon.DebugCommand(db, argument, message, names)
         for name in pairs(names) do known[#known + 1] = name end
         table.sort(known)
         addon.DebugRecord(db, "seal-names", #known .. " resolved: " .. table.concat(known, ", "))
-        if addon.CombatLogAvailable ~= nil then
-            addon.DebugRecord(db, "removal-signals", "combat-log=" .. tostring(addon.CombatLogAvailable))
+        addon.DebugRecord(db, "removal-signals", "combat-log-api="
+            .. tostring(type(CombatLogGetCurrentEventInfo) == "function")
+            .. " registered=" .. tostring(addon.CombatLogAvailable == true))
+        local apis = C_UnitAuras or {}
+        for _, key in ipairs({"GetAuraDataByAuraInstanceID", "GetAuraDataByIndex",
+            "GetPlayerAuraBySpellID", "GetAuraSlots", "IsAuraFilteredOutByInstanceID"}) do
+            addon.DebugRecord(db, "aura-api", key .. "=" .. tostring(type(apis[key]) == "function"))
         end
         message("Diagnostics enabled for this session. Reproduce the issue, then /psc debug dump.")
     elseif argument == "off" then

@@ -8,14 +8,14 @@ local function Message(value) messages[#messages + 1] = value end
 addon.DebugRecord(db, "scan", "disabled")
 assert(db.debugLog == nil and not addon.DebugEnabled())
 addon.DebugCommand(db, "on", Message, {Seal = true})
-assert(addon.DebugEnabled() and #db.debugLog == 2 and #messages == 1)
+assert(addon.DebugEnabled() and #db.debugLog == 8 and #messages == 1)
 assert(db.debugLog[2]:find("1 resolved: Seal", 1, true))
 addon.DebugRecord(db, "scan", "empty")
 for index = 1, 1000 do addon.DebugRecord(db, "scan", "empty") end
-assert(#db.debugLog == 3 and #messages == 1, "Repeated scans must not spam logs or chat")
+assert(#db.debugLog == 9 and #messages == 1, "Repeated scans must not spam logs or chat")
 addon.DebugRecord(db, "combat", "enter")
 addon.DebugRecord(db, "scan", "empty")
-assert(#db.debugLog == 5, "Capture scans again after combat transition")
+assert(#db.debugLog == 11, "Capture scans again after combat transition")
 for index = 1, 150 do addon.DebugRecord(db, "cast", tostring(index)) end
 assert(#db.debugLog == 100 and db.debugLog[1]:find("cast 51", 1, true))
 addon.DebugCommand(db, "off", Message, {})
@@ -36,6 +36,10 @@ local secret = setmetatable({}, {__tostring = function() error("Secret string co
 issecretvalue = function(value) return value == secret end
 assert(addon.DebugAura({name = secret, expirationTime = secret}) ==
     "restricted:expires=restricted:observed")
+assert(addon.DebugAuraUpdate(secret) == "update=restricted")
+assert(addon.DebugAuraUpdate(nil) == "update=unavailable")
+assert(addon.DebugAuraUpdate({removedAuraInstanceIDs = secret}):find("removedAuraInstanceIDs=restricted", 1, true))
+assert(addon.DebugAuraUpdate({removedAuraInstanceIDs = {1, 2}}):find("removedAuraInstanceIDs=2", 1, true))
 for _, outcome in ipairs({"empty", "error", "restricted", "found"}) do
     local aura, restricted, detail = addon.FindSeal({Seal = true}, function()
         if outcome == "error" then error("Do not copy raw error content") end

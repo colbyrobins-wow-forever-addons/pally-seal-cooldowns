@@ -509,11 +509,14 @@ frame:SetScript("OnEvent", function(_, event, unit, castGUID, spellID)
         if unit ~= "player" or not addon.IsReadable(spellID)
             or type(spellID) ~= "number" then return end
         local name = C_Spell.GetSpellName(spellID)
+        -- 20424 is the Command damage effect, not application of its buff.
+        local recognized = spellID ~= 20424 and addon.IsReadable(name)
+            and type(name) == "string" and sealNames[name] == true
         if addon.DebugEnabled() and addon.IsReadable(name) and type(name) == "string" then
             addon.DebugRecord(db, "cast", "spell=" .. spellID .. " name=" .. name
-                .. " recognized=" .. tostring(sealNames[name] == true))
+                .. " recognized=" .. tostring(recognized))
         end
-        if not name or not sealNames[name] then return end
+        if not recognized then return end
         local duration = db.sealDurations[name]
         if not addon.IsFiniteNumber(duration) or duration <= 0 then
             duration = 30 -- Forever beta baseline; replaced by observed aura duration.
@@ -534,6 +537,9 @@ frame:SetScript("OnEvent", function(_, event, unit, castGUID, spellID)
         Render()
     elseif event == "UNIT_AURA" then
         if unit == "player" then
+            if addon.DebugEnabled() then
+                addon.DebugRecord(db, "aura-event", addon.DebugAuraUpdate(castGUID))
+            end
             local addedSeal = addon.FindAddedSeal(sealNames, castGUID)
             if addon.WasSealRemoved(activeAura, castGUID) then
                 addon.DebugRecord(db, "removal", "source=UNIT_AURA")

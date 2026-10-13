@@ -438,3 +438,12 @@ scripts.OnEvent(widget, "UNIT_SPELLCAST_SUCCEEDED", "player", "restricted-log", 
 CombatLogGetCurrentEventInfo = function() error("restricted") end
 scripts.OnEvent(widget, "COMBAT_LOG_EVENT_UNFILTERED")
 assert(counterText ~= "!", "Unavailable combat log must not claim removal")
+local originalSpellName = C_Spell.GetSpellName
+C_Spell.GetSpellName = function(id)
+    if id == 20424 then return "Seal 20154" end
+    return originalSpellName(id)
+end
+local startBefore = cooldownStart
+now = now + 1
+scripts.OnEvent(widget, "UNIT_SPELLCAST_SUCCEEDED", "player", "damage-effect", 20424)
+assert(cooldownStart == startBefore, "Command damage effect must not restart a buff timer")
