@@ -218,3 +218,7 @@ No in-game results for the unreleased sound changes have been recorded yet.
 - Pending: enable outside combat, test precombat and in-combat casts, cancel and
   dispel, and confirm the native icon disappears immediately while its label
   remains. Do not interpret initialization tests as in-game acceptance.
+- Deployed clean source commit `244e5a4` to the same beta addon folder. All nine
+  source hashes verified after copying; version remains 0.1.18.
+- Verified backup:
+  `<workspace>/addon-deployment-backups/PallySealCooldowns-before-244e5a4-94cd2f8107e54ad88b55ee3a964e10d9`.
