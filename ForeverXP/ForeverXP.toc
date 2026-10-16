@@ -1,0 +1,7 @@
+## Interface: 16001
+## Title: Forever XP
+## Notes: Current XP, progress percentage, and XP till level on Blizzard's XP bar.
+## Author: Colby
+
+XPText.lua
+ForeverXP.lua

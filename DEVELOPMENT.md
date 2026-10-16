@@ -48,6 +48,19 @@ After in-game acceptance and a request to prepare a release:
 
 ## Current unreleased work
 
+### 2026-10-16: Forever XP development addon
+
+- Added the independent `ForeverXP` addon for interface 16001. It changes the
+  existing Blizzard XP label to current/maximum XP, percentage, and XP till
+  level. The text remains visible while Blizzard shows the XP bar.
+- Uses post-hooks on the existing label; leaves bar fill, layout, rested XP,
+  tooltips, and CVars intact. Requires the default `MainMenuExpBar`; does not
+  claim compatibility with replacement action bars.
+- All nine Lua 5.1 suites passed through Lupa, including the new formatting and
+  event tests. See `ForeverXP/README.md` for installation and in-game checks.
+- No deployment or in-game verification yet. No release version or archive
+  assigned. Pally Seal Cooldowns source and release version are unchanged.
+
 ### 2026-10-15: restore native refresh sound reminders
 
 - Reporter confirms combat display works, but refresh sound played in only
