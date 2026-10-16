@@ -152,6 +152,15 @@ No new release is ready based on local tests alone.
 
 ## In-game test record
 
+### 2026-10-16: permanent full XP display deployment
+
+- Deployed clean source commit `db8616c` to beta `AddOns/ForeverXP`; all four
+  runtime file hashes match. Focused Forever XP Lua suite passes.
+- Previous installation backed up and verified at
+  `<workspace>/addon-deployment-backups/ForeverXP-before-db8616c-d5c29f19e97b4364a90efd6c8d6605ae`.
+- Pending: reload and confirm full text stays unchanged on hover/leave while
+  the expanded tooltip remains at its default screen anchor. No release assigned.
+
 ### 2026-10-16: default tooltip anchor deployment
 
 - Deployed clean source commit `0de4553` to beta `AddOns/ForeverXP`; all four
