@@ -94,6 +94,10 @@ local function RunScenario(late, combat, globalLabel, modern)
     function GameTooltip:AddLine(value) self.lines[#self.lines + 1] = {value} end
     function GameTooltip:Show() self.shown = true end
     function GameTooltip:Hide() self.shown = false end
+    GameTooltip_SetDefaultAnchor = function(tooltip, owner)
+        tooltip:SetOwner(owner)
+        tooltip.defaultAnchored = true
+    end
     assert(loadfile("ForeverXP/Presentation.lua"))("ForeverXP", addon)
     hooks = 0
     assert(loadfile("ForeverXP/ForeverXP.lua"))("ForeverXP", addon)
@@ -169,6 +173,8 @@ local function RunScenario(late, combat, globalLabel, modern)
     bar.scripts.OnEnter(bar)
     assert(text.value == Expected(current, maximum, true), "Hover expands compact text")
     assert(GameTooltip.shown and #GameTooltip.lines == 5)
+    assert(GameTooltip.defaultAnchored and GameTooltip:IsOwned(bar),
+        "Expanded tooltip uses Blizzard's default anchor and retains XP ownership")
     assert(GameTooltip.lines[4][2] == "4,000", "Tooltip includes rested XP")
     GameTooltip:SetText("Delayed Blizzard rested text")
     assert(GameTooltip.title == "Experience" and #GameTooltip.lines == 5,

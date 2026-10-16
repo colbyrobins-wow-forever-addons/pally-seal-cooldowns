@@ -48,6 +48,13 @@ After in-game acceptance and a request to prepare a release:
 
 ## Current unreleased work
 
+### 2026-10-16: Forever XP default tooltip position
+
+- Use Blizzard's default screen tooltip anchor for expanded XP details instead
+  of anchoring above the bar. Retains ownership for refresh and leave handling.
+- Focused Forever XP Lua 5.1 suite passes, including default-anchor coverage.
+  In-game positioning confirmation remains pending.
+
 ### 2026-10-16: Forever XP presentation and tooltip
 
 - User confirmed the container discovery repair works, then requested styled

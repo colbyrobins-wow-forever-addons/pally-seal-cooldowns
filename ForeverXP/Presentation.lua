@@ -15,7 +15,7 @@ function addon.ShowXPTooltip(binding)
         return
     end
     tooltipUpdating = true
-    GameTooltip:SetOwner(binding.hoverTarget or binding.bar, "ANCHOR_TOP")
+    GameTooltip_SetDefaultAnchor(GameTooltip, binding.hoverTarget or binding.bar)
     GameTooltip:ClearLines()
     GameTooltip:SetText("Experience", 1, 0.83, 0.42)
     GameTooltip:AddDoubleLine("Current XP", addon.GroupDigits(data.current) .. " / "

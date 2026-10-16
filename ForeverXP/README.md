@@ -13,6 +13,7 @@ refreshes. Gold percentage, soft-white numbers, a thin outline, and subtle
 shadow improve readability. Keeps the bar's native fill, rested indicator,
 position, and visibility. The expanded tooltip shows current/required XP,
 percentage, XP to next level, and exact rested bonus XP.
+The tooltip uses Blizzard's default screen anchor rather than floating above the bar.
 Disable Forever XP and reload to restore Blizzard's text behavior.
 
 ## Display commands
