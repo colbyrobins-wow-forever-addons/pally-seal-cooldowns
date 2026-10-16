@@ -48,6 +48,22 @@ After in-game acceptance and a request to prepare a release:
 
 ## Current unreleased work
 
+### 2026-10-16: Forever XP presentation and tooltip
+
+- User confirmed the container discovery repair works, then requested styled
+  compact/full text, optional taller bar, and expanded hover information.
+- Compact default: gold percentage and soft-white XP remaining/next level;
+  hover expands current/required XP. Text uses an outline and subtle shadow.
+- Tooltip shows current/required XP, percentage, next-level XP, and rested bonus
+  XP. Includes rested tick hover and guards against delayed native tooltip text
+  overwrites. It never replaces unrelated owned tooltips during XP updates.
+- Saved `/foreverxp compact|full` and `/foreverxp tall|normal` controls. Normal
+  height remains the default; tall is 18 pixels minimum. Height/font changes
+  defer during combat; native bar colors and rested indicator remain intact.
+- All nine Lua 5.1 suites pass, including hover transitions, tooltip refreshes,
+  formatting, combat-deferred height, and restoring original height. Visual fit,
+  tooltip behavior, tall-bar layout, and persistence still need in-game retest.
+
 ### 2026-10-16: Forever XP bar discovery repair
 
 - First in-game report: addon loaded but did not change the bar. Initial

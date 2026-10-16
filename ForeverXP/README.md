@@ -3,13 +3,28 @@
 Adds always-visible XP text to Blizzard's existing XP bar in WoW Forever beta
 (interface 16001). Works independently of Pally Seal Cooldowns, on any class.
 
-Example: `12,500 / 20,000 XP -- 62.5% -- 7,500 XP till level`
+Default: `62.5% • 7,500 to level 22`
+
+On hover: `12,500 / 20,000 XP • 62.5% • 7,500 to level 22`
 
 The denominator is the total XP required for the level; the final number is
 remaining XP. Updates on XP gains, level changes, login, and Blizzard text
-refreshes. Uses the existing font and position. Keeps the bar's fill, rested XP,
-tooltip, and visibility under Blizzard's control. No settings or dependencies.
+refreshes. Gold percentage, soft-white numbers, a thin outline, and subtle
+shadow improve readability. Keeps the bar's native fill, rested indicator,
+position, and visibility. The expanded tooltip shows current/required XP,
+percentage, XP to next level, and exact rested bonus XP.
 Disable Forever XP and reload to restore Blizzard's text behavior.
+
+## Display commands
+
+- `/foreverxp compact`: compact text, full details on hover (default).
+- `/foreverxp full`: full details all the time.
+- `/foreverxp tall`: increase the bar and fill to at least 18 pixels.
+- `/foreverxp normal`: restore the original bar height (default).
+
+Choices persist across reloads. Height changes requested during combat apply
+after combat ends. The taller layout needs testing with your action-bar and
+reputation layout; use `normal` to revert. There are no addon dependencies.
 
 ## Installation for testing
 
@@ -33,7 +48,8 @@ Run `tests/forever_xp_test.lua` from the repository root with Lua 5.1.
 
 Local tests cover formatting, invalid/restricted inputs, XP gains, level
 rollover, default text overwrites, hover hiding, bar visibility, late loading,
-and attachment deferred during combat. Actual Forever beta behavior and visual
+attachment deferred during combat, tooltips, compact/full hover transitions,
+and deferred/restored heights. Actual Forever beta behavior and visual
 fit still require in-game testing.
 
 In-game checklist: gain XP from kills and quests, level up, hover/leave the bar,

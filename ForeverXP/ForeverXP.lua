@@ -3,16 +3,30 @@ local events = CreateFrame("Frame")
 local bindings = {}
 local warned = false
 
+local function Settings()
+    if type(ForeverXPDB) ~= "table" then ForeverXPDB = {} end
+    ForeverXPDB.mode = ForeverXPDB.mode == "full" and "full" or "compact"
+    ForeverXPDB.tall = ForeverXPDB.tall == true
+    return ForeverXPDB
+end
+
+local function StyleAll()
+    for _, binding in pairs(bindings) do addon.StyleXP(binding, Settings()) end
+end
+
 local function UpdateBinding(binding)
     if binding.updating then return end
     local bar, label = binding.bar, binding.label
-    local text = addon.FormatXP(UnitXP("player"), UnitXPMax("player"))
+    local text = addon.StyledXP(addon.ReadXP(), binding.hovered or Settings().mode == "full")
     binding.updating = true
-    -- Use Blizzard's existing label. Never change bar values, layout, CVars,
-    -- or tooltip handlers. Hidden/zero-XP bars must not leave floating text.
+    -- Hidden/zero-XP bars must not leave floating text.
     label:SetText(text or "")
     if text and bar:IsShown() then label:Show() else label:Hide() end
     binding.updating = false
+    if binding.hovered and GameTooltip
+        and GameTooltip:IsOwned(binding.hoverTarget or binding.bar) then
+        addon.ShowXPTooltip(binding)
+    end
 end
 
 local function Update()
@@ -33,6 +47,8 @@ local function AttachBar(bar, label)
     if label.SetShown then hooksecurefunc(label, "SetShown", Refresh) end
     bar:HookScript("OnShow", Refresh)
     bar:HookScript("OnHide", Refresh)
+    addon.HookXPHover(binding, Refresh)
+    addon.StyleXP(binding, Settings())
 end
 
 local function Attach()
@@ -57,9 +73,25 @@ local function Attach()
 end
 
 SLASH_FOREVERXP1 = "/foreverxp"
-SlashCmdList.FOREVERXP = function()
+SlashCmdList.FOREVERXP = function(input)
+    local command = (input or ""):lower():match("^%s*(.-)%s*$")
+    local settings = Settings()
+    if command == "compact" or command == "full" then settings.mode = command
+    elseif command == "tall" then settings.tall = true
+    elseif command == "normal" then settings.tall = false
+    elseif command ~= "" then
+        DEFAULT_CHAT_FRAME:AddMessage("Forever XP: /foreverxp compact | full | tall | normal")
+        return
+    end
     Attach()
+    StyleAll()
     Update()
+    if command ~= "" then
+        DEFAULT_CHAT_FRAME:AddMessage("Forever XP: " .. settings.mode .. " text, "
+            .. (settings.tall and "taller" or "normal") .. " bar."
+            .. ((InCombatLockdown and InCombatLockdown()) and " Layout applies after combat." or ""))
+        return
+    end
     local count, visible = 0, 0
     for bar in pairs(bindings) do
         count = count + 1
@@ -77,6 +109,8 @@ end
 events:SetScript("OnEvent", function(_, event, unit)
     if event == "PLAYER_XP_UPDATE" and unit and unit ~= "player" then return end
     if Attach() then
+        if event == "ADDON_LOADED" or event == "PLAYER_REGEN_ENABLED"
+            or event == "PLAYER_ENTERING_WORLD" then StyleAll() end
         Update()
     elseif event == "PLAYER_ENTERING_WORLD" and not warned
         and not (InCombatLockdown and InCombatLockdown()) then
@@ -88,7 +122,7 @@ end)
 
 for _, event in ipairs({"ADDON_LOADED", "PLAYER_ENTERING_WORLD",
     "PLAYER_XP_UPDATE", "PLAYER_LEVEL_UP", "PLAYER_REGEN_ENABLED", "CVAR_UPDATE",
-    "UPDATE_FACTION"}) do
+    "UPDATE_FACTION", "UPDATE_EXHAUSTION", "PLAYER_UPDATE_RESTING"}) do
     events:RegisterEvent(event)
 end
 if Attach() then Update() end

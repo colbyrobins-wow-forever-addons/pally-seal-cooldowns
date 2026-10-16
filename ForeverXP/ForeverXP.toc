@@ -2,6 +2,8 @@
 ## Title: Forever XP
 ## Notes: Current XP, progress percentage, and XP till level on Blizzard's XP bar.
 ## Author: Colby
+## SavedVariables: ForeverXPDB
 
 XPText.lua
+Presentation.lua
 ForeverXP.lua
