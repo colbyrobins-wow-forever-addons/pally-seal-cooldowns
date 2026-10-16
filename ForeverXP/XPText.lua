@@ -27,13 +27,12 @@ function addon.XPDetails(current, maximum, level, rested)
         rested = IsNumber(rested) and math.max(0, math.floor(rested)) or nil}
 end
 
-function addon.StyledXP(data, full)
+function addon.StyledXP(data)
     if not data then return nil end
     local target = data.nextLevel and "to level " .. data.nextLevel or "to next level"
     local progress = string.format("|cffffd36a%.1f%%|r", data.percent)
     local remaining = "|cffe6e6e6" .. GroupDigits(data.remaining) .. " " .. target .. "|r"
     local separator = " |cff888888•|r "
-    if not full then return progress .. separator .. remaining end
     return "|cffe6e6e6" .. GroupDigits(data.current) .. " / "
         .. GroupDigits(data.maximum) .. " XP|r" .. separator .. progress .. separator .. remaining
 end

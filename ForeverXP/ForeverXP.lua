@@ -5,7 +5,7 @@ local warned = false
 
 local function Settings()
     if type(ForeverXPDB) ~= "table" then ForeverXPDB = {} end
-    ForeverXPDB.mode = ForeverXPDB.mode == "full" and "full" or "compact"
+    ForeverXPDB.mode = nil -- Retire the previous compact/full preference.
     ForeverXPDB.tall = ForeverXPDB.tall == true
     return ForeverXPDB
 end
@@ -17,7 +17,7 @@ end
 local function UpdateBinding(binding)
     if binding.updating then return end
     local bar, label = binding.bar, binding.label
-    local text = addon.StyledXP(addon.ReadXP(), binding.hovered or Settings().mode == "full")
+    local text = addon.StyledXP(addon.ReadXP())
     binding.updating = true
     -- Hidden/zero-XP bars must not leave floating text.
     label:SetText(text or "")
@@ -76,18 +76,17 @@ SLASH_FOREVERXP1 = "/foreverxp"
 SlashCmdList.FOREVERXP = function(input)
     local command = (input or ""):lower():match("^%s*(.-)%s*$")
     local settings = Settings()
-    if command == "compact" or command == "full" then settings.mode = command
-    elseif command == "tall" then settings.tall = true
+    if command == "tall" then settings.tall = true
     elseif command == "normal" then settings.tall = false
     elseif command ~= "" then
-        DEFAULT_CHAT_FRAME:AddMessage("Forever XP: /foreverxp compact | full | tall | normal")
+        DEFAULT_CHAT_FRAME:AddMessage("Forever XP: /foreverxp tall | normal")
         return
     end
     Attach()
     StyleAll()
     Update()
     if command ~= "" then
-        DEFAULT_CHAT_FRAME:AddMessage("Forever XP: " .. settings.mode .. " text, "
+        DEFAULT_CHAT_FRAME:AddMessage("Forever XP: full details, "
             .. (settings.tall and "taller" or "normal") .. " bar."
             .. ((InCombatLockdown and InCombatLockdown()) and " Layout applies after combat." or ""))
         return

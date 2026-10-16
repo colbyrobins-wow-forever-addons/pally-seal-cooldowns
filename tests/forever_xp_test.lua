@@ -20,12 +20,12 @@ assert(addon.XPDetails(0, 400, 21, -5).rested == 0)
 
 local function RunScenario(late, combat, globalLabel, modern)
     local current, maximum = 12500, 20000
-    ForeverXPDB = nil
+    ForeverXPDB = {mode = "compact"}
     local level, rested = 21, 4000
     UnitLevel = function() return level end
     GetXPExhaustion = function() return rested end
-    local function Expected(value, cap, full)
-        return addon.StyledXP(addon.XPDetails(value, cap, level, rested), full)
+    local function Expected(value, cap)
+        return addon.StyledXP(addon.XPDetails(value, cap, level, rested))
     end
     local handler, hooks, messages = nil, 0, 0
     local text = {shown = false}
@@ -113,6 +113,8 @@ local function RunScenario(late, combat, globalLabel, modern)
         handler(nil, late and "ADDON_LOADED" or "PLAYER_REGEN_ENABLED")
     end
     assert(text.value == Expected(current, maximum) and text.shown)
+    assert(ForeverXPDB.mode == nil, "Old compact preference is retired")
+    assert(text.value:find("12,500 / 20,000 XP", 1, true), "Full XP totals appear without hover")
     handler(nil, "ADDON_LOADED")
     assert(hooks == 5, "Repeated addon loads do not duplicate hooks")
     current = 15000
@@ -171,7 +173,7 @@ local function RunScenario(late, combat, globalLabel, modern)
     combat = false
     assert(text.flags == "OUTLINE" and text.fontSize == 12)
     bar.scripts.OnEnter(bar)
-    assert(text.value == Expected(current, maximum, true), "Hover expands compact text")
+    assert(text.value == Expected(current, maximum), "Hover preserves the full display")
     assert(GameTooltip.shown and #GameTooltip.lines == 5)
     assert(GameTooltip.defaultAnchored and GameTooltip:IsOwned(bar),
         "Expanded tooltip uses Blizzard's default anchor and retains XP ownership")
@@ -189,9 +191,9 @@ local function RunScenario(late, combat, globalLabel, modern)
     bar.scripts.OnEnter(bar)
     bar.scripts.OnLeave()
     assert(text.value == Expected(current, maximum) and not GameTooltip.shown)
-    SlashCmdList.FOREVERXP("full")
-    assert(ForeverXPDB.mode == "full" and text.value == Expected(current, maximum, true))
     SlashCmdList.FOREVERXP("compact")
+    assert(ForeverXPDB.mode == nil and text.value == Expected(current, maximum),
+        "Retired command cannot enable compact mode")
     combat = true
     SlashCmdList.FOREVERXP("tall")
     assert(height == 13, "Height changes defer in combat")

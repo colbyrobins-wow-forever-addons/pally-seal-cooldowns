@@ -48,6 +48,15 @@ After in-game acceptance and a request to prepare a release:
 
 ## Current unreleased work
 
+### 2026-10-16: one permanent full XP display
+
+- Full styled XP totals, percentage, and XP to next level now show at all times.
+  Hover changes only the tooltip. Removed compact/full commands and retired
+  the saved mode preference; tall/normal height choices remain available.
+- Focused Forever XP Lua 5.1 suite covers full text without hover, unchanged
+  text on hover/leave, and migration from the old compact preference.
+  In-game confirmation remains pending.
+
 ### 2026-10-16: Forever XP default tooltip position
 
 - Use Blizzard's default screen tooltip anchor for expanded XP details instead
