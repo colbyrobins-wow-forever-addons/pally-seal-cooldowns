@@ -120,6 +120,16 @@ No new release is ready based on local tests alone.
 
 ## In-game test record
 
+### 2026-10-16: Forever XP compatibility repair deployment
+
+- Deployed source commit `cd6db65` to the same beta `AddOns/ForeverXP` folder.
+  All three installed runtime files match source by SHA-256.
+- Previous installation backed up and hashes verified at
+  `<workspace>/addon-deployment-backups/ForeverXP-before-cd6db65-91dec53ae2944ca595394b67277c700d`.
+- Nine Lua suites pass. Reload and check the bar; use `/foreverxp` if unchanged.
+  Disable XPForever if enabled because it hides the default bar. No other
+  addons were modified. In-game acceptance and client build remain pending.
+
 ### 2026-10-16: Forever XP test deployment
 
 - Installed clean source commit `88475ea` to
