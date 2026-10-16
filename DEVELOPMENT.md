@@ -136,6 +136,17 @@ No new release is ready based on local tests alone.
 
 ## In-game test record
 
+### 2026-10-16: Forever XP presentation test deployment
+
+- Deployed clean source commit `9b731b2` to the beta `AddOns/ForeverXP` folder.
+  All four runtime files, including the new presentation module and TOC,
+  verified by SHA-256 against source.
+- Previous installation backed up and verified at
+  `<workspace>/addon-deployment-backups/ForeverXP-before-9b731b2-9c4e676747c24d999c21ea91b4ef13af`.
+- Nine Lua suites pass. Pending: reload, hover the bar/rested tick, gain XP,
+  test compact/full and tall/normal, confirm choices survive reload, and check
+  reputation layout and combat. No release version assigned.
+
 ### 2026-10-16: Forever XP compatibility repair deployment
 
 - Deployed source commit `cd6db65` to the same beta `AddOns/ForeverXP` folder.
