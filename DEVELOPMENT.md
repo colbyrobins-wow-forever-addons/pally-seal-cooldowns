@@ -106,6 +106,17 @@ No new release is ready based on local tests alone.
 
 ## In-game test record
 
+### 2026-10-16: Forever XP test deployment
+
+- Installed clean source commit `88475ea` to
+  `C:/Program Files (x86)/World of Warcraft/_classic_beta_/Interface/AddOns/ForeverXP`.
+- No existing Forever XP installation was present, so no backup was needed.
+  Copied the TOC and two Lua files; all three installed hashes match source.
+- All nine Lua suites passed before deployment. No in-game testing performed.
+  Enable Forever XP and verify XP gains, level changes, hovering, and combat.
+- Client build, visual fit, and user acceptance remain pending. This is an
+  unversioned development installation, not a release.
+
 For each test session, append a dated record here containing:
 
 - Git commit and whether the deployed source had uncommitted changes.
