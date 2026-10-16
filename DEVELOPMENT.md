@@ -143,6 +143,15 @@ No new release is ready based on local tests alone.
 
 ## In-game test record
 
+### 2026-10-16: default tooltip anchor deployment
+
+- Deployed clean source commit `0de4553` to beta `AddOns/ForeverXP`; all four
+  runtime file hashes match. Focused Forever XP Lua suite passes.
+- Previous installation backed up and verified at
+  `<workspace>/addon-deployment-backups/ForeverXP-before-0de4553-037dfed241164d52bccf2d6b6911640c`.
+- Pending: reload and confirm the expanded tooltip appears at the default
+  screen location. No version or release assigned.
+
 ### 2026-10-16: Forever XP presentation test deployment
 
 - Deployed clean source commit `9b731b2` to the beta `AddOns/ForeverXP` folder.
