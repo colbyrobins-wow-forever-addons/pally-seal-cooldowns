@@ -282,8 +282,11 @@ local function Render()
     if nativeDisplay then
         nativeDisplay:UpdateCombat(inCombat)
         frame:SetShown(not db.hideOutOfCombat or inCombat)
-        -- Never let an obsolete estimated timer drive native presentation or audio.
-        if activeAura and not activeAura.estimated then
+        -- Native widgets own presentation, but successful casts still provide
+        -- a refresh deadline when combat aura timing is unavailable. Confirmed
+        -- removals clear activeAura; an unobservable early removal can leave
+        -- this reminder scheduled until reconciliation or the next cast.
+        if activeAura then
             local state = addon.GetState(activeAura.duration, activeAura.expirationTime, GetTime(), db.threshold)
             if state == "active" or state == "refresh" or state == "permanent" then
                 UpdateSoundAlerts(state)

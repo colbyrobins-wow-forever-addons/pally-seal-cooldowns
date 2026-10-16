@@ -15,8 +15,12 @@ Saved position, scale, layout, font, border, bar texture, text visibility, and
 refresh-only countdown settings remain supported. Unsupported clients retain
 the older estimated tracker described below.
 
-Sound previews still work. Refresh sounds require a live observed timer;
-estimated timers cannot trigger them in native mode. Automatic cancellation/
+In the current development build, refresh sounds use observed timing or a
+successful cast's estimated deadline when combat timing becomes unavailable.
+An early removal hidden by the client can still leave that reminder scheduled;
+readable removal cancels it, and a new seal cast replaces the deadline.
+Refresh sounds default to combat-only; uncheck **Refresh sound only in combat**
+to hear them outside combat. Sound previews still work. Automatic cancellation/
 dispel sounds and combat-entry missing sounds are pending native sound
 integration; they are not driven by the restricted native display. Outside
 combat, confirmed missing-seal sounds still honor the existing settings.

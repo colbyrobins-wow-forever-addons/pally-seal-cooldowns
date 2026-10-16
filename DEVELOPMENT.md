@@ -48,6 +48,26 @@ After in-game acceptance and a request to prepare a release:
 
 ## Current unreleased work
 
+### 2026-10-15: restore native refresh sound reminders
+
+- Reporter confirms combat display works, but refresh sound played in only
+  2 of 14 fights on a level 21 paladin using Crusader and Righteousness.
+  Exact client build and installed version were not supplied.
+- Native mode now permits refresh warnings from live cast-based or previously
+  observed timers retained through restricted combat queries. The native
+  display continues to own visual state. Sound enable/combat-only settings
+  remain unchanged; both alert types default to combat-only.
+- Known limitation: an early cancellation/dispel hidden by the client can
+  leave the estimated refresh reminder scheduled. Readable removal cancels it;
+  recasts/switches replace the deadline. Expired estimates do not emit missing
+  alerts. This is a timer-based reminder, not native sound integration.
+- Local verification: all eight Lua 5.1 suites pass through Lupa, including
+  14 successive combat warnings, recast/switch, disabled audio, confirmed
+  removal, secret timing, precombat seals, and hidden out-of-combat trackers.
+- Pending in-game verification: repeat the reporter's seal/rank combinations,
+  casts/expiration inside and outside combat, and early removal. Version stays
+  0.1.19; no deployment, release preparation, or publication performed.
+
 Release **0.1.19** was authorized on 2026-10-12 from repaired runtime commit
 `80a1059`. The user requested release after the repair was installed; that is
 recorded as acceptance for release preparation, not as a detailed test report

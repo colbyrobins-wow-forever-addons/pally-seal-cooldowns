@@ -1,5 +1,17 @@
 # Sound verification
 
+## 2026-10-15 development regression check
+
+All eight Lua 5.1 suites pass through Lupa. Native refresh reminders now use
+live estimated timers as well as readable observations. Regression coverage
+includes 14 successive combat casts alternating Crusader and Righteousness,
+replacement deadlines, sound enable/combat filters, confirmed removal,
+restricted timing, precombat seals, and a hidden out-of-combat tracker.
+Early removal with no readable signal can still leave a scheduled reminder.
+In-game verification is pending; no deployment or version change was made.
+
+## Previous verification record
+
 Local verification completed on 2026-10-12 using Lua 5.1 through Lupa.
 All five `tests/*_test.lua` suites passed. No production code changes were
 needed during this verification pass.

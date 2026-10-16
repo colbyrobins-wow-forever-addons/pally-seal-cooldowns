@@ -485,3 +485,102 @@ assert(appliedNative == 0, "Native layout changes are deferred during lockdown")
 lockdown = false
 scripts.OnEvent(widget, "PLAYER_REGEN_ENABLED")
 assert(appliedNative > 0, "Pending native layout applies after combat")
+
+-- Native refresh audio must survive the same empty/restricted combat lookups
+-- as the cast timer. Reproduce repeated fights with Crusader and Righteousness.
+C_UnitAuras.GetAuraDataBySpellName = function() return nil end
+local nativeDB = ReloadWithSettings({sound = true, missingSound = false})
+local nativeSounds = soundCount
+for fight = 1, 14 do
+    now = 1000 + fight * 40
+    scripts.OnEvent(widget, "PLAYER_REGEN_DISABLED")
+    local spell = fight % 2 == 0 and 21082 or 20154
+    scripts.OnEvent(widget, "UNIT_SPELLCAST_SUCCEEDED", "player", "native-refresh", spell)
+    now = now + 24
+    scripts.OnUpdate(widget, 0.5)
+    assert(soundCount == nativeSounds + fight - 1, "No warning before threshold")
+    now = now + 1
+    scripts.OnUpdate(widget, 0.5)
+    scripts.OnUpdate(widget, 0.5)
+    assert(soundCount == nativeSounds + fight, "Each combat cast warns once at threshold")
+    now = now + 6
+    scripts.OnUpdate(widget, 0.5)
+    assert(soundCount == nativeSounds + fight, "Expired estimate adds no warning")
+    scripts.OnEvent(widget, "PLAYER_REGEN_ENABLED")
+end
+
+nativeSounds = soundCount
+now = 2000
+scripts.OnEvent(widget, "PLAYER_REGEN_DISABLED")
+scripts.OnEvent(widget, "UNIT_SPELLCAST_SUCCEEDED", "player", "first", 20154)
+now = 2020
+scripts.OnEvent(widget, "UNIT_SPELLCAST_SUCCEEDED", "player", "switch", 21082)
+now = 2025
+scripts.OnUpdate(widget, 0.5)
+assert(soundCount == nativeSounds, "Switching seals cancels the old warning deadline")
+nativeDB.sound = false
+now = 2045
+scripts.OnUpdate(widget, 0.5)
+assert(soundCount == nativeSounds, "Disabled refresh sound stays silent")
+nativeDB.sound = true
+scripts.OnUpdate(widget, 0.5)
+assert(soundCount == nativeSounds + 1, "New seal warns at its own deadline")
+
+-- Readable removal cancels a pending native reminder.
+now = 2100
+scripts.OnEvent(widget, "UNIT_SPELLCAST_SUCCEEDED", "player", "removed", 20154)
+scripts.OnEvent(widget, "UNIT_AURA", "player", {addedAuras = {
+    {name = "Seal 20154", duration = 30, expirationTime = 2130, auraInstanceID = 301},
+}})
+scripts.OnEvent(widget, "UNIT_AURA", "player", {removedAuraInstanceIDs = {301}})
+now = 2125
+scripts.OnUpdate(widget, 0.5)
+assert(soundCount == nativeSounds + 1, "Confirmed removal cancels native refresh audio")
+
+-- Hidden timing without a known cast must remain silent. A successful cast
+-- supplies readable timing even when subsequent queries return secret values.
+local secretTiming = {}
+issecretvalue = function(value) return value == secretTiming end
+C_UnitAuras.GetAuraDataBySpellName = function(_, name)
+    if name == "Seal 20154" then
+        return {duration = secretTiming, expirationTime = secretTiming}
+    end
+end
+scripts.OnEvent(widget, "UNIT_AURA", "player")
+scripts.OnUpdate(widget, 0.5)
+assert(soundCount == nativeSounds + 1, "Unknown secret timing cannot trigger native audio")
+now = 2200
+scripts.OnEvent(widget, "UNIT_SPELLCAST_SUCCEEDED", "player", "secret-timing", 20154)
+now = 2225
+scripts.OnUpdate(widget, 0.5)
+assert(soundCount == nativeSounds + 2, "Cast reminder survives secret aura timing")
+issecretvalue = nil
+
+-- A precombat observed seal retains its deadline through restricted combat.
+scripts.OnEvent(widget, "PLAYER_REGEN_ENABLED")
+now = 2300
+C_UnitAuras.GetAuraDataBySpellName = function(_, name)
+    if name == "Seal 20154" then return {duration = 30, expirationTime = 2330} end
+end
+scripts.OnEvent(widget, "UNIT_AURA", "player")
+C_UnitAuras.GetAuraDataBySpellName = function() return nil end
+scripts.OnEvent(widget, "PLAYER_REGEN_DISABLED")
+now = 2325
+scripts.OnUpdate(widget, 0.5)
+assert(soundCount == nativeSounds + 3, "Precombat seal warns during empty combat queries")
+
+scripts.OnEvent(widget, "PLAYER_REGEN_ENABLED")
+now = 2400
+C_UnitAuras.GetAuraDataBySpellName = function(_, name)
+    if name == "Seal 21082" then return {duration = 30, expirationTime = 2430} end
+end
+scripts.OnEvent(widget, "UNIT_AURA", "player")
+now = 2425
+scripts.OnUpdate(widget, 0.5)
+assert(soundCount == nativeSounds + 3, "Combat-only preference blocks out-of-combat audio")
+nativeDB.refreshCombatOnly = false
+nativeDB.hideOutOfCombat = true
+scripts.OnUpdate(widget, 0.5)
+scripts.OnUpdate(widget, 0.5)
+assert(soundCount == nativeSounds + 4, "Out-of-combat warning plays once with tracker hidden")
+io.write("Native refresh sound regression tests passed.\n")
