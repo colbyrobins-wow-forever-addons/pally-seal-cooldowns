@@ -48,6 +48,20 @@ After in-game acceptance and a request to prepare a release:
 
 ## Current unreleased work
 
+### 2026-10-16: Forever XP bar discovery repair
+
+- First in-game report: addon loaded but did not change the bar. Initial
+  discovery only supported `MainMenuExpBar`; installed XPForever code identifies
+  the newer status-tracking manager and its per-container experience bars.
+- Added discovery and independent bindings for all manager XP bar copies,
+  including reputation layout changes, plus native SetShown handling.
+- Added `/foreverxp` attachment/XP status and a warning when XPForever is loaded.
+  XPForever is installed and its code hides Blizzard's bar; whether it is enabled
+  in the user's current session is not known. Other addons are left unchanged.
+- All nine Lua suites pass, now including newer container discovery, late
+  loading, combat deferral, multiple XP copies, and the conflict diagnostic.
+  Actual client verification remains pending after redeployment.
+
 ### 2026-10-16: Forever XP development addon
 
 - Added the independent `ForeverXP` addon for interface 16001. It changes the

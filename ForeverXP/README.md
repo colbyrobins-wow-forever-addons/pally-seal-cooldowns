@@ -16,7 +16,14 @@ Disable Forever XP and reload to restore Blizzard's text behavior.
 Copy this `ForeverXP` folder into the Forever beta client's `Interface/AddOns`
 folder. Enable **Forever XP** on the character screen and log in (or reload
 if the client already recognizes the addon). It requires Blizzard's default
-XP bar; replacement action-bar addons are not supported.
+XP bar; replacement action-bar addons are not supported. Both the newer
+status-tracking containers and the older `MainMenuExpBar` are supported.
+
+Run `/foreverxp` to refresh attachment and report the number of XP bars found,
+their shown state, and current XP. If XPForever is loaded, the command also
+reports that conflict: XPForever hides Blizzard's XP bar. Disable XPForever and
+reload when using this addon. A shown bar may still be transparent because of
+another addon; this addon does not override other addons' bar visibility.
 
 ## Development and verification
 

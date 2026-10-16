@@ -15,7 +15,7 @@ issecretvalue = function(value) return value == secret end
 assert(addon.FormatXP(secret, 400) == nil)
 assert(addon.FormatXP(0, secret) == nil)
 
-local function RunScenario(late, combat, globalLabel)
+local function RunScenario(late, combat, globalLabel, modern)
     local current, maximum = 12500, 20000
     local handler, hooks, messages = nil, 0, 0
     local text = {shown = false}
@@ -23,12 +23,23 @@ local function RunScenario(late, combat, globalLabel)
     function text:SetFormattedText(format, ...) self.value = string.format(format, ...) end
     function text:Show() self.shown = true end
     function text:Hide() self.shown = false end
+    function text:SetShown(value) self.shown = value end
     local bar = {shown = true, scripts = {}}
     function bar:IsShown() return self.shown end
     function bar:HookScript(event, callback) self.scripts[event] = callback end
     if not globalLabel then bar.TextString = text end
     MainMenuExpBar = not late and bar or nil
     MainMenuBarExpText = globalLabel and text or nil
+    StatusTrackingBarManager, StatusTrackingBarInfo = nil, nil
+    SlashCmdList = {}
+    C_AddOns = nil
+    if modern then
+        MainMenuExpBar, MainMenuBarExpText = nil, nil
+        bar.TextString = nil
+        bar.OverlayFrame = {Text = text}
+        StatusTrackingBarInfo = {BarsEnum = {Experience = 7}}
+        StatusTrackingBarManager = {barContainers = late and {} or {{bars = {[7] = bar}}}}
+    end
     UnitXP = function(unit) assert(unit == "player"); return current end
     UnitXPMax = function(unit) assert(unit == "player"); return maximum end
     InCombatLockdown = function() return combat end
@@ -56,12 +67,15 @@ local function RunScenario(late, combat, globalLabel)
         handler(nil, "PLAYER_ENTERING_WORLD")
         handler(nil, "PLAYER_ENTERING_WORLD")
         assert(messages == (combat and 0 or 1), "Missing bar warning is emitted only once")
-        MainMenuExpBar, combat = bar, false
+        combat = false
+        if modern then
+            StatusTrackingBarManager.barContainers = {{bars = {[7] = bar}}}
+        else MainMenuExpBar = bar end
         handler(nil, late and "ADDON_LOADED" or "PLAYER_REGEN_ENABLED")
     end
     assert(text.value == addon.FormatXP(current, maximum) and text.shown)
     handler(nil, "ADDON_LOADED")
-    assert(hooks == 4, "Repeated addon loads do not duplicate hooks")
+    assert(hooks == 5, "Repeated addon loads do not duplicate hooks")
     current = 15000
     handler(nil, "PLAYER_XP_UPDATE", "pet")
     assert(text.value == addon.FormatXP(12500, maximum), "Other units are ignored")
@@ -74,6 +88,8 @@ local function RunScenario(late, combat, globalLabel)
     assert(text.value == addon.FormatXP(current, maximum))
     text:Hide()
     assert(text.shown, "Mouse leave must not hide the XP label")
+    text:SetShown(false)
+    assert(text.shown, "Native SetShown cannot hide the XP label")
     bar.shown = false
     bar.scripts.OnHide()
     assert(not text.shown and not bar.shown, "Hidden bar remains hidden")
@@ -94,9 +110,35 @@ local function RunScenario(late, combat, globalLabel)
     current = 100
     handler(nil, "PLAYER_XP_UPDATE", "player")
     assert(text.shown and text.value == addon.FormatXP(current, maximum))
+    if modern then
+        combat = false
+        local secondText = {}
+        -- Fresh methods: don't inherit the first label's post-hooks.
+        function secondText:SetText(value) self.value = value end
+        function secondText:SetFormattedText() end
+        function secondText:Show() self.shown = true end
+        function secondText:Hide() self.shown = false end
+        local secondBar = {OverlayFrame = {Text = secondText}, scripts = {}}
+        function secondBar:IsShown() return true end
+        secondBar.HookScript = bar.HookScript
+        StatusTrackingBarManager.barContainers[2] = {bars = {[7] = secondBar}}
+        handler(nil, "UPDATE_FACTION")
+        assert(secondText.value == addon.FormatXP(current, maximum) and secondText.shown,
+            "Reputation layout can introduce another XP bar copy")
+        current = 200
+        handler(nil, "PLAYER_XP_UPDATE", "player")
+        assert(text.value == secondText.value, "Both container copies update")
+    end
+    local previousMessages = messages
+    C_AddOns = {IsAddOnLoaded = function(name) return name == "XPForever" end}
+    SlashCmdList.FOREVERXP()
+    assert(messages == previousMessages + 2, "Status reports attachment and loaded XPForever conflict")
 end
 
 RunScenario(false, false, false)
 RunScenario(true, false, false)
 RunScenario(false, true, true)
+RunScenario(false, false, false, true)
+RunScenario(true, false, false, true)
+RunScenario(false, true, false, true)
 io.write("Forever XP tests passed.\n")
