@@ -480,3 +480,8 @@ No in-game results for the unreleased sound changes have been recorded yet.
 - Public upload/publishing is separate from preparation. No remote is configured;
   the archive, commit, and tag are local. Native combat sound integration and
   independently documented enemy-dispel confirmation remain outstanding.
+
+## 2026-10-17: Forever XP project relocation
+
+ForeverXP and its two tests moved to ../wow-addons-foreverXpBar.
+Earlier entries above are historical; future Forever XP work belongs in that project. Git history through 5db969d remains here.
