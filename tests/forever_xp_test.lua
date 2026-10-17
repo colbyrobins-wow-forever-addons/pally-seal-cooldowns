@@ -221,7 +221,16 @@ local function RunScenario(late, combat, globalLabel, modern)
     combat = false
     local previousMessages = messages
     C_AddOns = {IsAddOnLoaded = function(name) return name == "XPForever" end}
+    local opened = 0
+    addon.OpenSettings = function(getSettings, apply)
+        opened = opened + 1
+        assert(getSettings() == ForeverXPDB)
+        apply()
+    end
     SlashCmdList.FOREVERXP()
+    SlashCmdList.FOREVERXP("settings")
+    assert(opened == 2, "Bare command and settings command open the window")
+    SlashCmdList.FOREVERXP("status")
     assert(messages == previousMessages + 2, "Status reports attachment and loaded XPForever conflict")
 end
 

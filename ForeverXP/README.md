@@ -20,6 +20,12 @@ Disable Forever XP and reload to restore Blizzard's text behavior.
 
 ## Display commands
 
+Run `/foreverxp` (or `/foreverxp settings`) to open the movable settings window.
+Choose **Always show XP text** or **Show XP text only on mouseover**, and toggle
+**Use a taller XP bar**. Changes save automatically. Close with the X or Escape.
+
+The following shortcuts remain available:
+
 - `/foreverxp always`: show XP text all the time (default).
 - `/foreverxp mouseover`: show XP text only while hovering the bar or rested tick.
 - `/foreverxp tall`: increase the bar and fill to at least 18 pixels.
@@ -37,7 +43,7 @@ if the client already recognizes the addon). It requires Blizzard's default
 XP bar; replacement action-bar addons are not supported. Both the newer
 status-tracking containers and the older `MainMenuExpBar` are supported.
 
-Run `/foreverxp` to refresh attachment and report the number of XP bars found,
+Run `/foreverxp status` to refresh attachment and report the number of XP bars found,
 their shown state, and current XP. If XPForever is loaded, the command also
 reports that conflict: XPForever hides Blizzard's XP bar. Disable XPForever and
 reload when using this addon. A shown bar may still be transparent because of

@@ -6,4 +6,5 @@
 
 XPText.lua
 Presentation.lua
+Settings.lua
 ForeverXP.lua

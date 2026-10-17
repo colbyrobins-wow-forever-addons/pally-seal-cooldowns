@@ -48,6 +48,17 @@ After in-game acceptance and a request to prepare a release:
 
 ## Current unreleased work
 
+### 2026-10-16: Forever XP settings window
+
+- `/foreverxp` and `/foreverxp settings` open a movable window with mutually
+  exclusive always/mouseover visibility choices and a taller-bar checkbox.
+  Changes save and apply immediately; height changes still defer in combat.
+  The window supports Escape/close and refreshes saved values when reopened.
+- Diagnostic output moved to `/foreverxp status`; existing setting shortcuts
+  remain available. All ten Lua 5.1 suites pass, including window control state,
+  callback application, reopening, combat notices, and slash-command routing.
+- Actual client layout and interaction remain pending in-game verification.
+
 ### 2026-10-16: XP text visibility setting
 
 - Added saved `/foreverxp always` (default) and `/foreverxp mouseover` options.

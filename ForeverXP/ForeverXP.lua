@@ -78,19 +78,27 @@ end
 SLASH_FOREVERXP1 = "/foreverxp"
 SlashCmdList.FOREVERXP = function(input)
     local command = (input or ""):lower():match("^%s*(.-)%s*$")
+    if command == "" or command == "settings" then
+        addon.OpenSettings(Settings, function()
+            Attach()
+            StyleAll()
+            Update()
+        end)
+        return
+    end
     local settings = Settings()
     if command == "tall" then settings.tall = true
     elseif command == "normal" then settings.tall = false
     elseif command == "always" then settings.mouseoverOnly = false
     elseif command == "mouseover" then settings.mouseoverOnly = true
-    elseif command ~= "" then
-        DEFAULT_CHAT_FRAME:AddMessage("Forever XP: /foreverxp always | mouseover | tall | normal")
+    elseif command ~= "status" then
+        DEFAULT_CHAT_FRAME:AddMessage("Forever XP: /foreverxp settings | status | always | mouseover | tall | normal")
         return
     end
     Attach()
     StyleAll()
     Update()
-    if command ~= "" then
+    if command ~= "status" then
         DEFAULT_CHAT_FRAME:AddMessage("Forever XP: "
             .. (settings.mouseoverOnly and "text on mouseover, " or "text always visible, ")
             .. (settings.tall and "taller" or "normal") .. " bar."
@@ -121,7 +129,7 @@ events:SetScript("OnEvent", function(_, event, unit)
         and not (InCombatLockdown and InCombatLockdown()) then
         warned = true
         DEFAULT_CHAT_FRAME:AddMessage("|cffffd36aForever XP:|r Blizzard's XP bar was not found. "
-            .. "Run /foreverxp for attachment status.")
+            .. "Run /foreverxp status for attachment status.")
     end
 end)
 
