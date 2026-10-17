@@ -48,6 +48,15 @@ After in-game acceptance and a request to prepare a release:
 
 ## Current unreleased work
 
+### 2026-10-16: XP text visibility setting
+
+- Added saved `/foreverxp always` (default) and `/foreverxp mouseover` options.
+  The full text format and default-position tooltip are preserved. Only the
+  text hides when idle in mouseover mode; the XP bar remains visible.
+- Focused Lua coverage verifies native refresh suppression, hover/leave,
+  persistence through settings normalization, and switching during combat.
+  In-game verification remains pending.
+
 ### 2026-10-16: one permanent full XP display
 
 - Full styled XP totals, percentage, and XP to next level now show at all times.

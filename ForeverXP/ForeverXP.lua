@@ -7,6 +7,7 @@ local function Settings()
     if type(ForeverXPDB) ~= "table" then ForeverXPDB = {} end
     ForeverXPDB.mode = nil -- Retire the previous compact/full preference.
     ForeverXPDB.tall = ForeverXPDB.tall == true
+    ForeverXPDB.mouseoverOnly = ForeverXPDB.mouseoverOnly == true
     return ForeverXPDB
 end
 
@@ -21,7 +22,9 @@ local function UpdateBinding(binding)
     binding.updating = true
     -- Hidden/zero-XP bars must not leave floating text.
     label:SetText(text or "")
-    if text and bar:IsShown() then label:Show() else label:Hide() end
+    if text and bar:IsShown() and (not Settings().mouseoverOnly or binding.hovered) then
+        label:Show()
+    else label:Hide() end
     binding.updating = false
     if binding.hovered and GameTooltip
         and GameTooltip:IsOwned(binding.hoverTarget or binding.bar) then
@@ -78,15 +81,18 @@ SlashCmdList.FOREVERXP = function(input)
     local settings = Settings()
     if command == "tall" then settings.tall = true
     elseif command == "normal" then settings.tall = false
+    elseif command == "always" then settings.mouseoverOnly = false
+    elseif command == "mouseover" then settings.mouseoverOnly = true
     elseif command ~= "" then
-        DEFAULT_CHAT_FRAME:AddMessage("Forever XP: /foreverxp tall | normal")
+        DEFAULT_CHAT_FRAME:AddMessage("Forever XP: /foreverxp always | mouseover | tall | normal")
         return
     end
     Attach()
     StyleAll()
     Update()
     if command ~= "" then
-        DEFAULT_CHAT_FRAME:AddMessage("Forever XP: full details, "
+        DEFAULT_CHAT_FRAME:AddMessage("Forever XP: "
+            .. (settings.mouseoverOnly and "text on mouseover, " or "text always visible, ")
             .. (settings.tall and "taller" or "normal") .. " bar."
             .. ((InCombatLockdown and InCombatLockdown()) and " Layout applies after combat." or ""))
         return

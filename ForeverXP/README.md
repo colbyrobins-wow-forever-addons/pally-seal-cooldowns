@@ -1,12 +1,13 @@
 # Forever XP
 
-Adds always-visible XP text to Blizzard's existing XP bar in WoW Forever beta
+Adds configurable XP text to Blizzard's existing XP bar in WoW Forever beta
 (interface 16001). Works independently of Pally Seal Cooldowns, on any class.
 
-Always displayed: `12,500 / 20,000 XP • 62.5% • 7,500 to level 22`
+Text: `12,500 / 20,000 XP • 62.5% • 7,500 to level 22`
 
-The bar has one display format. Hovering opens the detailed tooltip without
-changing the bar text. Previous compact/full preferences are removed automatically.
+The bar has one display format, shown always (default) or only on mouseover.
+Hovering also opens the detailed tooltip. Previous compact/full preferences
+are removed automatically.
 
 The denominator is the total XP required for the level; the final number is
 remaining XP. Updates on XP gains, level changes, login, and Blizzard text
@@ -19,6 +20,8 @@ Disable Forever XP and reload to restore Blizzard's text behavior.
 
 ## Display commands
 
+- `/foreverxp always`: show XP text all the time (default).
+- `/foreverxp mouseover`: show XP text only while hovering the bar or rested tick.
 - `/foreverxp tall`: increase the bar and fill to at least 18 pixels.
 - `/foreverxp normal`: restore the original bar height (default).
 

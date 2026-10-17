@@ -202,6 +202,23 @@ local function RunScenario(late, combat, globalLabel, modern)
     assert(height == 18, "Deferred height applies outside combat")
     SlashCmdList.FOREVERXP("normal")
     assert(height == 13, "Normal mode restores the captured bar height")
+    SlashCmdList.FOREVERXP("mouseover")
+    assert(ForeverXPDB.mouseoverOnly and not text.shown, "Mouseover option hides idle text")
+    text:Show()
+    text:SetShown(true)
+    handler(nil, "PLAYER_XP_UPDATE", "player")
+    assert(not text.shown, "Native text refreshes cannot override mouseover-only setting")
+    handler(nil, "ADDON_LOADED")
+    assert(ForeverXPDB.mouseoverOnly and not text.shown, "Saved visibility survives normalization")
+    combat = true
+    bar.scripts.OnEnter(bar)
+    assert(text.shown and text.value == Expected(current, maximum) and GameTooltip.shown,
+        "Mouseover shows full details and tooltip during combat")
+    bar.scripts.OnLeave()
+    assert(not text.shown and not GameTooltip.shown, "Mouse leave hides only text and tooltip")
+    SlashCmdList.FOREVERXP("always")
+    assert(not ForeverXPDB.mouseoverOnly and text.shown, "Always mode applies immediately in combat")
+    combat = false
     local previousMessages = messages
     C_AddOns = {IsAddOnLoaded = function(name) return name == "XPForever" end}
     SlashCmdList.FOREVERXP()
