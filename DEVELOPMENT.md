@@ -161,6 +161,15 @@ No new release is ready based on local tests alone.
 
 ## In-game test record
 
+### 2026-10-16: XP visibility setting deployment
+
+- Deployed clean source commit `ac7301a` to beta `AddOns/ForeverXP`; all four
+  runtime files verified by SHA-256. Focused Forever XP Lua suite passes.
+- Previous installation backed up and verified at
+  `<workspace>/addon-deployment-backups/ForeverXP-before-ac7301a-2c682df50d6648ae97bd920c8b260149`.
+- Pending: reload, test `/foreverxp mouseover` and `/foreverxp always`, then
+  verify persistence after another reload. No release assigned.
+
 ### 2026-10-16: permanent full XP display deployment
 
 - Deployed clean source commit `db8616c` to beta `AddOns/ForeverXP`; all four
