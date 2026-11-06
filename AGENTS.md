@@ -5,6 +5,8 @@
 - Keep the TOC version at the last established version during development and
   in-game testing. Identify test builds by Git commit and record uncommitted
   changes, if any.
+- Do not commit each change. Keep work uncommitted through deployment and
+  in-game testing, and commit only after the user accepts the in-game results.
 - Keep source, tests, documentation, and required addon assets in Git. Exclude
   build archives, deployment backups, and local dependencies.
 - Add focused regression tests for behavior changes and record verification

@@ -1,6 +1,6 @@
 local widgets = {}
 local function Widget(kind, parent)
-    local widget = {kind = kind, scripts = {}, parent = parent}
+    local widget = {kind = kind, scripts = {}, parent = parent, shown = true}
     setmetatable(widget, {__index = function(_, name)
         if name == "SetScript" or name == "HookScript" then
             return function(self, event, handler) self.scripts[event] = handler end
@@ -21,6 +21,17 @@ local function Widget(kind, parent)
                 self.value = value
                 self.scripts.OnValueChanged(self, value)
             end
+        elseif name == "Show" or name == "Hide" or name == "SetShown" then
+            return function(self, value)
+                if name == "SetShown" then self.shown = value and true or false
+                else self.shown = name == "Show" end
+            end
+        elseif name == "SetEnabled" then
+            return function(self, value) self.enabled = value end
+        elseif name == "SetParent" then
+            return function(self, value) self.parent = value end
+        elseif name == "GetParent" then
+            return function(self) return rawget(self, "parent") end
         elseif name == "CreateTexture" or name == "CreateFontString" then
             return function(self) return Widget("Region", self) end
         end
@@ -47,76 +58,155 @@ local applied = 0
 local panel = addon.CreateSettings(db, function() applied = applied + 1 end)
 panel:Synchronize()
 assert(applied == 0, "Opening settings must not change stored values")
-local checks, sliders, buttons = {}, {}, {}
+local pages = panel.pages
+
+-- Controls are found by visible label so layout order can change freely.
+local function Label(widget)
+    if widget.kind == "Button" then return widget.value end
+    for _, region in ipairs(widgets) do
+        if region.kind == "Region" and region.parent == widget and type(region.value) == "string" then
+            return region.value
+        end
+    end
+end
+local function Find(kind, prefix)
+    for _, widget in ipairs(widgets) do
+        local label = widget.kind == kind and not rawget(widget, "key") and Label(widget)
+        if type(label) == "string" and label:sub(1, #prefix) == prefix then return widget end
+    end
+    error("Missing " .. kind .. ": " .. prefix)
+end
+local function PageOf(widget)
+    while widget and not rawget(widget, "content") do widget = widget.parent end
+    return widget and widget.key
+end
+local function Click(check, value)
+    check.value = value
+    check.scripts.OnClick(check)
+end
+
+-- Four pages: General is the category itself; the others become sub-pages.
+local expectedPages = {{"general", "General"}, {"alerts", "Alerts & sounds"},
+    {"appearance", "Appearance"}, {"presets", "Presets"}}
+assert(#pages == #expectedPages, "Settings must provide four pages")
+for index, expected in ipairs(expectedPages) do
+    assert(pages[index].key == expected[1] and pages[index].name == expected[2])
+    assert(pages[expected[1]] == pages[index], "Pages are reachable by key")
+end
+local placement = {
+    {"CheckButton", "Lock tracker position", "general"},
+    {"CheckButton", "Show countdown only when refresh is due", "general"},
+    {"CheckButton", "Small icon with horizontal timer bar", "general"},
+    {"CheckButton", "Hide outside combat", "general"},
+    {"CheckButton", "Show seal name", "general"},
+    {"CheckButton", "Show status text", "general"},
+    {"Slider", "Refresh warning: ", "general"},
+    {"Slider", "Display size: ", "general"},
+    {"Slider", "Bar width (bar style): ", "general"},
+    {"Button", "Reset position and size", "general"},
+    {"CheckButton", "Play refresh warning sound", "alerts"},
+    {"CheckButton", "Refresh sound only in combat", "alerts"},
+    {"Button", "Refresh sound: ", "alerts"},
+    {"Button", "Audio channel: ", "alerts"},
+    {"Button", "Test refresh sound", "alerts"},
+    {"CheckButton", "Play missing-seal sound", "alerts"},
+    {"CheckButton", "Missing sound only in combat", "alerts"},
+    {"Button", "Missing sound: ", "alerts"},
+    {"Button", "Test missing sound", "alerts"},
+    {"Button", "Font: ", "appearance"},
+    {"Button", "Outline: ", "appearance"},
+    {"CheckButton", "Text shadow", "appearance"},
+    {"Slider", "Countdown font size: ", "appearance"},
+    {"Slider", "Seal name font size: ", "appearance"},
+    {"Button", "Border: ", "appearance"},
+    {"Button", "Border color: ", "appearance"},
+    {"Slider", "Custom border thickness: ", "appearance"},
+    {"Button", "Bar texture: ", "appearance"},
+    {"CheckButton", "Bar counts down", "appearance"},
+}
+for _, choice in ipairs(addon.PresetChoices) do
+    placement[#placement + 1] = {"Button", choice.label, "presets"}
+end
+for _, entry in ipairs(placement) do
+    assert(PageOf(Find(entry[1], entry[2])) == entry[3], entry[2] .. " belongs on " .. entry[3])
+end
+local counts = {}
 for _, widget in ipairs(widgets) do
-    if widget.kind == "CheckButton" then checks[#checks + 1] = widget end
-    if widget.kind == "Slider" then sliders[#sliders + 1] = widget end
-    if widget.kind == "Button" then buttons[#buttons + 1] = widget end
+    counts[widget.kind] = (counts[widget.kind] or 0) + 1
     assert(widget.kind ~= "EditBox", "Custom seal input must be removed")
 end
-assert(checks[1].value == true and checks[3].value == false)
-checks[1].value = false
-checks[1].scripts.OnClick(checks[1])
+assert(counts.CheckButton == 12 and counts.Slider == 6, "No controls are lost in the split")
+assert(counts.ScrollFrame == 4, "Each page scrolls independently")
+
+-- General page.
+local lock = Find("CheckButton", "Lock tracker position")
+assert(lock.value == true)
+Click(lock, false)
 assert(db.locked == false)
-checks[3].value = true
-checks[3].scripts.OnClick(checks[3])
+local counter = Find("CheckButton", "Show countdown only when refresh is due")
+assert(counter.value == false)
+Click(counter, true)
 assert(db.counterMode == "refresh")
-checks[4].value = true
-checks[4].scripts.OnClick(checks[4])
+local barStyle = Find("CheckButton", "Small icon with horizontal timer bar")
+Click(barStyle, true)
 assert(db.displayStyle == "bar", "Bar style must apply immediately")
 panel:Synchronize()
-assert(checks[4].value == true, "Bar preference must be restored in the window")
-checks[4].value = false
-checks[4].scripts.OnClick(checks[4])
+assert(barStyle.value == true, "Bar preference must be restored in the window")
+Click(barStyle, false)
 assert(db.displayStyle == "icon", "Unchecking bar style must restore icon layout")
-checks[5].value = true
-checks[5].scripts.OnClick(checks[5])
+local hide = Find("CheckButton", "Hide outside combat")
+Click(hide, true)
 assert(db.hideOutOfCombat == true)
 panel:Synchronize()
-assert(checks[5].value == true, "Combat visibility preference must be restored")
-checks[5].value = false
-checks[5].scripts.OnClick(checks[5])
+assert(hide.value == true, "Combat visibility preference must be restored")
+Click(hide, false)
 assert(db.hideOutOfCombat == false)
-sliders[1]:SetValue(8)
-sliders[2]:SetValue(1.25)
+Find("Slider", "Refresh warning: "):SetValue(8)
+Find("Slider", "Display size: "):SetValue(1.25)
 assert(db.threshold == 8 and db.scale == 1.25)
-checks[6].value = false
-checks[6].scripts.OnClick(checks[6])
-checks[7].value = false
-checks[7].scripts.OnClick(checks[7])
+Click(Find("CheckButton", "Show seal name"), false)
+Click(Find("CheckButton", "Show status text"), false)
 assert(db.showSealName == false and db.showStatusText == false)
-sliders[3]:SetValue(250)
+Find("Slider", "Bar width (bar style): "):SetValue(250)
 assert(db.barWidth == 250)
-buttons[2].scripts.OnClick()
-buttons[3].scripts.OnClick()
+
+-- Alerts & sounds page.
+local soundButton = Find("Button", "Refresh sound: ")
+local channelButton = Find("Button", "Audio channel: ")
+local refreshPreview = Find("Button", "Test refresh sound")
+local missingButton = Find("Button", "Missing sound: ")
+local missingPreview = Find("Button", "Test missing sound")
+soundButton.scripts.OnClick()
+channelButton.scripts.OnClick()
 assert(db.soundChoice == "whisper" and db.soundChannel == "SFX")
-buttons[4].scripts.OnClick()
+refreshPreview.scripts.OnClick()
 assert(playedKit == 2 and playedChannel == "SFX", "Preview must use selected sound and channel")
 db.sound = false
-buttons[4].scripts.OnClick()
+refreshPreview.scripts.OnClick()
 assert(playedKit == 2, "Explicit preview works when automatic sounds are disabled")
-buttons[5].scripts.OnClick()
+Find("Button", "Reset position and size").scripts.OnClick()
 assert(db.x == 0 and db.y == -160 and db.scale == 1)
-assert(#buttons == 18 and #checks == 12 and #sliders == 6,
-    "General and appearance controls must exist together in one panel")
+assert(Find("Slider", "Display size: ").value == 1, "Reset refreshes the general page")
 db.missingSoundChoice = "raid"
 panel:Synchronize()
-buttons[6].scripts.OnClick()
+missingButton.scripts.OnClick()
 assert(db.missingSoundChoice == "whisper" and db.soundChoice == "whisper")
 db.soundChoice = "click"
-buttons[7].scripts.OnClick()
+missingPreview.scripts.OnClick()
 assert(playedKit == 2, "Missing preview uses its independent choice")
-for index, key in ipairs({"refreshCombatOnly", "missingSound", "missingCombatOnly"}) do
-    checks[index + 7].value = true
-    checks[index + 7].scripts.OnClick(checks[index + 7])
+for label, key in pairs({["Refresh sound only in combat"] = "refreshCombatOnly",
+    ["Play missing-seal sound"] = "missingSound", ["Missing sound only in combat"] = "missingCombatOnly"}) do
+    Click(Find("CheckButton", label), true)
     assert(db[key] == true)
 end
-assert(checks[12].value == false, "Bar fills up unless countdown is chosen")
-checks[12].value = true
-checks[12].scripts.OnClick(checks[12])
+
+-- Appearance page.
+local countdown = Find("CheckButton", "Bar counts down")
+assert(countdown.value == false, "Bar fills up unless countdown is chosen")
+Click(countdown, true)
 assert(db.barCountdown == true, "Bar countdown choice must save")
 panel:Synchronize()
-assert(checks[12].value == true, "Bar countdown choice must be restored in the window")
+assert(countdown.value == true, "Bar countdown choice must be restored in the window")
 local filePlayed
 PlaySoundFile = function(path, channel)
     filePlayed = path
@@ -146,8 +236,8 @@ for _, channel in ipairs({"Master", "SFX", "Dialog"}) do
         kitCalls = kitCalls + 1
         assert(kit == SOUNDKIT.TELL_MESSAGE and actualChannel == channel)
     end
-    buttons[4].scripts.OnClick()
-    buttons[7].scripts.OnClick()
+    refreshPreview.scripts.OnClick()
+    missingPreview.scripts.OnClick()
     assert(fileCalls == 1 and kitCalls == 1,
         "Each preview plays only its selected sound on the shared channel")
     -- Both failed playback and a missing playback API must fall back exactly once.
@@ -158,63 +248,80 @@ for _, channel in ipairs({"Master", "SFX", "Dialog"}) do
             assert(kit == SOUNDKIT.RAID_WARNING and actualChannel == channel)
         end
         local previousCalls = kitCalls
-        buttons[4].scripts.OnClick()
+        refreshPreview.scripts.OnClick()
         assert(kitCalls == previousCalls + 1, "Chime fallback plays exactly once")
     end
 end
-local appearanceButtons = {buttons[1], buttons[8], buttons[9], buttons[10], buttons[11],
-    buttons[12], buttons[13], buttons[14], buttons[15], buttons[16], buttons[17], buttons[18]}
-local appearanceSliders = {sliders[4], sliders[5], sliders[6]}
-local appearanceChecks = {checks[11]}
-appearanceButtons[2].scripts.OnClick()
+local fontButton = Find("Button", "Font: ")
+fontButton.scripts.OnClick()
 assert(db.font == "arial", "Font choice applies immediately")
-appearanceButtons[2].scripts.OnClick(nil, "RightButton")
+fontButton.scripts.OnClick(nil, "RightButton")
 assert(db.font == "default", "Right click cycles backward")
-appearanceSliders[1]:SetValue(22)
-appearanceSliders[2]:SetValue(14)
+Find("Slider", "Countdown font size: "):SetValue(22)
+Find("Slider", "Seal name font size: "):SetValue(14)
 assert(db.timerSize == 22 and db.nameSize == 14)
-appearanceChecks[1].value = false
-appearanceChecks[1].scripts.OnClick(appearanceChecks[1])
+Click(Find("CheckButton", "Text shadow"), false)
 assert(not db.fontShadow)
-appearanceButtons[8].scripts.OnClick()
-assert(db.border == "solid" and db.borderSize == 1, "Minimal preset applies")
-appearanceButtons[9].scripts.OnClick()
-assert(db.outline == "THICKOUTLINE" and db.borderSize == 3)
-appearanceButtons[10].scripts.OnClick()
-assert(db.border == "tooltip" and db.borderColor == "gold")
-appearanceButtons[11].scripts.OnClick()
-assert(db.font == "arial" and db.borderColor == "pink")
-appearanceButtons[12].scripts.OnClick()
-assert(db.border == "none" and db.timerSize == 16)
-appearanceButtons[7].scripts.OnClick()
-assert(db.font == "default" and db.timerSize == 0 and db.border == "default")
-assert(db.threshold == 8 and db.counterMode == "refresh", "Presets preserve gameplay settings")
-local scroll
-for _, widget in ipairs(widgets) do
-    if widget.kind == "ScrollFrame" then scroll = widget end
-end
-assert(scroll and scroll.child, "One scrollable view must contain both sections")
-scroll.width = 760
-scroll.scripts.OnSizeChanged()
-assert(scroll.child.height == 810, "Wide settings use two columns")
-scroll.width = 580
-scroll.scripts.OnSizeChanged()
-assert(scroll.child.height == 1440, "Narrow settings stack sections for scrolling")
 for _, widget in ipairs(widgets) do
     if widget.kind == "Region" and type(widget.value) == "string"
         and widget.value:find("Installed SharedMedia", 1, true) then
-        assert(widget.parent.parent == scroll.child, "Appearance help must scroll with controls")
+        assert(widget.parent == pages.appearance.content, "Appearance help must scroll with controls")
     end
 end
 
+-- Presets page.
+local function Preset(label) Find("Button", label).scripts.OnClick() end
+Preset("Minimal")
+assert(db.border == "solid" and db.borderSize == 1, "Minimal preset applies")
+Preset("High Contrast")
+assert(db.outline == "THICKOUTLINE" and db.borderSize == 3)
+Preset("Classic Gold")
+assert(db.border == "tooltip" and db.borderColor == "gold")
+Preset("Paladin Pink")
+assert(db.font == "arial" and db.borderColor == "pink")
+assert(Find("Button", "Border color: ").value:find("Paladin pink", 1, true),
+    "Presets refresh appearance controls on the other page")
+Preset("Clean Text")
+assert(db.border == "none" and db.timerSize == 16)
+Preset("Default")
+assert(db.font == "default" and db.timerSize == 0 and db.border == "default")
+assert(db.threshold == 8 and db.counterMode == "refresh", "Presets preserve gameplay settings")
+
+-- Standalone window hosts every page behind tabs.
+local tabs = {}
+for _, widget in ipairs(widgets) do
+    if widget.kind == "Button" and rawget(widget, "key") then tabs[#tabs + 1] = widget end
+end
+assert(#tabs == 4 and panel.hosted, "Standalone window shows page tabs")
+for index, page in ipairs(pages) do
+    assert(page.parent == panel and tabs[index].key == page.key and tabs[index].value == page.name)
+    assert(page.shown == (index == 1), "Standalone window opens on General")
+end
+assert(tabs[1].enabled == false and tabs[2].enabled == true)
+tabs[3].scripts.OnClick()
+for index, page in ipairs(pages) do
+    assert(page.shown == (index == 3), "Tabs show only the selected page")
+end
+assert(tabs[3].enabled == false and tabs[1].enabled == true)
+local before = applied
+pages.appearance.scripts.OnShow(pages.appearance)
+assert(applied == before + 1, "Showing a sub-page refreshes it and applies live settings")
+
 local registrations, opened, registeredPanel = 0, nil, nil
+local subcategories = {}
 local combat = true
+local rootCategory = {GetID = function() return 123 end}
 InCombatLockdown = function() return combat end
 Settings = {
     RegisterCanvasLayoutCategory = function(value, name)
         assert(name == "Pally Seal Cooldowns")
         registeredPanel = value
-        return {GetID = function() return 123 end}
+        return rootCategory
+    end,
+    RegisterCanvasLayoutSubcategory = function(parent, frame, name)
+        assert(parent == rootCategory, "Sub-pages nest under the addon category")
+        subcategories[#subcategories + 1] = {frame = frame, name = name}
+        return {}
     end,
     RegisterAddOnCategory = function() registrations = registrations + 1 end,
     OpenToCategory = function(id) opened = id end,
@@ -226,27 +333,56 @@ combat = false
 addon.RegisterSettings(db, apply)
 addon.RegisterSettings(db, apply)
 assert(registrations == 1 and registeredPanel.embedded, "Register one native AddOns category")
+assert(#subcategories == 3, "Register three native sub-pages")
+local nativePages = registeredPanel.pages
+for index, sub in ipairs(subcategories) do
+    assert(sub.frame == nativePages[index + 1] and sub.name == nativePages[index + 1].name)
+    assert(sub.frame.shown == false, "Native sub-pages stay hidden until selected")
+end
+assert(not registeredPanel.hosted and nativePages[1].shown, "Category page shows General only")
+for _, widget in ipairs(widgets) do
+    if widget.kind == "Button" and rawget(widget, "key") and widget.parent == registeredPanel then
+        assert(widget.shown == false, "Tabs are hidden when sub-pages are native")
+    end
+end
 addon.OpenSettings(db, apply)
 assert(opened == 123, "Slash/minimap route to the native category ID")
 
--- Older clients use the same unified panel through the legacy category API.
+-- A settings API without sub-categories keeps the tabs inside the one page.
+assert(loadfile("PallySealCooldowns/Settings.lua"))("PallySealCooldowns", addon)
+Settings.RegisterCanvasLayoutSubcategory = nil
+addon.RegisterSettings(db, apply)
+assert(registeredPanel.embedded and registeredPanel.hosted, "Tabs remain without sub-categories")
+
+-- Older clients nest the sub-pages through the legacy category API.
 assert(loadfile("PallySealCooldowns/Settings.lua"))("PallySealCooldowns", addon)
 Settings = nil
-local legacyPanel
-InterfaceOptions_AddCategory = function(value) legacyPanel = value end
+local legacy = {}
+InterfaceOptions_AddCategory = function(value) legacy[#legacy + 1] = value end
 InterfaceOptionsFrame_OpenToCategory = function(value) opened = value end
 addon.RegisterSettings(db, apply)
 addon.OpenSettings(db, apply)
-assert(legacyPanel and legacyPanel.embedded and opened == legacyPanel)
+local legacyPanel = legacy[1]
+assert(#legacy == 4 and legacyPanel.embedded and opened == legacyPanel)
+for index = 2, 4 do
+    assert(legacy[index] == legacyPanel.pages[index] and legacy[index].parent == legacyPanel.name,
+        "Legacy sub-pages name the addon category as parent")
+end
+assert(not legacyPanel.hosted)
 
 -- Without either API, provide a standalone view and later reuse it for registration.
 assert(loadfile("PallySealCooldowns/Settings.lua"))("PallySealCooldowns", addon)
 InterfaceOptions_AddCategory, InterfaceOptionsFrame_OpenToCategory = nil, nil
-local before = #widgets
+before = #widgets
 addon.OpenSettings(db, apply)
 local standalone = widgets[before + 1]
-assert(standalone and not standalone.embedded)
-InterfaceOptions_AddCategory = function(value) legacyPanel = value end
+assert(standalone and not standalone.embedded and standalone.hosted)
+legacy = {}
+InterfaceOptions_AddCategory = function(value) legacy[#legacy + 1] = value end
 addon.RegisterSettings(db, apply)
-assert(legacyPanel == standalone and standalone.embedded, "Late registration reuses the existing view")
+assert(legacy[1] == standalone and standalone.embedded, "Late registration reuses the existing view")
+assert(#legacy == 4 and not standalone.hosted and pages ~= standalone.pages)
+for index = 2, 4 do
+    assert(standalone.pages[index].shown == false, "Late registration hides hosted sub-pages")
+end
 io.write("Settings interaction tests passed.\n")

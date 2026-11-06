@@ -3,7 +3,7 @@
 Development follows [the test-before-version workflow](DEVELOPMENT.md): changes
 are tracked in Git and tested in game before a new release version is assigned.
 
-Version **0.1.19** uses Blizzard-managed aura displays for the main
+Version **0.1.20** uses Blizzard-managed aura displays for the main
 icon and bar when supported by the client. Seal visibility, name, countdown, and
 bar progress update natively, including removal during restricted combat. The
 missing-seal icon/text and combat animation use native layout clipping, without
@@ -15,7 +15,7 @@ Saved position, scale, layout, font, border, bar texture, text visibility, and
 refresh-only countdown settings remain supported. Unsupported clients retain
 the older estimated tracker described below.
 
-In the current development build, refresh sounds use observed timing or a
+Refresh sounds use observed timing or a
 successful cast's estimated deadline when combat timing becomes unavailable.
 An early removal hidden by the client can still leave that reminder scheduled;
 readable removal cancels it, and a new seal cast replaces the deadline.
@@ -101,8 +101,9 @@ AddOns screen, and log into a paladin.
 
 Open **Options > AddOns > Pally Seal Cooldowns**, click the paladin seal icon
 beside the minimap, or type `/psc` or `/psc settings` to open the same settings
-page. General settings, alerts, appearance, and presets share one scrollable
-view: two columns in wider windows, stacked sections in narrower windows.
+page. Settings are split into a **General** page (the addon's own category)
+and **Alerts & sounds**, **Appearance**, and **Presets** sub-pages listed beneath
+it. Each page scrolls on its own.
 Drag the minimap icon to reposition it; its position is saved.
 Changes apply immediately and are saved automatically.
 Enable **Small icon with horizontal timer bar** to use a 30-pixel seal icon
@@ -134,7 +135,7 @@ with a compact 220-by-30 layout, gold fill, white name, and right-aligned timer.
 The window includes position lock, sound, countdown visibility, warning time,
 size, and position reset. `/psc` also opens it.
 
-Use **Appearance & presets** on the settings page for font, outline, shadow, border, and bar
+Use the **Appearance** sub-page for font, outline, shadow, border, and bar
 texture controls. Countdown and seal-name font sizes are independent; 0 keeps
 the layout's original size, and custom sizes start at 8 pixels. Left-click a
 choice to advance or right-click to go back. Border colors include white,
@@ -147,8 +148,8 @@ Default restores the original layout fonts and artwork.
 Three additional presets are included: **Classic Gold** uses a gold tooltip
 border with outlined text; **Paladin Pink** uses Arial Narrow and a pink solid
 border; **Clean Text** uses Arial Narrow, text shadows, and no border. All six
-preset buttons appear at the bottom of the appearance section and work without
-extra media packs.
+preset buttons are on the **Presets** sub-page and work without extra media
+packs.
 
 Optional **LibSharedMedia-3.0** support adds fonts, border textures, and bar
 textures registered by installed media packs. The library is not bundled;
@@ -157,8 +158,10 @@ Choices refresh when the settings page opens. Missing media falls back to
 the original appearance while retaining the saved choice. Masque support is
 not included in this release.
 
-On older clients, the page uses the legacy AddOns options category. If neither
-settings API is available, `/psc` opens the unified page in a standalone window.
+On older clients, the pages use the legacy AddOns options category and its
+nested sub-categories. If the settings API cannot nest sub-pages, or neither
+settings API is available, `/psc` shows the same pages behind tabs in one view
+(a standalone window in the latter case).
 Open settings outside combat; registration deferred during combat is retried
 after combat ends.
 

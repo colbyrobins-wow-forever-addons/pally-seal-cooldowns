@@ -24,11 +24,18 @@ function addon.PlayWarning(db, alert)
     PlaySound(kit, db.soundChannel)
 end
 
+addon.SettingsPages = {
+    {key = "general", label = "General", height = 440},
+    {key = "alerts", label = "Alerts & sounds", height = 400},
+    {key = "appearance", label = "Appearance", height = 540},
+    {key = "presets", label = "Presets", height = 140},
+}
+
 function addon.CreateSettings(db, apply)
     local panelName = "PallySealCooldownsSettings"
     local panel = CreateFrame("Frame", panelName, UIParent, "BackdropTemplate")
     panel.name = "Pally Seal Cooldowns"
-    panel:SetSize(800, 700)
+    panel:SetSize(440, 640)
     panel:SetPoint("CENTER")
     panel:SetClampedToScreen(true)
     panel:EnableMouse(true)
@@ -37,9 +44,9 @@ function addon.CreateSettings(db, apply)
         if not self.embedded then self:StartMoving() end
     end)
     panel:SetScript("OnDragStop", panel.StopMovingOrSizing)
-    local heading = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-    heading:SetPoint("TOPLEFT", 20, -20)
-    heading:SetText(panel.name)
+    local title = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    title:SetPoint("TOPLEFT", 20, -20)
+    title:SetText(panel.name)
     local close = CreateFrame("Button", nil, panel, "UIPanelCloseButton")
     close:SetPoint("TOPRIGHT", -4, -4)
     close:SetScript("OnClick", function() panel:Hide() end)
@@ -56,38 +63,74 @@ function addon.CreateSettings(db, apply)
         if not embedded then self:SetBackdropColor(0.08, 0.08, 0.12, 0.98) end
     end
     panel:SetEmbedded(false)
-    local scroll = CreateFrame("ScrollFrame", nil, panel, "UIPanelScrollFrameTemplate")
-    scroll:SetPoint("TOPLEFT", 8, -55)
-    scroll:SetPoint("BOTTOMRIGHT", -32, 16)
-    local content = CreateFrame("Frame", nil, scroll)
-    content:SetSize(740, 810)
-    scroll:SetScrollChild(content)
-    local general = CreateFrame("Frame", nil, content)
-    local appearance = CreateFrame("Frame", nil, content)
-    general:SetSize(370, 810)
-    appearance:SetSize(370, 810)
-    local function Layout()
-        local width = scroll:GetWidth()
-        if not width or width <= 0 then width = 740 end
-        local columns = width >= 740 and 2 or 1
-        content:SetSize(math.max(370, width), columns == 2 and 810 or 1440)
-        general:ClearAllPoints()
-        general:SetPoint("TOPLEFT", 0, 0)
-        appearance:ClearAllPoints()
-        appearance:SetPoint("TOPLEFT", columns == 2 and 370 or 0, columns == 2 and 0 or -810)
-    end
-    scroll:HookScript("OnSizeChanged", Layout)
-    local function SectionHeading(parent, text)
-        local label = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-        label:SetPoint("TOPLEFT", 26, -12)
-        label:SetText(text)
-    end
-    SectionHeading(general, "General & alerts")
-    SectionHeading(appearance, "Appearance & presets")
+
     local syncing = false
     local controls = {}
-    local section = general
+    local pages, tabs, selected = {}, {}, "general"
+    panel.pages = pages
+    for index, info in ipairs(addon.SettingsPages) do
+        -- General is the category's own page; the rest become sub-pages.
+        local page = CreateFrame("Frame", nil, index == 1 and panel or UIParent)
+        page.key, page.name = info.key, info.label
+        local heading = page:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+        heading:SetPoint("TOPLEFT", 20, -20)
+        heading:SetText(info.label)
+        local scroll = CreateFrame("ScrollFrame", nil, page, "UIPanelScrollFrameTemplate")
+        scroll:SetPoint("TOPLEFT", 8, -50)
+        scroll:SetPoint("BOTTOMRIGHT", -32, 16)
+        page.content = CreateFrame("Frame", nil, scroll)
+        page.content:SetSize(380, info.height)
+        scroll:SetScrollChild(page.content)
+        page.OnRefresh = function() panel:Synchronize() end
+        page.refresh = page.OnRefresh
+        if index > 1 then
+            page:SetScript("OnShow", function(self)
+                local parent = self:GetParent()
+                if parent and parent ~= panel then self:SetFrameStrata(parent:GetFrameStrata()) end
+                panel:Synchronize()
+                apply()
+            end)
+            page:Hide()
+        end
+        pages[index], pages[info.key] = page, page
+    end
 
+    local function SelectPage(key)
+        selected = key
+        for _, page in ipairs(pages) do page:SetShown(page.key == key) end
+        for _, tab in ipairs(tabs) do tab:SetEnabled(tab.key ~= key) end
+    end
+    for index, page in ipairs(pages) do
+        local tab = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
+        tab.key = page.key
+        tab:SetSize(100, 22)
+        tab:SetPoint("TOPLEFT", 14 + (index - 1) * 102, -46)
+        tab:SetText(page.name)
+        tab:SetScript("OnClick", function() SelectPage(page.key) end)
+        tabs[index] = tab
+    end
+    -- Hosted pages switch with tabs inside this frame (standalone window, or a
+    -- client without sub-categories); otherwise each page is its own category.
+    function panel:SetHostedPages(hosted)
+        self.hosted = hosted
+        title:SetShown(hosted)
+        for _, tab in ipairs(tabs) do tab:SetShown(hosted) end
+        for index, page in ipairs(pages) do
+            if hosted or index == 1 then
+                page:SetParent(self)
+                page:ClearAllPoints()
+                page:SetPoint("TOPLEFT", 0, hosted and -70 or 0)
+                page:SetPoint("BOTTOMRIGHT")
+            end
+        end
+        if hosted then
+            SelectPage(selected)
+        else
+            for index, page in ipairs(pages) do page:SetShown(index == 1) end
+        end
+    end
+
+    local section
     local function Checkbox(label, y, key, checkedValue, uncheckedValue)
         local button = CreateFrame("CheckButton", nil, section, "UICheckButtonTemplate")
         button:SetPoint("TOPLEFT", 18, y)
@@ -159,72 +202,78 @@ function addon.CreateSettings(db, apply)
         end)
         controls[#controls + 1] = Update
     end
-    Checkbox("Lock tracker position", -55, "locked", true, false)
-    Checkbox("Play refresh warning sound", -90, "sound", true, false)
-    Checkbox("Show countdown only when refresh is due", -125, "counterMode", "refresh", "always")
-    Checkbox("Small icon with horizontal timer bar", -160, "displayStyle", "bar", "icon")
-    Checkbox("Hide outside combat", -195, "hideOutOfCombat", true, false)
-    Checkbox("Show seal name", -230, "showSealName", true, false)
-    Checkbox("Show status text", -265, "showStatusText", true, false)
-    Slider("Refresh warning: ", -335, "threshold", 1, 30, 1, "%d seconds")
-    Slider("Display size: ", -390, "scale", 0.5, 2, 0.05, "%.2fx")
-    Slider("Bar width (bar style): ", -445, "barWidth", 120, 360, 1, "%d px")
-    Selector("Refresh sound: ", -480, "soundChoice", addon.SoundChoices)
-    local channels = {}
-    for _, channel in ipairs(addon.SoundChannels) do
-        channels[#channels + 1] = {key = channel, label = channel}
+
+    local function ActionButton(label, y, width, onClick)
+        local button = CreateFrame("Button", nil, section, "UIPanelButtonTemplate")
+        button:SetSize(width, 26)
+        button:SetPoint("TOPLEFT", 26, y)
+        button:SetText(label)
+        button:SetScript("OnClick", onClick)
+        return button
     end
-    Selector("Audio channel: ", -515, "soundChannel", channels)
-    local preview = CreateFrame("Button", nil, section, "UIPanelButtonTemplate")
-    preview:SetSize(170, 26)
-    preview:SetPoint("TOPLEFT", 26, -550)
-    preview:SetText("Test refresh sound")
-    preview:SetScript("OnClick", function() addon.PlayWarning(db) end)
-    local reset = CreateFrame("Button", nil, section, "UIPanelButtonTemplate")
-    reset:SetSize(170, 26)
-    reset:SetPoint("TOPLEFT", 24, -590)
-    reset:SetText("Reset position and size")
-    reset:SetScript("OnClick", function()
+
+    local function Hint(y, text)
+        local hint = section:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        hint:SetPoint("TOPLEFT", 26, y)
+        hint:SetWidth(330)
+        hint:SetJustifyH("LEFT")
+        hint:SetText(text)
+    end
+
+    section = pages.general.content
+    Checkbox("Lock tracker position", -10, "locked", true, false)
+    Checkbox("Show countdown only when refresh is due", -45, "counterMode", "refresh", "always")
+    Checkbox("Small icon with horizontal timer bar", -80, "displayStyle", "bar", "icon")
+    Checkbox("Hide outside combat", -115, "hideOutOfCombat", true, false)
+    Checkbox("Show seal name", -150, "showSealName", true, false)
+    Checkbox("Show status text", -185, "showStatusText", true, false)
+    Slider("Refresh warning: ", -255, "threshold", 1, 30, 1, "%d seconds")
+    Slider("Display size: ", -310, "scale", 0.5, 2, 0.05, "%.2fx")
+    Slider("Bar width (bar style): ", -365, "barWidth", 120, 360, 1, "%d px")
+    ActionButton("Reset position and size", -400, 170, function()
         db.x, db.y, db.scale = 0, -160, 1
         apply()
         panel:Synchronize()
     end)
 
-    Checkbox("Refresh sound only in combat", -630, "refreshCombatOnly", true, false)
-    Checkbox("Play missing-seal sound", -665, "missingSound", true, false)
-    Checkbox("Missing sound only in combat", -700, "missingCombatOnly", true, false)
-    Selector("Missing sound: ", -740, "missingSoundChoice", addon.SoundChoices)
-    local missingPreview = CreateFrame("Button", nil, section, "UIPanelButtonTemplate")
-    missingPreview:SetSize(170, 26)
-    missingPreview:SetPoint("TOPLEFT", 26, -775)
-    missingPreview:SetText("Test missing sound")
-    missingPreview:SetScript("OnClick", function() addon.PlayWarning(db, "missing") end)
+    section = pages.alerts.content
+    Checkbox("Play refresh warning sound", -10, "sound", true, false)
+    Checkbox("Refresh sound only in combat", -45, "refreshCombatOnly", true, false)
+    Selector("Refresh sound: ", -85, "soundChoice", addon.SoundChoices)
+    local channels = {}
+    for _, channel in ipairs(addon.SoundChannels) do
+        channels[#channels + 1] = {key = channel, label = channel}
+    end
+    Selector("Audio channel: ", -120, "soundChannel", channels)
+    ActionButton("Test refresh sound", -155, 170, function() addon.PlayWarning(db) end)
+    Checkbox("Play missing-seal sound", -200, "missingSound", true, false)
+    Checkbox("Missing sound only in combat", -235, "missingCombatOnly", true, false)
+    Selector("Missing sound: ", -275, "missingSoundChoice", addon.SoundChoices)
+    ActionButton("Test missing sound", -310, 170, function() addon.PlayWarning(db, "missing") end)
+    Hint(-350, "Both alerts share the audio channel.\nTests play even when alerts are off or combat-only.")
 
-    section = appearance
-    local hint = section:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    hint:SetPoint("TOPLEFT", 26, -52)
-    hint:SetWidth(330)
-    hint:SetText("Changes apply live. Left/right-click choices to cycle.\nFont size 0 uses the layout default.")
-    Selector("Font: ", -90, "font", function() return addon.MediaChoices("font") end)
-    Selector("Outline: ", -125, "outline", addon.OutlineChoices)
-    Checkbox("Text shadow", -155, "fontShadow", true, false)
-    Slider("Countdown font size: ", -220, "timerSize", 0, 40, 1, "%d px")
-    Slider("Seal name font size: ", -275, "nameSize", 0, 24, 1, "%d px")
-    Selector("Border: ", -310, "border", function() return addon.MediaChoices("border") end)
-    Selector("Border color: ", -345, "borderColor", addon.BorderColors)
-    Slider("Custom border thickness: ", -410, "borderSize", 1, 16, 1, "%d px")
-    Selector("Bar texture: ", -445, "statusbar", function() return addon.MediaChoices("statusbar") end)
-    Checkbox("Bar counts down (starts full, drains right to left)", -477, "barCountdown", true, false)
-    local mediaHint = section:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    mediaHint:SetPoint("TOPLEFT", 26, -519)
-    mediaHint:SetWidth(330)
-    mediaHint:SetText("Installed SharedMedia choices appear automatically.\nMissing media uses the default appearance.\nWarning colors still indicate when a seal is due.")
+    section = pages.appearance.content
+    Hint(-10, "Changes apply live. Left/right-click choices to cycle.\nFont size 0 uses the layout default.")
+    Selector("Font: ", -48, "font", function() return addon.MediaChoices("font") end)
+    Selector("Outline: ", -83, "outline", addon.OutlineChoices)
+    Checkbox("Text shadow", -113, "fontShadow", true, false)
+    Slider("Countdown font size: ", -178, "timerSize", 0, 40, 1, "%d px")
+    Slider("Seal name font size: ", -233, "nameSize", 0, 24, 1, "%d px")
+    Selector("Border: ", -268, "border", function() return addon.MediaChoices("border") end)
+    Selector("Border color: ", -303, "borderColor", addon.BorderColors)
+    Slider("Custom border thickness: ", -368, "borderSize", 1, 16, 1, "%d px")
+    Selector("Bar texture: ", -403, "statusbar", function() return addon.MediaChoices("statusbar") end)
+    Checkbox("Bar counts down (starts full, drains right to left)", -435, "barCountdown", true, false)
+    Hint(-477, "Installed SharedMedia choices appear automatically.\nMissing media uses the default appearance.\nWarning colors still indicate when a seal is due.")
+
+    section = pages.presets.content
+    Hint(-10, "Presets replace only appearance settings.\nTiming, sounds, position, and visibility are kept.")
     for index, choice in ipairs(addon.PresetChoices) do
         local preset = CreateFrame("Button", nil, section, "UIPanelButtonTemplate")
         preset:SetSize(106, 26)
         local column = (index - 1) % 3
         local row = math.floor((index - 1) / 3)
-        preset:SetPoint("TOPLEFT", 26 + column * 112, -585 - row * 34)
+        preset:SetPoint("TOPLEFT", 26 + column * 112, -50 - row * 34)
         preset:SetText(choice.label)
         preset:SetScript("OnClick", function()
             addon.ApplyPreset(db, choice.key)
@@ -232,11 +281,11 @@ function addon.CreateSettings(db, apply)
             panel:Synchronize()
         end)
     end
+
     function panel:Synchronize()
         syncing = true
         for _, update in ipairs(controls) do update() end
         syncing = false
-        Layout()
     end
     panel.OnRefresh = function() panel:Synchronize() end
     panel.refresh = panel.OnRefresh
@@ -247,6 +296,7 @@ function addon.CreateSettings(db, apply)
         self:Synchronize()
         apply()
     end)
+    panel:SetHostedPages(true)
     panel:Hide()
     return panel
 end
@@ -261,11 +311,24 @@ function addon.RegisterSettings(db, apply)
     if not settingsPanel then settingsPanel = addon.CreateSettings(db, apply) end
     settingsPanel:SetEmbedded(true)
     settingsPanel:ClearAllPoints()
+    local pages = settingsPanel.pages
     if modern then
         category = Settings.RegisterCanvasLayoutCategory(settingsPanel, settingsPanel.name)
         Settings.RegisterAddOnCategory(category)
+        local nested = type(Settings.RegisterCanvasLayoutSubcategory) == "function"
+        if nested then
+            for index = 2, #pages do
+                Settings.RegisterCanvasLayoutSubcategory(category, pages[index], pages[index].name)
+            end
+        end
+        settingsPanel:SetHostedPages(not nested)
     else
         InterfaceOptions_AddCategory(settingsPanel)
+        for index = 2, #pages do
+            pages[index].parent = settingsPanel.name
+            InterfaceOptions_AddCategory(pages[index])
+        end
+        settingsPanel:SetHostedPages(false)
     end
     registered = true
 end

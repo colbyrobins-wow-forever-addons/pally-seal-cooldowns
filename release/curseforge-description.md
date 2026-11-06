@@ -7,15 +7,15 @@ Keep track of your paladin seals with clear countdowns, refresh reminders, and a
 - **Two display layouts:** a large icon with a radial timer or a compact horizontal duration bar.
 - **Native seal tracking:** Blizzard manages the main icon and bar directly, including removal while combat aura data is restricted. Unsupported clients retain estimated tracking.
 - **Seal changes:** native bindings update the icon, name, countdown, and bar when the active seal changes. The fallback tracker uses cast estimates.
-- **Refresh reminders:** configurable warning threshold, red warning colors, and optional countdown numbers that appear only when a refresh is due.
+- **Refresh reminders:** configurable warning threshold, red warning colors, a warning sound that works in combat, and optional countdown numbers that appear only when a refresh is due.
 - **Missing-seal visuals:** native layout shows the missing-seal icon, text, glow, and bounce without reading restricted buff state in addon Lua.
 - **Sound settings:** separate refresh/missing choices, including gentle chime, raid warning, whisper, and soft UI click, with audio-channel selection and previews. Combat sound limitations are described below.
-- **Flexible layout:** movable tracker, adjustable scale and bar width, optional combat-only visibility, and separate toggles for the seal name and status text.
+- **Flexible layout:** movable tracker, adjustable scale and bar width, a duration bar that fills up or counts down, optional combat-only visibility, and separate toggles for the seal name and status text.
 - **Saved preferences:** settings and minimap button position persist between sessions. No additional addons are required.
 
 ## Make it match your UI
 
-Choose a font, set countdown and seal-name sizes independently, and adjust outlines and text shadows. Customize border style, color, and thickness, or choose a different bar texture. Warning colors remain active with every style.
+Choose a font, set countdown and seal-name sizes independently, and adjust outlines and text shadows. Customize border style, color, and thickness, choose a different bar texture, or make the bar count down so it starts full and drains as the seal expires. Warning colors remain active with every style.
 
 Six built-in presets make it easy to get started:
 
@@ -28,11 +28,18 @@ Six built-in presets make it easy to get started:
 
 All presets work without extra downloads. Optional **LibSharedMedia-3.0** support adds fonts, borders, and bar textures provided by installed media packs. If a selected media pack is unavailable, the display falls back to its defaults.
 
-## One settings page
+## Settings
 
 Open **Options > AddOns > Pally Seal Cooldowns**, type **`/psc`**, or click the minimap seal icon.
 
-General options, alerts, appearance controls, and presets are all on one scrollable page. Wider windows show two columns; narrower windows stack the sections. Changes apply immediately outside combat; native layout/appearance changes made during combat apply afterward. Presets change appearance without altering your timing, sound, position, or visibility settings.
+Settings are organized into pages:
+
+- **General:** position lock, layout, combat-only visibility, text toggles, warning time, size, and bar width.
+- **Alerts & sounds:** refresh and missing-seal sounds, combat-only options, audio channel, and sound previews.
+- **Appearance:** fonts, outlines, borders, bar texture, and bar direction.
+- **Presets:** the six built-in styles.
+
+Changes apply immediately outside combat; native layout/appearance changes made during combat apply afterward. Presets change appearance without altering your timing, sound, position, or visibility settings.
 
 ## Compatibility
 
@@ -46,7 +53,7 @@ On supported Forever clients, Blizzard's native aura container filters paladin s
 
 Clients without the required native display retain the previous estimated tracker. Empty combat lookups can retain a live estimate until readable data returns. This fallback cannot reliably identify cancellation/dispel when all removal information is restricted.
 
-**Sound limitations:** refresh sounds in native mode require readable observed timing; estimated timers do not trigger them. Automatic combat cancellation/dispel sounds and combat-entry missing sounds are pending native sound integration. Sound previews and readable out-of-combat missing sounds remain available. Saved sound choices are preserved.
+**Sound limitations:** when the game hides seal timing in combat, the refresh sound uses the timer from your seal cast. If a seal is removed early and the game does not report it (for example, an unseen dispel), the refresh sound can still play at the expected time; recasting or switching seals resets it. Combat-entry missing sounds are pending native sound integration. Sound previews and readable out-of-combat missing sounds remain available. Saved sound choices are preserved.
 
 **The addon never casts or refreshes spells automatically.** No WeakAuras or ForeverAuras installation is required.
 
@@ -54,7 +61,7 @@ Clients without the required native display retain the previous estimated tracke
 
 | Command | Action |
 | --- | --- |
-| `/psc` | Open the unified settings page |
+| `/psc` | Open settings |
 | `/psc unlock` | Unlock the icon for dragging |
 | `/psc lock` | Lock its position |
 | `/psc warn 5` | Warn with 5 seconds remaining; accepts 1–30 |

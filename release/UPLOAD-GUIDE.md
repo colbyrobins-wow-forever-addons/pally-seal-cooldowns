@@ -1,6 +1,6 @@
 # CurseForge upload kit
 
-Current prepared release: **0.1.19**. Follow `../DEVELOPMENT.md` for development,
+Current prepared release: **0.1.20**. Follow `../DEVELOPMENT.md` for development,
 in-game acceptance, and release preparation. Public upload is a separate step.
 
 ## Project fields
@@ -26,12 +26,12 @@ Check that the proposed name is available before submitting.
 
 ## File upload fields
 
-- File: `dist/PallySealCooldowns-0.1.19.zip` in the repository.
-- Display name: **Pally Seal Cooldowns 0.1.19 — Forever**.
+- File: `dist/PallySealCooldowns-0.1.20.zip` in the repository.
+- Display name: **Pally Seal Cooldowns 0.1.20 — Forever**.
 - Game version type/flavor: **Forever**.
 - Supported game version: **1.60.1** (interface 16001).
 - Release type: **Release** for the initial public file to be available normally in the CurseForge app. The game client being a beta does not require a Beta addon file. Choose Beta instead if you deliberately want opt-in beta distribution.
-- Changelog: paste `changelog-0.1.19.md`.
+- Changelog: paste `changelog-0.1.20.md`.
 - Dependencies / related projects: none required.
 
 If Forever or 1.60.1 is unavailable in your upload form, stop and verify the game/project selection or contact CurseForge support. Do not substitute Retail or Classic Era.
@@ -54,7 +54,7 @@ Capture actual in-game screenshots of an active timer, the refresh reminder, and
 ## Copy-ready upload assistant prompt
 
 ```text
-Help me open the existing CurseForge World of Warcraft addon project named Pally Seal Cooldowns and prepare its 0.1.19 update on the existing project. Use the metadata and exact copy in release/UPLOAD-GUIDE.md, release/curseforge-description.md, and release/changelog-0.1.19.md. Upload release/project-icon.png as the project logo and dist/PallySealCooldowns-0.1.19.zip as the addon file. Select Forever / 1.60.1 only, with Release as the file type. There are no required addon dependencies. Preserve the existing project license; the archive includes a separate rank-data attribution notice. Include the documented sound limitations. Leave source and issue links blank unless I supply them. Do not claim compatibility with Retail or Classic Era. Prepare all fields for review and stop before final public submission.
+Help me open the existing CurseForge World of Warcraft addon project named Pally Seal Cooldowns and prepare its 0.1.20 update on the existing project. Use the metadata and exact copy in release/UPLOAD-GUIDE.md, release/curseforge-description.md, and release/changelog-0.1.20.md. Upload release/project-icon.png as the project logo and dist/PallySealCooldowns-0.1.20.zip as the addon file. Select Forever / 1.60.1 only, with Release as the file type. There are no required addon dependencies. Preserve the existing project license; the archive includes a separate rank-data attribution notice. Include the documented sound limitations. Leave source and issue links blank unless I supply them. Do not claim compatibility with Retail or Classic Era. Prepare all fields for review and stop before final public submission.
 ```
 
 ## Optional replacement icon prompt

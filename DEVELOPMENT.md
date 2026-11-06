@@ -7,18 +7,22 @@ release version. Git commits track development independently of release numbers.
 
 1. Make a focused change and add regression coverage for changed behavior.
 2. Run the local Lua tests. Record what passed and what still needs the client.
-3. Commit the source, tests, documentation, and required assets. Update the
-   unreleased work below when scope or verification status changes.
+3. Leave the change uncommitted in the working tree. Do not commit each edit;
+   iterate on the working tree through deployment and in-game testing.
 4. When in-game deployment is requested, confirm the actual client addon path,
    back up its existing addon folder outside the source tree, and copy only the
    `PallySealCooldowns` folder, including its sound assets. Do not bump the TOC
    version or build a release archive for this step.
-5. Record the tested Git commit (`git rev-parse --short HEAD`), any uncommitted
-   changes, client build, date, scenarios, and observed results. Compare timers
-   with actual buffs; test combat entry, recasts, seal switches, cancellation,
-   expiration, sound controls, both layouts, and settings after `/reload`.
-6. Fix problems, rerun relevant local tests, and repeat in-game testing until the
-   user accepts the results. Record untested cases as pending.
+5. Record the base Git commit (`git rev-parse --short HEAD`), the uncommitted
+   changes deployed on top of it (`git status --short`), client build, date,
+   scenarios, and observed results. Compare timers with actual buffs; test
+   combat entry, recasts, seal switches, cancellation, expiration, sound
+   controls, both layouts, and settings after `/reload`.
+6. Fix problems, rerun relevant local tests, redeploy, and repeat in-game
+   testing until the user accepts the results. Record untested cases as pending.
+7. After the user accepts the in-game results, commit the source, tests,
+   documentation, and required assets together, and update the unreleased work
+   below with the scope and verification status.
 
 Run all local suites from the repository root with Lua 5.1:
 
@@ -47,6 +51,46 @@ After in-game acceptance and a request to prepare a release:
 4. Publish only when requested. Record publication separately from preparation.
 
 ## Current unreleased work
+
+### 2026-11-05: 0.1.20 release preparation
+
+- User requested a release with a changelog and updated CurseForge description.
+  Assigned next patch version 0.1.20; updated the TOC, changelog, README,
+  project description, and upload guide together.
+- Scope since `v0.1.19`: combat refresh sounds from cast timers (`63620a5`),
+  optional draining duration bar (`a1ec025`), and settings sub-pages (below).
+- Runtime Lua matches the build deployed to `_forever_` earlier today; only the
+  TOC version changed. No in-game results were reported for the sub-pages,
+  bar direction, or combat refresh sound before the release request; that
+  request is recorded as release authorization, not as test confirmation.
+- Eight Lua 5.1 suites (Lupa) and three Python exporter tests passed.
+- Release archive: `dist/PallySealCooldowns-0.1.20.zip`, built with
+  `git archive` from tag `v0.1.20`. Public upload is a separate step; no remote
+  is configured, so the commit, tag, and archive are local.
+
+### 2026-11-05: settings sub-pages
+
+- The single two-column settings view is split into four single-column pages.
+  **General** (lock, countdown mode, layout, combat visibility, name/status
+  text, warning time, size, bar width, reset) is the addon category itself.
+  **Alerts & sounds**, **Appearance**, and **Presets** register beneath it with
+  `Settings.RegisterCanvasLayoutSubcategory`, or as legacy categories whose
+  `parent` is the addon name. Every saved control and key is unchanged.
+- If the modern API lacks sub-categories, and in the standalone fallback window,
+  the same pages are shown behind four tabs. Controls on all pages stay in sync,
+  so presets and reset refresh the other pages.
+- All eight Lua 5.1 suites pass through Lupa. The settings suite now finds
+  controls by label and checks page placement, tab switching, sub-page
+  registration on the modern, legacy, and standalone paths, and late
+  registration. Actual client layout, sub-page navigation, and sub-page
+  refresh on show remain pending in-game verification.
+- 2026-11-05: deployed base commit `a1ec025` plus uncommitted changes to
+  `PallySealCooldowns/Settings.lua` (with `tests/settings_test.lua`,
+  `README.md`, `DEVELOPMENT.md`, and `AGENTS.md` changed but not shipped) to
+  `C:/Program Files (x86)/World of Warcraft/_forever_/Interface/AddOns/PallySealCooldowns`.
+  The installed copy matched `a1ec025` apart from line endings; backup:
+  `<workspace>/addon-deployment-backups/PallySealCooldowns-forever-before-subpages-on-a1ec025-20261105220832`.
+  Client build not recorded. No in-game testing performed yet.
 
 ### 2026-11-05: optional draining duration bar
 
