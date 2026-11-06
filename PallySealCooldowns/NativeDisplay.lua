@@ -263,7 +263,11 @@ function methods:Apply(db)
     Style(self.missing, db, true)
     self.button:SetIcon(self.present.icon)
     self.button:SetDurationCooldown(self.present.cooldown)
-    self.button:SetDurationBar(self.present.bar, {})
+    local barOptions = {}
+    if db.barCountdown and Enum and Enum.StatusBarTimerDirection then
+        barOptions.direction = Enum.StatusBarTimerDirection.RemainingTime
+    end
+    self.button:SetDurationBar(self.present.bar, barOptions)
     if db.showSealName then self.button:SetSpellName(self.present.name)
     else self.button:ClearSpellName() end
     local warningOptions = BindDurationText(self.button, self.present, db)

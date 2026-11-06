@@ -1,7 +1,7 @@
 local scripts, queries, blocked = {}, 0, false
 local animationPlays, animationStops = 0, 0
 local now, cooldownStart, cooldownDuration = 100, nil, nil
-local counterText, trackerShown, cooldownShown
+local counterText, trackerShown, cooldownShown, barValue
 local widget = {}
 setmetatable(widget, {__index = function(_, name)
     if name == "CreateAnimationGroup" or name == "CreateAnimation"
@@ -10,6 +10,9 @@ setmetatable(widget, {__index = function(_, name)
     end
     if name == "SetCooldown" then
         return function(_, start, duration) cooldownStart, cooldownDuration = start, duration end
+    end
+    if name == "SetValue" then
+        return function(_, value) barValue = value end
     end
     if name == "Play" then
         return function() animationPlays = animationPlays + 1 end
@@ -109,6 +112,11 @@ assert(counterText == "", "Refresh mode hides the early countdown immediately")
 now = 125
 scripts.OnUpdate(widget, 0.1)
 assert(counterText == "5.0", "Countdown appears exactly at the warning threshold")
+assert(math.abs(barValue - 25 / 30) < 1e-9, "Estimated bar fills up by default")
+PallySealCooldownsDB.barCountdown = true
+scripts.OnUpdate(widget, 0.1)
+assert(math.abs(barValue - 5 / 30) < 1e-9, "Countdown option drains the estimated bar")
+PallySealCooldownsDB.barCountdown = false
 SlashCmdList.PALLYSEALCOOLDOWNS("warn 3")
 scripts.OnUpdate(widget, 0.1)
 assert(counterText == "", "Counter follows a changed warning threshold")

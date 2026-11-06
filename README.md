@@ -111,6 +111,8 @@ icon layout. Countdown visibility, refresh warnings, and combat animation work
 in either layout; Display size scales the whole tracker.
 Enable **Hide outside combat** to show the tracker only during combat. The
 minimap settings button stays available. This setting is off by default.
+Enable **Bar counts down** to start the duration bar full and drain it from
+right to left as the seal expires. By default the bar fills up instead.
 Settings also include bar width (120–360 pixels before scaling), independent
 seal-name and status-text visibility, and separate refresh and missing-seal
 sounds (gentle chime, raid warning, whisper, or soft UI click). New settings use

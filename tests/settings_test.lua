@@ -97,7 +97,7 @@ buttons[4].scripts.OnClick()
 assert(playedKit == 2, "Explicit preview works when automatic sounds are disabled")
 buttons[5].scripts.OnClick()
 assert(db.x == 0 and db.y == -160 and db.scale == 1)
-assert(#buttons == 18 and #checks == 11 and #sliders == 6,
+assert(#buttons == 18 and #checks == 12 and #sliders == 6,
     "General and appearance controls must exist together in one panel")
 db.missingSoundChoice = "raid"
 panel:Synchronize()
@@ -111,6 +111,12 @@ for index, key in ipairs({"refreshCombatOnly", "missingSound", "missingCombatOnl
     checks[index + 7].scripts.OnClick(checks[index + 7])
     assert(db[key] == true)
 end
+assert(checks[12].value == false, "Bar fills up unless countdown is chosen")
+checks[12].value = true
+checks[12].scripts.OnClick(checks[12])
+assert(db.barCountdown == true, "Bar countdown choice must save")
+panel:Synchronize()
+assert(checks[12].value == true, "Bar countdown choice must be restored in the window")
 local filePlayed
 PlaySoundFile = function(path, channel)
     filePlayed = path

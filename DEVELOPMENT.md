@@ -48,6 +48,18 @@ After in-game acceptance and a request to prepare a release:
 
 ## Current unreleased work
 
+### 2026-11-05: optional draining duration bar
+
+- New saved **Bar counts down** appearance checkbox (`barCountdown`, off by
+  default). When on, the native duration bar binds with
+  `Enum.StatusBarTimerDirection.RemainingTime`, so it starts full and drains
+  right to left; when off, the existing native binding is unchanged.
+- The estimated-timer fallback now follows the same choice; it previously
+  always drained, so with the default it now fills like the native bar.
+- All eight Lua 5.1 suites pass through Lupa, covering native bind options,
+  estimated bar values both ways, and checkbox save/restore. In-game
+  confirmation of native fill direction in both layouts remains pending.
+
 ### 2026-10-16: Forever XP settings window
 
 - `/foreverxp` and `/foreverxp settings` open a movable window with mutually

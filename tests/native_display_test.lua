@@ -8,7 +8,8 @@ InCombatLockdown = function() return combat end
 CustomAuraContainerAuraProcessingPolicy = {None = 0}
 AuraContainerSortMethod = {Default = 0}
 AuraContainerSortDirection = {Normal = 0}
-Enum = {LuaCurveType = {Step = 0}, DurationTextBindingProperty = {RemainingDuration = 0}}
+Enum = {LuaCurveType = {Step = 0}, DurationTextBindingProperty = {RemainingDuration = 0},
+    StatusBarTimerDirection = {ElapsedTime = 0, RemainingTime = 1}}
 CreateColor = function(...) return {...} end
 C_UnitAuras = setmetatable({}, {__index = function() error("No aura state queries allowed") end})
 local function Widget(kind)
@@ -37,7 +38,9 @@ local function Widget(kind)
         if key == "SetPoint" then return function(self, ...) self.point = {...} end end
         if key == "SetClipsChildren" then return function(self, value) self.clips = value end end
         if key == "SetDurationText" then return function(self, text, options) self.textOptions = options end end
-        if key == "SetDurationBar" then return function(self, bar) self.boundBar = bar end end
+        if key == "SetDurationBar" then return function(self, bar, options)
+            self.boundBar, self.barOptions = bar, options
+        end end
         if key == "AddAuraSlot" then return function(_, name, filter, options)
             assert(filter == "HELPFUL" and options.candidateFilters.includeSpellIDs[20375])
             local button = Widget("NativeButton")
@@ -70,6 +73,13 @@ assert(display and #messages == 0, messages[1])
 assert(display.clip.clips and display.container.enabled and display.presence.enabled)
 assert(display.clip.point[2] == root, "Missing clip must use fixed root geometry")
 assert(slots.Seal.boundBar and slots.Seal.textOptions.textColor)
+assert(slots.Seal.barOptions.direction == nil, "Native bar keeps its default fill unless countdown is chosen")
+db.barCountdown = true
+assert(display:Apply(db))
+assert(slots.Seal.barOptions.direction == Enum.StatusBarTimerDirection.RemainingTime,
+    "Countdown option binds the native bar to remaining time")
+db.barCountdown = false
+assert(display:Apply(db) and slots.Seal.barOptions.direction == nil)
 assert(slots.Warning.textOptions.textFormat.formatString == "REFRESH SEAL")
 local iconWidth = groups.Presence.layout.elementWidth
 display:UpdateCombat(true)

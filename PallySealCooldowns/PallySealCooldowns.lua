@@ -351,7 +351,8 @@ local function Render()
         status:SetText("REFRESH SEAL")
     else
         if activeAura.estimated then status:SetText("ESTIMATED TIMER") end
-        bar:SetValue(remaining / activeAura.duration)
+        local fraction = remaining / activeAura.duration
+        bar:SetValue(db.barCountdown and fraction or 1 - fraction)
         bar:SetStatusBarColor(1, state == "refresh" and 0.25 or 0.72,
             state == "refresh" and 0.15 or 0.25)
         if db.counterMode == "refresh" and state == "active" then
@@ -512,6 +513,7 @@ frame:SetScript("OnEvent", function(_, event, unit, castGUID, spellID)
         db.hideOutOfCombat = db.hideOutOfCombat == true
         db.showSealName = db.showSealName ~= false
         db.showStatusText = db.showStatusText ~= false
+        db.barCountdown = db.barCountdown == true
         if type(db.barWidth) ~= "number" or db.barWidth ~= db.barWidth then db.barWidth = 188 end
         db.barWidth = math.max(120, math.min(360, db.barWidth))
         db.refreshCombatOnly = db.refreshCombatOnly ~= false
