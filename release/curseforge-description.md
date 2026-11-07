@@ -83,7 +83,7 @@ Extract the `PallySealCooldowns` folder into your Forever client's `_classic_bet
 
 ## Feedback
 
-Forever is a beta client and future builds may need addon updates. When reporting a problem, include your client build (`/psc status`), addon version, game language, seal name, steps to reproduce, and any Lua error text.
+Forever is a beta client and future builds may need addon updates. Report problems or ideas on [GitHub](https://github.com/colbyrobins-wow-forever-addons/pally-seal-cooldowns/issues), and include your client build (`/psc status`), addon version, game language, seal name, steps to reproduce, and any Lua error text. The source code is public under the MIT License.
 
 ## Data attribution
 
