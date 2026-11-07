@@ -30,20 +30,34 @@ local function CreateWidgets(parent)
     else
         view.border:SetTexture("Interface\\Buttons\\UI-Quickslot2")
     end
+    -- Essential-matching style crops the icon with Blizzard's own mask.
+    if parent.CreateMaskTexture and C_Texture and C_Texture.GetAtlasInfo
+        and C_Texture.GetAtlasInfo("UI-HUD-CoolDownManager-Mask") then
+        view.mask = parent:CreateMaskTexture()
+        view.mask:SetAllPoints(view.icon)
+        view.mask:SetAtlas("UI-HUD-CoolDownManager-Mask")
+        view.masked = false
+    end
     view.name = view.overlay:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     view.timer = view.overlay:CreateFontString(nil, "OVERLAY", "GameFontHighlightHugeOutline")
     view.status = view.overlay:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     return view
 end
 
-local function Dimensions(db)
-    return db.displayStyle == "bar" and db.barWidth + 32 or 56,
-        db.displayStyle == "bar" and 30 or 56
+-- Icon edge length, fixed for each Apply so every region agrees.
+local function IconSize(db)
+    return db.displayStyle == "bar" and 30 or addon.IconLayoutSize(db)
 end
 
-local function StyleBorder(view, db, missing)
+local function Dimensions(db, iconSize)
+    if db.displayStyle == "bar" then return db.barWidth + 32, 30 end
+    -- The matched style has no padding, so snapped icons sit flush.
+    local size = db.displayStyle == "essential" and iconSize or 56
+    return size, size
+end
+
+local function StyleBorder(view, db, missing, iconSize)
     local path = addon.MediaPath("border", db.border)
-    local iconSize = db.displayStyle == "bar" and 30 or 52
     local size = db.borderSize
     local span = math.max(1, iconSize + 4 - 2 * size)
     local definitions = {
@@ -84,8 +98,8 @@ local function StyleBorder(view, db, missing)
     end
 end
 
-local function Style(view, db, missing)
-    local width, height = Dimensions(db)
+local function Style(view, db, missing, iconSize)
+    local width, height = Dimensions(db, iconSize)
     view.frame:SetSize(width, height)
     for _, region in ipairs({view.icon, view.cooldown, view.bar, view.name, view.timer, view.status}) do
         region:ClearAllPoints()
@@ -103,9 +117,9 @@ local function Style(view, db, missing)
         view.status:SetPoint("TOPLEFT", view.bar, "BOTTOMLEFT", 5, -7)
         view.status:SetJustifyH("LEFT")
     else
-        view.icon:SetSize(52, 52)
+        view.icon:SetSize(iconSize, iconSize)
         view.icon:SetPoint("CENTER", view.frame, "CENTER")
-        view.bar:SetSize(56, 2)
+        view.bar:SetSize(width, 2)
         view.bar:SetPoint("TOPLEFT", view.frame, "BOTTOMLEFT", 0, -2)
         view.name:SetPoint("TOP", view.frame, "BOTTOM", 0, -8)
         view.name:SetWidth(180)
@@ -116,28 +130,41 @@ local function Style(view, db, missing)
         view.status:SetJustifyH("CENTER")
     end
     view.cooldown:SetAllPoints(view.icon)
+    -- Alpha, not Hide: the native button drives the bound bar's updates.
+    view.bar:SetAlpha((db.displayStyle == "bar" or db.showIconBar ~= false) and 1 or 0)
+    local masked = db.displayStyle == "essential"
+    if view.mask and view.masked ~= masked then
+        if masked then view.icon:AddMaskTexture(view.mask)
+        else view.icon:RemoveMaskTexture(view.mask) end
+        view.masked = masked
+    end
     view.bar:SetStatusBarTexture(addon.MediaPath("statusbar", db.statusbar)
         or "Interface\\TargetingFrame\\UI-StatusBar")
     view.bar:SetStatusBarColor(1, 0.72, 0.25)
-    view.name:SetShown(db.showSealName)
-    view.status:SetShown(db.showStatusText)
+    -- Missing-seal text also needs its own toggle; active text ignores it.
+    local missingText = not missing or db.showMissingText ~= false
+    view.name:SetShown(db.showSealName and missingText)
+    view.status:SetShown(db.showStatusText and missingText)
     addon.ApplyFont(view.name, db, db.nameSize)
     addon.ApplyFont(view.timer, db, db.timerSize)
     addon.ApplyFont(view.status, db, 0)
     view.border:ClearAllPoints()
-    view.border:SetPoint("TOPLEFT", view.icon, "TOPLEFT", -8, 7)
-    view.border:SetPoint("BOTTOMRIGHT", view.icon, "BOTTOMRIGHT", 8, -7)
+    -- Overlay art margins scale with the icon (8/7 px at the 52 px default).
+    local outsetX = math.floor(8 * iconSize / 52 + 0.5)
+    local outsetY = math.floor(7 * iconSize / 52 + 0.5)
+    view.border:SetPoint("TOPLEFT", view.icon, "TOPLEFT", -outsetX, outsetY)
+    view.border:SetPoint("BOTTOMRIGHT", view.icon, "BOTTOMRIGHT", outsetX, -outsetY)
     view.border:SetShown(db.border == "default")
     view.border:SetVertexColor(addon.BorderRGB(db, missing))
-    StyleBorder(view, db, missing)
+    StyleBorder(view, db, missing, iconSize)
     if missing then
-        view.icon:SetTexture("Interface\\Icons\\Spell_Holy_SealOfMight")
+        view.icon:SetTexture(addon.MissingIconPath(db))
         view.icon:SetDesaturated(true)
         view.name:SetText("No active seal")
-        view.timer:SetText("!")
+        view.timer:SetText(addon.MissingSymbol(db))
         view.status:SetText("CAST A SEAL")
-        view.timer:SetTextColor(1, 0.35, 0.2)
-        view.status:SetTextColor(1, 0.35, 0.2)
+        view.timer:SetTextColor(addon.WarningRGB(db))
+        view.status:SetTextColor(addon.WarningRGB(db))
         view.bar:SetMinMaxValues(0, 1)
         view.bar:SetValue(0)
         view.cooldown:Hide()
@@ -150,16 +177,17 @@ local function BindDurationText(button, view, db)
     if C_CurveUtil and CreateColor and Enum and Enum.LuaCurveType
         and Enum.DurationTextBindingProperty then
         local remaining = Enum.DurationTextBindingProperty.RemainingDuration
+        local red, green, blue = addon.WarningRGB(db)
         local countdown = C_CurveUtil.CreateColorCurve()
         countdown:SetType(Enum.LuaCurveType.Step)
-        countdown:AddPoint(0, CreateColor(1, 0.35, 0.2, 1))
+        countdown:AddPoint(0, CreateColor(red, green, blue, 1))
         countdown:AddPoint(db.threshold + 0.001,
             CreateColor(1, 1, 1, db.counterMode == "refresh" and 0 or 1))
         options.textColor = {curve = countdown, property = remaining}
         local warning = C_CurveUtil.CreateColorCurve()
         warning:SetType(Enum.LuaCurveType.Step)
-        warning:AddPoint(0, CreateColor(1, 0.35, 0.2, 1))
-        warning:AddPoint(db.threshold + 0.001, CreateColor(1, 0.35, 0.2, 0))
+        warning:AddPoint(0, CreateColor(red, green, blue, 1))
+        warning:AddPoint(db.threshold + 0.001, CreateColor(red, green, blue, 0))
         statusOptions = {textFormat = {formatString = "REFRESH SEAL", components = {}},
             textColor = {curve = warning, property = remaining}}
     end
@@ -258,9 +286,10 @@ function methods:Apply(db)
     if InCombatLockdown and InCombatLockdown() then return false end
     self.container:SetEnabled(false)
     self.presence:SetEnabled(false)
-    local width, height = Dimensions(db)
-    Style(self.present, db, false)
-    Style(self.missing, db, true)
+    local iconSize = IconSize(db)
+    local width, height = Dimensions(db, iconSize)
+    Style(self.present, db, false, iconSize)
+    Style(self.missing, db, true, iconSize)
     self.button:SetIcon(self.present.icon)
     self.button:SetDurationCooldown(self.present.cooldown)
     local barOptions = {}
@@ -287,6 +316,15 @@ function methods:Apply(db)
     self.presence:SetAuraGroupLayout("Presence", {
         elementWidth = width + 1 + 2 * margin, elementHeight = height,
     })
+    -- Hiding the missing clip's contents leaves nothing on screen without a
+    -- seal; the native presence gate still decides when they would appear.
+    self.missing.frame:SetAlpha(db.hideWhenMissing and 0 or 1)
+    -- Restart the combat alert with the chosen parts on the next update.
+    self.alertGlow, self.alertBounce = addon.MissingAlertParts(db)
+    self.glow:Hide()
+    self.pulse:Stop()
+    self.bounce:Stop()
+    self.combat = nil
     self.container:SetEnabled(true)
     self.presence:SetEnabled(true)
     return true
@@ -298,9 +336,11 @@ function methods:UpdateCombat(combat)
     if combat then
         -- Animation lives in the native missing clip. Its pixels remain clipped
         -- while a seal exists; Lua never reads whether the missing clip is visible.
-        self.glow:Show()
-        self.pulse:Play()
-        self.bounce:Play()
+        if self.alertGlow then
+            self.glow:Show()
+            self.pulse:Play()
+        end
+        if self.alertBounce then self.bounce:Play() end
     else
         self.glow:Hide()
         self.pulse:Stop()

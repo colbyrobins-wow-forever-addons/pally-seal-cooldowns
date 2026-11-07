@@ -46,11 +46,14 @@ UISpecialFrames = {}
 local addon = {}
 assert(loadfile("PallySealCooldowns/SealLogic.lua"))("PallySealCooldowns", addon)
 assert(loadfile("PallySealCooldowns/Appearance.lua"))("PallySealCooldowns", addon)
+assert(loadfile("PallySealCooldowns/CooldownManager.lua"))("PallySealCooldowns", addon)
 assert(loadfile("PallySealCooldowns/Settings.lua"))("PallySealCooldowns", addon)
 local db = {locked = true, sound = true, counterMode = "always", threshold = 5, scale = 1}
 db.barWidth, db.showSealName, db.showStatusText = 188, true, true
 db.soundChoice, db.soundChannel = "raid", "Master"
 addon.NormalizeAppearance(db)
+addon.NormalizeCooldownManager(db)
+addon.NormalizeDisplayOptions(db)
 SOUNDKIT = {RAID_WARNING = 1, TELL_MESSAGE = 2, IG_MAINMENU_OPTION = 3}
 local playedKit, playedChannel
 PlaySound = function(kit, channel) playedKit, playedChannel = kit, channel end
@@ -85,10 +88,10 @@ local function Click(check, value)
     check.scripts.OnClick(check)
 end
 
--- Four pages: General is the category itself; the others become sub-pages.
-local expectedPages = {{"general", "General"}, {"alerts", "Alerts & sounds"},
+-- Five pages: General is the category itself; the others become sub-pages.
+local expectedPages = {{"general", "General"}, {"layout", "Layout"}, {"alerts", "Alerts"},
     {"appearance", "Appearance"}, {"presets", "Presets"}}
-assert(#pages == #expectedPages, "Settings must provide four pages")
+assert(#pages == #expectedPages, "Settings must provide five pages")
 for index, expected in ipairs(expectedPages) do
     assert(pages[index].key == expected[1] and pages[index].name == expected[2])
     assert(pages[expected[1]] == pages[index], "Pages are reachable by key")
@@ -96,14 +99,26 @@ end
 local placement = {
     {"CheckButton", "Lock tracker position", "general"},
     {"CheckButton", "Show countdown only when refresh is due", "general"},
-    {"CheckButton", "Small icon with horizontal timer bar", "general"},
     {"CheckButton", "Hide outside combat", "general"},
     {"CheckButton", "Show seal name", "general"},
     {"CheckButton", "Show status text", "general"},
     {"Slider", "Refresh warning: ", "general"},
     {"Slider", "Display size: ", "general"},
-    {"Slider", "Bar width (bar style): ", "general"},
     {"Button", "Reset position and size", "general"},
+    {"Button", "Layout: ", "layout"},
+    {"CheckButton", "Show duration bar under icon", "layout"},
+    {"Slider", "Essential icon size: ", "layout"},
+    {"Slider", "Bar width: ", "layout"},
+    {"Button", "Bar texture: ", "layout"},
+    {"CheckButton", "Bar counts down", "layout"},
+    {"CheckButton", "Snap to Essential Cooldowns bar", "layout"},
+    {"Button", "Snap position: ", "layout"},
+    {"Slider", "Gap from bar: ", "layout"},
+    {"Button", "Combat alert: ", "alerts"},
+    {"CheckButton", "Hide tracker when no seal is active", "alerts"},
+    {"CheckButton", "Show missing-seal text", "alerts"},
+    {"Button", "Missing symbol: ", "alerts"},
+    {"Button", "Placeholder icon: ", "alerts"},
     {"CheckButton", "Play refresh warning sound", "alerts"},
     {"CheckButton", "Refresh sound only in combat", "alerts"},
     {"Button", "Refresh sound: ", "alerts"},
@@ -121,8 +136,7 @@ local placement = {
     {"Button", "Border: ", "appearance"},
     {"Button", "Border color: ", "appearance"},
     {"Slider", "Custom border thickness: ", "appearance"},
-    {"Button", "Bar texture: ", "appearance"},
-    {"CheckButton", "Bar counts down", "appearance"},
+    {"Button", "Warning color: ", "appearance"},
 }
 for _, choice in ipairs(addon.PresetChoices) do
     placement[#placement + 1] = {"Button", choice.label, "presets"}
@@ -135,8 +149,8 @@ for _, widget in ipairs(widgets) do
     counts[widget.kind] = (counts[widget.kind] or 0) + 1
     assert(widget.kind ~= "EditBox", "Custom seal input must be removed")
 end
-assert(counts.CheckButton == 12 and counts.Slider == 6, "No controls are lost in the split")
-assert(counts.ScrollFrame == 4, "Each page scrolls independently")
+assert(counts.CheckButton == 15 and counts.Slider == 8, "No controls are lost in the split")
+assert(counts.ScrollFrame == 5, "Each page scrolls independently")
 
 -- General page.
 local lock = Find("CheckButton", "Lock tracker position")
@@ -147,13 +161,23 @@ local counter = Find("CheckButton", "Show countdown only when refresh is due")
 assert(counter.value == false)
 Click(counter, true)
 assert(db.counterMode == "refresh")
-local barStyle = Find("CheckButton", "Small icon with horizontal timer bar")
-Click(barStyle, true)
-assert(db.displayStyle == "bar", "Bar style must apply immediately")
+-- Layout page: one selector chooses among the three layouts.
+db.displayStyle = "icon"
 panel:Synchronize()
-assert(barStyle.value == true, "Bar preference must be restored in the window")
-Click(barStyle, false)
-assert(db.displayStyle == "icon", "Unchecking bar style must restore icon layout")
+local layout = Find("Button", "Layout: ")
+assert(layout.value == "Layout: Large icon  >")
+local applies = applied
+layout.scripts.OnClick(layout, "LeftButton")
+assert(db.displayStyle == "bar" and applied == applies + 1, "Layout applies immediately")
+assert(layout.value == "Layout: Small icon with timer bar  >")
+layout.scripts.OnClick(layout, "LeftButton")
+assert(db.displayStyle == "essential")
+layout.scripts.OnClick(layout, "LeftButton")
+assert(db.displayStyle == "icon", "Layouts cycle back to the large icon")
+layout.scripts.OnClick(layout, "RightButton")
+assert(db.displayStyle == "essential", "Right-click cycles layouts backward")
+db.displayStyle = "icon"
+panel:Synchronize()
 local hide = Find("CheckButton", "Hide outside combat")
 Click(hide, true)
 assert(db.hideOutOfCombat == true)
@@ -167,10 +191,78 @@ assert(db.threshold == 8 and db.scale == 1.25)
 Click(Find("CheckButton", "Show seal name"), false)
 Click(Find("CheckButton", "Show status text"), false)
 assert(db.showSealName == false and db.showStatusText == false)
-Find("Slider", "Bar width (bar style): "):SetValue(250)
+Find("Slider", "Bar width: "):SetValue(250)
 assert(db.barWidth == 250)
+-- Icon-layout duration bar toggle.
+db.showIconBar = true
+panel:Synchronize()
+local iconBar = Find("CheckButton", "Show duration bar under icon")
+assert(iconBar.value == true)
+Click(iconBar, false)
+assert(db.showIconBar == false)
+Click(iconBar, true)
+assert(db.showIconBar == true)
+-- Essential Cooldowns bar options default off and apply live.
+assert(db.snapToCDM == false and db.snapSide == "right")
+assert(db.cdmIconSize == 0 and db.snapGap == 2)
+local snap = Find("CheckButton", "Snap to Essential Cooldowns bar")
+local beforeSnap = applied
+Click(snap, true)
+assert(db.snapToCDM == true and applied == beforeSnap + 1)
+local side = Find("Button", "Snap position: ")
+assert(side.value == "Snap position: Right of bar  >")
+side.scripts.OnClick(side, "LeftButton")
+assert(db.snapSide == "left")
+side.scripts.OnClick(side, "RightButton")
+side.scripts.OnClick(side, "RightButton")
+assert(db.snapSide == "bottom", "Right-click cycles snap sides backward")
+local size = Find("Slider", "Essential icon size: ")
+size:SetValue(40)
+assert(db.cdmIconSize == 40)
+size:SetValue(10)
+assert(db.cdmIconSize == 0, "Sizes below 16 return to following Blizzard")
+Find("Slider", "Gap from bar: "):SetValue(6)
+assert(db.snapGap == 6)
+panel:Synchronize()
+assert(snap.value == true, "Snap preferences restore in the window")
+db.snapToCDM, db.snapSide, db.snapGap = false, "right", 2
+panel:Synchronize()
 
--- Alerts & sounds page.
+-- Alerts page: missing-seal behavior.
+assert(db.missingAlert == "both" and db.hideWhenMissing == false and db.showMissingText == true)
+local alert = Find("Button", "Combat alert: ")
+assert(alert.value == "Combat alert: Glow and bounce  >")
+for _, expected in ipairs({"glow", "bounce", "none", "both"}) do
+    alert.scripts.OnClick(alert, "LeftButton")
+    assert(db.missingAlert == expected, "Combat alert cycles to " .. expected)
+end
+local hideMissing = Find("CheckButton", "Hide tracker when no seal is active")
+Click(hideMissing, true)
+assert(db.hideWhenMissing == true)
+Click(hideMissing, false)
+local missingText = Find("CheckButton", "Show missing-seal text")
+assert(missingText.value == true)
+Click(missingText, false)
+assert(db.showMissingText == false and db.showSealName == false,
+    "Missing text toggle is separate from the seal-name toggle")
+Click(missingText, true)
+local symbol = Find("Button", "Missing symbol: ")
+symbol.scripts.OnClick(symbol, "LeftButton")
+assert(db.missingSymbol == "none" and symbol.value == "Missing symbol: None  >")
+symbol.scripts.OnClick(symbol, "LeftButton")
+assert(db.missingSymbol == "bang")
+local placeholder = Find("Button", "Placeholder icon: ")
+placeholder.scripts.OnClick(placeholder, "LeftButton")
+assert(db.missingIcon == "righteousness")
+placeholder.scripts.OnClick(placeholder, "RightButton")
+assert(db.missingIcon == "might" and placeholder.value == "Placeholder icon: Default  >")
+local warningColor = Find("Button", "Warning color: ")
+warningColor.scripts.OnClick(warningColor, "LeftButton")
+assert(db.warningColor == "orange")
+warningColor.scripts.OnClick(warningColor, "RightButton")
+assert(db.warningColor == "red")
+
+-- Alerts page: sounds.
 local soundButton = Find("Button", "Refresh sound: ")
 local channelButton = Find("Button", "Audio channel: ")
 local refreshPreview = Find("Button", "Test refresh sound")
@@ -292,7 +384,7 @@ local tabs = {}
 for _, widget in ipairs(widgets) do
     if widget.kind == "Button" and rawget(widget, "key") then tabs[#tabs + 1] = widget end
 end
-assert(#tabs == 4 and panel.hosted, "Standalone window shows page tabs")
+assert(#tabs == 5 and panel.hosted, "Standalone window shows page tabs")
 for index, page in ipairs(pages) do
     assert(page.parent == panel and tabs[index].key == page.key and tabs[index].value == page.name)
     assert(page.shown == (index == 1), "Standalone window opens on General")
@@ -333,7 +425,7 @@ combat = false
 addon.RegisterSettings(db, apply)
 addon.RegisterSettings(db, apply)
 assert(registrations == 1 and registeredPanel.embedded, "Register one native AddOns category")
-assert(#subcategories == 3, "Register three native sub-pages")
+assert(#subcategories == 4, "Register four native sub-pages")
 local nativePages = registeredPanel.pages
 for index, sub in ipairs(subcategories) do
     assert(sub.frame == nativePages[index + 1] and sub.name == nativePages[index + 1].name)
@@ -363,8 +455,8 @@ InterfaceOptionsFrame_OpenToCategory = function(value) opened = value end
 addon.RegisterSettings(db, apply)
 addon.OpenSettings(db, apply)
 local legacyPanel = legacy[1]
-assert(#legacy == 4 and legacyPanel.embedded and opened == legacyPanel)
-for index = 2, 4 do
+assert(#legacy == 5 and legacyPanel.embedded and opened == legacyPanel)
+for index = 2, 5 do
     assert(legacy[index] == legacyPanel.pages[index] and legacy[index].parent == legacyPanel.name,
         "Legacy sub-pages name the addon category as parent")
 end
@@ -381,8 +473,8 @@ legacy = {}
 InterfaceOptions_AddCategory = function(value) legacy[#legacy + 1] = value end
 addon.RegisterSettings(db, apply)
 assert(legacy[1] == standalone and standalone.embedded, "Late registration reuses the existing view")
-assert(#legacy == 4 and not standalone.hosted and pages ~= standalone.pages)
-for index = 2, 4 do
+assert(#legacy == 5 and not standalone.hosted and pages ~= standalone.pages)
+for index = 2, 5 do
     assert(standalone.pages[index].shown == false, "Late registration hides hosted sub-pages")
 end
 io.write("Settings interaction tests passed.\n")

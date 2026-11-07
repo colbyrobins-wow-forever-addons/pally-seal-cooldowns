@@ -1,4 +1,5 @@
 local scripts, queries, blocked = {}, 0, false
+local trackerFrame
 local animationPlays, animationStops = 0, 0
 local now, cooldownStart, cooldownDuration = 100, nil, nil
 local counterText, trackerShown, cooldownShown, barValue
@@ -43,8 +44,13 @@ CreateFrame = function(kind, name)
             Hide = function() cooldownShown = false end}, {__index = widget})
     end
     if name == "PallySealCooldownsFrame" then
-        return setmetatable({Show = function() trackerShown = true end,
-            Hide = function() trackerShown = false end}, {__index = widget})
+        trackerFrame = setmetatable({Show = function() trackerShown = true end,
+            Hide = function() trackerShown = false end,
+            ClearAllPoints = function(self) self.point = nil end,
+            SetPoint = function(self, ...) self.point = {...} end,
+            EnableMouse = function(self, enabled) self.mouse = enabled end,
+            StartMoving = function(self) self.moving = true end}, {__index = widget})
+        return trackerFrame
     end
     return widget
 end
@@ -70,6 +76,7 @@ assert(loadfile("PallySealCooldowns/SealLogic.lua"))("PallySealCooldowns", addon
 assert(loadfile("PallySealCooldowns/Diagnostics.lua"))("PallySealCooldowns", addon)
 assert(loadfile("PallySealCooldowns/NativePrototype.lua"))("PallySealCooldowns", addon)
 assert(loadfile("PallySealCooldowns/Appearance.lua"))("PallySealCooldowns", addon)
+assert(loadfile("PallySealCooldowns/CooldownManager.lua"))("PallySealCooldowns", addon)
 assert(loadfile("PallySealCooldowns/Minimap.lua"))("PallySealCooldowns", addon)
 assert(loadfile("PallySealCooldowns/Settings.lua"))("PallySealCooldowns", addon)
 assert(loadfile("PallySealCooldowns/NativeDisplay.lua"))("PallySealCooldowns", addon)
@@ -346,6 +353,63 @@ local repaired = ReloadWithSettings({soundChoice = "invalid", missingSoundChoice
     soundChannel = "invalid"})
 assert(repaired.soundChoice == "chime" and repaired.missingSoundChoice == "raid"
     and repaired.soundChannel == "Master", "Invalid audio choices use supported defaults")
+
+-- Snapping anchors to Blizzard's Essential bar, blocks dragging, and falls
+-- back to the saved position with a single warning once the world is up.
+local chat = {}
+DEFAULT_CHAT_FRAME = {AddMessage = function(_, text) chat[#chat + 1] = text end}
+EssentialCooldownViewer = nil
+local iconBarDB = ReloadWithSettings({})
+assert(iconBarDB.showIconBar == true, "Icon bar defaults to shown")
+assert(ReloadWithSettings({showIconBar = false}).showIconBar == false, "Hidden icon bar persists")
+local snapDB = ReloadWithSettings({snapToCDM = true, snapSide = "top", snapGap = 4,
+    locked = false, x = 10, y = 20})
+assert(trackerFrame.point[1] == "CENTER" and trackerFrame.point[4] == 10,
+    "Bar not loaded yet keeps the saved position")
+assert(#chat == 0, "No warning before the world has loaded")
+scripts.OnEvent(widget, "PLAYER_ENTERING_WORLD")
+scripts.OnEvent(widget, "PLAYER_ENTERING_WORLD")
+assert(#chat == 1 and chat[1]:find("not found", 1, true), "Fallback warns once")
+local essential = {}
+EssentialCooldownViewer = essential
+scripts.OnEvent(widget, "ADDON_LOADED", "Blizzard_CooldownViewer")
+assert(trackerFrame.point[1] == "BOTTOM" and trackerFrame.point[2] == essential
+    and trackerFrame.point[3] == "TOP" and trackerFrame.point[5] == 4,
+    "Blizzard's bar loading late still snaps the tracker")
+assert(trackerFrame.mouse == false, "Snapped tracker ignores the mouse")
+trackerFrame.moving = false
+scripts.OnDragStart(trackerFrame)
+assert(not trackerFrame.moving, "Snapped tracker cannot be dragged")
+snapDB.snapToCDM = false
+scripts.OnEvent(widget, "EDIT_MODE_LAYOUTS_UPDATED")
+assert(trackerFrame.point[1] == "CENTER" and trackerFrame.mouse == true,
+    "Turning snapping off restores the free, draggable position")
+scripts.OnDragStart(trackerFrame)
+assert(trackerFrame.moving)
+EssentialCooldownViewer = nil
+DEFAULT_CHAT_FRAME = widget
+
+-- Missing-seal options on the estimated (non-native) display.
+local missingDB = ReloadWithSettings({missingSymbol = "none", missingAlert = "glow"})
+scripts.OnUpdate(widget, 0.1)
+assert(counterText == "", "Missing symbol None removes the exclamation mark")
+local playsBefore = animationPlays
+scripts.OnEvent(widget, "PLAYER_REGEN_DISABLED")
+assert(animationPlays == playsBefore + 1, "Glow only starts one animation")
+scripts.OnEvent(widget, "PLAYER_REGEN_ENABLED")
+missingDB.missingAlert = "none"
+scripts.OnEvent(widget, "PLAYER_REGEN_DISABLED")
+assert(animationPlays == playsBefore + 1, "Combat alert None starts no animation")
+scripts.OnEvent(widget, "PLAYER_REGEN_ENABLED")
+missingDB.hideWhenMissing = true
+scripts.OnUpdate(widget, 0.1)
+assert(trackerShown == false, "Hide when missing hides the tracker without a seal")
+scripts.OnEvent(widget, "UNIT_SPELLCAST_SUCCEEDED", "player", "hide-missing", 20154)
+assert(trackerShown == true, "Casting a seal shows the hidden tracker")
+missingDB.hideWhenMissing = false
+missingDB.missingSymbol, missingDB.missingAlert = "bang", "both"
+ReloadWithSettings(missingDB)
+
 GetBuildInfo = function() return "test-client", "12345", "date", 16001 end
 SlashCmdList.PALLYSEALCOOLDOWNS("debug on")
 scripts.OnEvent(widget, "PLAYER_REGEN_DISABLED")

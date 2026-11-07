@@ -43,7 +43,16 @@ addon.ApplyPreset(db, "contrast")
 assert(db.borderSize == 3 and db.outline == "THICKOUTLINE" and db.threshold == 7)
 db.borderColor = "black"
 local r, g, b = addon.BorderRGB(db, true)
-assert(r == 1 and g == 0.3 and b == 0.15, "Warnings override custom border colors")
+assert(r == 1 and g == 0.35 and b == 0.2, "Warnings override custom border colors")
+db.warningColor = "yellow"
+r, g, b = addon.BorderRGB(db, true)
+assert(r == 1 and g == 0.9 and b == 0.2, "Border warnings follow the chosen warning color")
+db.warningColor = "invalid"
+addon.NormalizeAppearance(db)
+assert(db.warningColor == "red", "Invalid warning colors repair to red")
+db.warningColor = "orange"
+addon.ApplyPreset(db, "contrast")
+assert(db.warningColor == "red", "Presets reset the warning color with other appearance")
 addon.ApplyPreset(db, "default")
 addon.ApplyFont(region, db, db.timerSize)
 assert(applied[2] == 12 and applied[3] == "OUTLINE", "Default restores layout font settings")
@@ -68,4 +77,25 @@ for _, choice in ipairs(addon.PresetChoices) do
 end
 addon.ApplyPreset(db, "unknown")
 assert(db.font == "arial" and db.border == "none", "Unknown presets must not change settings")
+-- Layout and missing-seal options normalize independently of presets.
+local display = {displayStyle = "wide", missingAlert = "spin", missingSymbol = 3,
+    missingIcon = "unknown", showIconBar = false, hideWhenMissing = "yes"}
+addon.NormalizeDisplayOptions(display)
+assert(display.displayStyle == "icon" and display.missingAlert == "both")
+assert(display.missingSymbol == "bang" and display.missingIcon == "might")
+assert(display.showIconBar == false and display.showMissingText == true)
+assert(display.hideWhenMissing == false, "Only a true value hides the missing tracker")
+local migrated = {displayStyle = "icon", cdmStyle = true}
+addon.NormalizeDisplayOptions(migrated)
+assert(migrated.displayStyle == "essential" and migrated.cdmStyle == nil,
+    "The test-build Essential checkbox becomes the Essential layout")
+for alert, parts in pairs({both = {true, true}, glow = {true, false},
+    bounce = {false, true}, none = {false, false}}) do
+    local glow, bounce = addon.MissingAlertParts({missingAlert = alert})
+    assert(glow == parts[1] and bounce == parts[2], "Alert parts for " .. alert)
+end
+assert(addon.MissingSymbol({missingSymbol = "bang"}) == "!")
+assert(addon.MissingSymbol({missingSymbol = "none"}) == "")
+assert(addon.MissingIconPath({missingIcon = "might"}):find("Spell_Holy_SealOfMight", 1, true))
+assert(addon.MissingIconPath({missingIcon = "command"}):find("Ability_Warrior_InnerRage", 1, true))
 io.write("Appearance tests passed.\n")

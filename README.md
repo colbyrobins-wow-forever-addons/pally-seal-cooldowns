@@ -3,7 +3,7 @@
 Development follows [the test-before-version workflow](DEVELOPMENT.md): changes
 are tracked in Git and tested in game before a new release version is assigned.
 
-Version **0.1.20** uses Blizzard-managed aura displays for the main
+Version **0.1.21** uses Blizzard-managed aura displays for the main
 icon and bar when supported by the client. Seal visibility, name, countdown, and
 bar progress update natively, including removal during restricted combat. The
 missing-seal icon/text and combat animation use native layout clipping, without
@@ -102,19 +102,48 @@ AddOns screen, and log into a paladin.
 Open **Options > AddOns > Pally Seal Cooldowns**, click the paladin seal icon
 beside the minimap, or type `/psc` or `/psc settings` to open the same settings
 page. Settings are split into a **General** page (the addon's own category)
-and **Alerts & sounds**, **Appearance**, and **Presets** sub-pages listed beneath
-it. Each page scrolls on its own.
+and **Layout**, **Alerts**, **Appearance**, and **Presets** sub-pages listed
+beneath it. Each page scrolls on its own.
 Drag the minimap icon to reposition it; its position is saved.
 Changes apply immediately and are saved automatically.
-Enable **Small icon with horizontal timer bar** to use a 30-pixel seal icon
-with a horizontal duration bar on its right. Uncheck it to restore the large
-icon layout. Countdown visibility, refresh warnings, and combat animation work
-in either layout; Display size scales the whole tracker.
 Enable **Hide outside combat** to show the tracker only during combat. The
 minimap settings button stays available. This setting is off by default.
-Enable **Bar counts down** to start the duration bar full and drain it from
-right to left as the seal expires. By default the bar fills up instead.
-Settings also include bar width (120–360 pixels before scaling), independent
+
+The **Layout** page picks one of three layouts and groups each layout's options
+under its own heading. Display size on the General page scales every layout.
+- **Large icon** (default): a 52-pixel icon. Uncheck **Show duration bar under
+  icon** to remove the thin bar beneath it.
+- **Small icon with timer bar**: a 30-pixel icon with a horizontal duration bar
+  (120–360 pixels wide before scaling) on its right.
+- **Essential Cooldowns icon**: matches the icons on Blizzard's Essential
+  Cooldowns bar, with no padding or background and Blizzard's icon mask and
+  overlay. **Essential icon size** at 0 follows Blizzard's icon size, or 50
+  pixels until one is visible. Any other value (16–80) sets the size.
+
+**Bar texture** and **Bar counts down** apply to both duration bars. Bar counts
+down starts the bar full and drains it from right to left; by default it fills
+up instead. `/psc style icon`, `/psc style bar`, and `/psc style essential`
+switch layouts.
+**Snap to Essential Cooldowns bar** works with any layout. It attaches the tracker
+to the right, left, top, or bottom of Blizzard's bar with an adjustable gap.
+While snapped, the tracker moves with the bar in Edit Mode and cannot be dragged.
+If the bar is missing (for example, the Cooldown Manager is disabled), the saved
+position is used and chat notes it once. `/psc status` reports whether the bar
+was found.
+
+The **Alerts** page's **When no seal is active** section controls the
+missing-seal state:
+- **Combat alert**: glow and bounce (default), glow only, bounce only, or none.
+- **Hide tracker when no seal is active**: shows nothing until a seal is cast.
+  Missing-seal sounds still play.
+- **Show missing-seal text**: hides "No active seal" and "CAST A SEAL" without
+  hiding the seal name or status while a seal is active.
+- **Missing symbol**: the red "!", or none.
+- **Placeholder icon**: the default icon or one of the seal icons.
+
+**Warning color** on the Appearance page sets the color for a due refresh and a
+missing seal: red (default), orange, yellow, Paladin pink, or white.
+Settings also include independent
 seal-name and status-text visibility, and separate refresh and missing-seal
 sounds (gentle chime, raid warning, whisper, or soft UI click). New settings use
 the bundled gentle chime for refresh and raid warning for a missing seal;

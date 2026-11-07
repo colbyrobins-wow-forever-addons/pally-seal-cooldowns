@@ -52,6 +52,92 @@ After in-game acceptance and a request to prepare a release:
 
 ## Current unreleased work
 
+### 2026-11-06: 0.1.21 release preparation
+
+- User requested release packaging. Assigned next patch version 0.1.21,
+  following the 0.1.x pattern; the user declined a version question and asked
+  to package. Updated the TOC, README, changelog, CurseForge description, and
+  upload guide together.
+- Scope since `v0.1.20`: Essential Cooldowns icon layout and snapping, hideable
+  icon bar, missing-seal options, warning color, and the five-page settings
+  layout (entries below).
+- Runtime Lua matches the build deployed to `_forever_` earlier today
+  (`diff -r` shows only the TOC version line). No in-game results were reported
+  before the release request. As with 0.1.20, the request is recorded as
+  release authorization, not as test confirmation. All in-game checks listed
+  below remain unconfirmed.
+- Ten Lua 5.1 suites (Lupa) and three Python exporter tests passed.
+- Release archive: `dist/PallySealCooldowns-0.1.21.zip`, built with
+  `git archive` from tag `v0.1.21`. Public upload is a separate step; no remote
+  is configured, so the commit, tag, and archive are local.
+
+### 2026-11-06: Essential Cooldowns style and snapping
+
+- New `CooldownManager.lua` with saved, default-off settings: `cdmStyle`
+  (match Essential icon style), `cdmIconSize` (0 follows Blizzard, else 16–80),
+  `snapToCDM`, `snapSide` (right/left/top/bottom), and `snapGap` (0–20).
+- Snapping anchors the tracker frame to `EssentialCooldownViewer` (name
+  confirmed in the installed ForeverAuras source for this client). It never
+  calls the viewer's methods, since that taints Blizzard's refresh path. Relayouts
+  are observed with a `hooksecurefunc` post-hook on `RefreshLayout` and
+  re-applied only when the matched size changes. `ADDON_LOADED` for
+  `Blizzard_CooldownViewer`, `EDIT_MODE_LAYOUTS_UPDATED`, and
+  `COOLDOWN_VIEWER_DATA_LOADED` also re-apply the anchor.
+- The matched size is read from an active Essential icon's width and effective
+  scale with secret-value and error guards. It falls back to the last readable
+  size, then to 50 px. Native widget geometry is still never read.
+- All ten Lua 5.1 suites pass through Lupa. The new `cooldown_manager_test.lua`
+  covers normalization, anchors on every side, gap scaling, size reading,
+  secret geometry, and the single hook. The other suites add matched-style
+  native sizing and masking, settings controls, and snap and fallback behavior
+  with drag blocking.
+- Pending in-game: whether the Essential icon geometry is readable on Forever,
+  whether the mask and overlay outsets look like Blizzard's icons, whether
+  anchoring to the viewer avoids taint during combat, and Edit Mode follow
+  behavior.
+- 2026-11-06: deployed base commit `d66b956` plus uncommitted changes to
+  `NativeDisplay.lua`, `PallySealCooldowns.lua`, `PallySealCooldowns.toc`,
+  `Settings.lua`, and new `CooldownManager.lua` to
+  `C:/Program Files (x86)/World of Warcraft/_forever_/Interface/AddOns/PallySealCooldowns`.
+  The tests, `README.md`, and `DEVELOPMENT.md` also changed but are not shipped.
+  The installed folder matched the source by `diff -r` after copying. Backup:
+  `<workspace>/addon-deployment-backups/PallySealCooldowns-forever-before-cdm-snap-on-d66b956-20261106183124`.
+  Client build not recorded. No in-game testing performed yet.
+- Added saved **Show duration bar under icon (icon layout)** appearance checkbox
+  (`showIconBar`, on by default). When off, the thin icon-layout bar is hidden
+  with alpha 0 so it stays bound to the native timer. The bar layout always shows
+  its bar. All ten suites pass. Redeployed on top of `d66b956` with the same
+  uncommitted file set and verified by `diff -r`. Backup:
+  `<workspace>/addon-deployment-backups/PallySealCooldowns-forever-before-iconbar-toggle-on-d66b956-20261106183839`.
+  Pending in-game: confirm the native bar stays hidden while the timer runs.
+- Settings reorganized into five pages: General, Layout, Alerts (was "Alerts &
+  sounds"), Appearance, and Presets. Tabs are narrower to fit the standalone
+  window. The bar checkbox and the Essential style checkbox became one
+  `displayStyle` selector with `icon`, `bar`, and `essential` values. A saved
+  test-build `cdmStyle = true` migrates to `essential`. Layout-specific options
+  are grouped under headings on the Layout page.
+- New missing-seal options, normalized by `addon.NormalizeDisplayOptions` and
+  kept out of presets: `missingAlert` (both/glow/bounce/none),
+  `hideWhenMissing`, `showMissingText`, `missingSymbol` (bang/none), and
+  `missingIcon`. New `warningColor` appearance option (presets reset it to red).
+  It drives warning borders, countdown and status curves, and the missing
+  symbol. The default red border shifts slightly from (1, 0.3, 0.15) to match
+  the text red (1, 0.35, 0.2).
+- Native hide-when-missing sets alpha 0 on the missing clip's frame, so the
+  native presence gate is unchanged. Native `Apply` resets the combat alert, so
+  a changed alert choice takes effect on the next update.
+- All ten suites pass, with new coverage for normalization and migration, alert
+  parts on both displays, native and legacy hiding, the missing-text split, the
+  symbol, icon, and color bindings, and the five-page settings structure.
+- 2026-11-06: deployed base commit `d66b956` plus uncommitted changes to
+  `Appearance.lua`, `CooldownManager.lua` (new), `NativeDisplay.lua`,
+  `PallySealCooldowns.lua`, `PallySealCooldowns.toc`, and `Settings.lua` to
+  `C:/Program Files (x86)/World of Warcraft/_forever_/Interface/AddOns/PallySealCooldowns`.
+  The tests, `README.md`, and `DEVELOPMENT.md` also changed but are not shipped.
+  Verified by `diff -r`. Backup:
+  `<workspace>/addon-deployment-backups/PallySealCooldowns-forever-before-layout-missing-options-on-d66b956-20261106185520`.
+  Client build not recorded. No in-game testing performed yet.
+
 ### 2026-11-05: 0.1.20 release preparation
 
 - User requested a release with a changelog and updated CurseForge description.

@@ -25,9 +25,10 @@ function addon.PlayWarning(db, alert)
 end
 
 addon.SettingsPages = {
-    {key = "general", label = "General", height = 440},
-    {key = "alerts", label = "Alerts & sounds", height = 400},
-    {key = "appearance", label = "Appearance", height = 540},
+    {key = "general", label = "General", height = 360},
+    {key = "layout", label = "Layout", height = 580},
+    {key = "alerts", label = "Alerts", height = 640},
+    {key = "appearance", label = "Appearance", height = 520},
     {key = "presets", label = "Presets", height = 140},
 }
 
@@ -103,8 +104,8 @@ function addon.CreateSettings(db, apply)
     for index, page in ipairs(pages) do
         local tab = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
         tab.key = page.key
-        tab:SetSize(100, 22)
-        tab:SetPoint("TOPLEFT", 14 + (index - 1) * 102, -46)
+        tab:SetSize(80, 22)
+        tab:SetPoint("TOPLEFT", 14 + (index - 1) * 82, -46)
         tab:SetText(page.name)
         tab:SetScript("OnClick", function() SelectPage(page.key) end)
         tabs[index] = tab
@@ -162,10 +163,12 @@ function addon.CreateSettings(db, apply)
             local rounded = math.floor(value / step + 0.5) * step
             if (key == "timerSize" or key == "nameSize")
                 and rounded > 0 and rounded < 8 then rounded = 0 end
+            if key == "cdmIconSize" and rounded > 0 and rounded < 16 then rounded = 0 end
             text:SetText(label .. string.format(format, rounded))
             if syncing then return end
             db[key] = rounded
             addon.NormalizeAppearance(db)
+            addon.NormalizeCooldownManager(db)
             apply()
         end)
         controls[#controls + 1] = function() slider:SetValue(db[key]) end
@@ -220,37 +223,71 @@ function addon.CreateSettings(db, apply)
         hint:SetText(text)
     end
 
+    local function Heading(y, text)
+        local heading = section:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        heading:SetPoint("TOPLEFT", 22, y)
+        heading:SetText(text)
+    end
+
     section = pages.general.content
     Checkbox("Lock tracker position", -10, "locked", true, false)
     Checkbox("Show countdown only when refresh is due", -45, "counterMode", "refresh", "always")
-    Checkbox("Small icon with horizontal timer bar", -80, "displayStyle", "bar", "icon")
-    Checkbox("Hide outside combat", -115, "hideOutOfCombat", true, false)
-    Checkbox("Show seal name", -150, "showSealName", true, false)
-    Checkbox("Show status text", -185, "showStatusText", true, false)
-    Slider("Refresh warning: ", -255, "threshold", 1, 30, 1, "%d seconds")
-    Slider("Display size: ", -310, "scale", 0.5, 2, 0.05, "%.2fx")
-    Slider("Bar width (bar style): ", -365, "barWidth", 120, 360, 1, "%d px")
-    ActionButton("Reset position and size", -400, 170, function()
+    Checkbox("Hide outside combat", -80, "hideOutOfCombat", true, false)
+    Checkbox("Show seal name", -115, "showSealName", true, false)
+    Checkbox("Show status text", -150, "showStatusText", true, false)
+    Slider("Refresh warning: ", -220, "threshold", 1, 30, 1, "%d seconds")
+    Slider("Display size: ", -275, "scale", 0.5, 2, 0.05, "%.2fx")
+    ActionButton("Reset position and size", -310, 170, function()
         db.x, db.y, db.scale = 0, -160, 1
         apply()
         panel:Synchronize()
     end)
 
+    -- Each layout's own options sit under a heading naming that layout.
+    section = pages.layout.content
+    Selector("Layout: ", -10, "displayStyle", addon.LayoutChoices)
+    Hint(-45, "Large icon: 52 px icon with a thin bar beneath.\n"
+        .. "Small icon with timer bar: 30 px icon and a long bar.\n"
+        .. "Essential Cooldowns icon: matches Blizzard's bar icons.")
+    Heading(-100, "Large icon and Essential Cooldowns icon")
+    Checkbox("Show duration bar under icon", -118, "showIconBar", true, false)
+    Slider("Essential icon size: ", -180, "cdmIconSize", 0, 80, 1, "%d px (0 follows Blizzard)")
+    Heading(-215, "Small icon with timer bar")
+    Slider("Bar width: ", -255, "barWidth", 120, 360, 1, "%d px")
+    Selector("Bar texture: ", -290, "statusbar", function() return addon.MediaChoices("statusbar") end)
+    Checkbox("Bar counts down (starts full, drains right to left)", -322, "barCountdown", true, false)
+    Heading(-365, "Snap to Blizzard's Essential Cooldowns bar (any layout)")
+    Checkbox("Snap to Essential Cooldowns bar", -383, "snapToCDM", true, false)
+    Selector("Snap position: ", -423, "snapSide", addon.SnapSides)
+    Slider("Gap from bar: ", -478, "snapGap", 0, 20, 1, "%d px")
+    Hint(-505, "While snapped, the tracker follows the bar when it moves in\n"
+        .. "Edit Mode and cannot be dragged. If the bar is unavailable,\n"
+        .. "the saved position is used. Bar countdown and texture also\n"
+        .. "apply to the thin bar under the large icon.")
+
     section = pages.alerts.content
-    Checkbox("Play refresh warning sound", -10, "sound", true, false)
-    Checkbox("Refresh sound only in combat", -45, "refreshCombatOnly", true, false)
-    Selector("Refresh sound: ", -85, "soundChoice", addon.SoundChoices)
+    Heading(-10, "Refresh warning")
+    Checkbox("Play refresh warning sound", -28, "sound", true, false)
+    Checkbox("Refresh sound only in combat", -63, "refreshCombatOnly", true, false)
+    Selector("Refresh sound: ", -103, "soundChoice", addon.SoundChoices)
     local channels = {}
     for _, channel in ipairs(addon.SoundChannels) do
         channels[#channels + 1] = {key = channel, label = channel}
     end
-    Selector("Audio channel: ", -120, "soundChannel", channels)
-    ActionButton("Test refresh sound", -155, 170, function() addon.PlayWarning(db) end)
-    Checkbox("Play missing-seal sound", -200, "missingSound", true, false)
-    Checkbox("Missing sound only in combat", -235, "missingCombatOnly", true, false)
-    Selector("Missing sound: ", -275, "missingSoundChoice", addon.SoundChoices)
-    ActionButton("Test missing sound", -310, 170, function() addon.PlayWarning(db, "missing") end)
-    Hint(-350, "Both alerts share the audio channel.\nTests play even when alerts are off or combat-only.")
+    Selector("Audio channel: ", -138, "soundChannel", channels)
+    ActionButton("Test refresh sound", -173, 170, function() addon.PlayWarning(db) end)
+    Heading(-218, "When no seal is active")
+    Selector("Combat alert: ", -238, "missingAlert", addon.MissingAlertChoices)
+    Checkbox("Hide tracker when no seal is active", -270, "hideWhenMissing", true, false)
+    Checkbox("Show missing-seal text", -305, "showMissingText", true, false)
+    Selector("Missing symbol: ", -343, "missingSymbol", addon.MissingSymbols)
+    Selector("Placeholder icon: ", -378, "missingIcon", addon.MissingIcons)
+    Checkbox("Play missing-seal sound", -410, "missingSound", true, false)
+    Checkbox("Missing sound only in combat", -445, "missingCombatOnly", true, false)
+    Selector("Missing sound: ", -485, "missingSoundChoice", addon.SoundChoices)
+    ActionButton("Test missing sound", -520, 170, function() addon.PlayWarning(db, "missing") end)
+    Hint(-560, "Both alerts share the audio channel.\nTests play even when alerts are off or combat-only.\n"
+        .. "Missing-seal text also follows Show seal name and\nShow status text on the General page.")
 
     section = pages.appearance.content
     Hint(-10, "Changes apply live. Left/right-click choices to cycle.\nFont size 0 uses the layout default.")
@@ -262,9 +299,9 @@ function addon.CreateSettings(db, apply)
     Selector("Border: ", -268, "border", function() return addon.MediaChoices("border") end)
     Selector("Border color: ", -303, "borderColor", addon.BorderColors)
     Slider("Custom border thickness: ", -368, "borderSize", 1, 16, 1, "%d px")
-    Selector("Bar texture: ", -403, "statusbar", function() return addon.MediaChoices("statusbar") end)
-    Checkbox("Bar counts down (starts full, drains right to left)", -435, "barCountdown", true, false)
-    Hint(-477, "Installed SharedMedia choices appear automatically.\nMissing media uses the default appearance.\nWarning colors still indicate when a seal is due.")
+    Selector("Warning color: ", -403, "warningColor", addon.WarningColors)
+    Hint(-440, "Installed SharedMedia choices appear automatically.\nMissing media uses the default appearance.\n"
+        .. "Warning color marks a due refresh and a missing seal.\nBar options are on the Layout page.")
 
     section = pages.presets.content
     Hint(-10, "Presets replace only appearance settings.\nTiming, sounds, position, and visibility are kept.")

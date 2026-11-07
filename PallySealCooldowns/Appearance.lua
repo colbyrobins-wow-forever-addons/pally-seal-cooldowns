@@ -24,6 +24,38 @@ addon.BorderColors = {
     {key = "black", label = "Black", rgb = {0.1, 0.1, 0.1}},
     {key = "pink", label = "Paladin pink", rgb = {0.96, 0.55, 0.73}},
 }
+-- Shared by refresh warnings and the missing-seal state.
+addon.WarningColors = {
+    {key = "red", label = "Red", rgb = {1, 0.35, 0.2}},
+    {key = "orange", label = "Orange", rgb = {1, 0.6, 0.1}},
+    {key = "yellow", label = "Yellow", rgb = {1, 0.9, 0.2}},
+    {key = "pink", label = "Paladin pink", rgb = {0.96, 0.55, 0.73}},
+    {key = "white", label = "White", rgb = {1, 1, 1}},
+}
+addon.LayoutChoices = {
+    {key = "icon", label = "Large icon"},
+    {key = "bar", label = "Small icon with timer bar"},
+    {key = "essential", label = "Essential Cooldowns icon"},
+}
+addon.MissingAlertChoices = {
+    {key = "both", label = "Glow and bounce"},
+    {key = "glow", label = "Glow only"},
+    {key = "bounce", label = "Bounce only"},
+    {key = "none", label = "None"},
+}
+addon.MissingSymbols = {
+    {key = "bang", label = "Exclamation (!)", text = "!"},
+    {key = "none", label = "None", text = ""},
+}
+addon.MissingIcons = {
+    {key = "might", label = "Default", path = "Interface\\Icons\\Spell_Holy_SealOfMight"},
+    {key = "righteousness", label = "Seal of Righteousness", path = "Interface\\Icons\\Ability_ThunderBolt"},
+    {key = "command", label = "Seal of Command", path = "Interface\\Icons\\Ability_Warrior_InnerRage"},
+    {key = "crusader", label = "Seal of the Crusader", path = "Interface\\Icons\\Spell_Holy_HolySmite"},
+    {key = "justice", label = "Seal of Justice", path = "Interface\\Icons\\Spell_Holy_SealOfWrath"},
+    {key = "light", label = "Seal of Light", path = "Interface\\Icons\\Spell_Holy_HealingAura"},
+    {key = "wisdom", label = "Seal of Wisdom", path = "Interface\\Icons\\Spell_Holy_RighteousnessAura"},
+}
 addon.OutlineChoices = {
     {key = "default", label = "Game default"},
     {key = "none", label = "None"},
@@ -40,7 +72,7 @@ addon.PresetChoices = {
 }
 local defaults = {font = "default", border = "default", statusbar = "default",
     outline = "default", fontShadow = true, timerSize = 0, nameSize = 0,
-    borderSize = 2, borderColor = "white"}
+    borderSize = 2, borderColor = "white", warningColor = "red"}
 
 local function SharedMedia()
     return LibStub and LibStub("LibSharedMedia-3.0", true)
@@ -77,7 +109,8 @@ function addon.NormalizeAppearance(db)
         for _, choice in ipairs(builtins[key]) do valid = valid or db[key] == choice.key end
         if not valid then db[key] = defaults[key] end
     end
-    for key, choices in pairs({outline = addon.OutlineChoices, borderColor = addon.BorderColors}) do
+    for key, choices in pairs({outline = addon.OutlineChoices, borderColor = addon.BorderColors,
+        warningColor = addon.WarningColors}) do
         local valid = false
         for _, choice in ipairs(choices) do valid = valid or db[key] == choice.key end
         if not valid then db[key] = defaults[key] end
@@ -116,8 +149,49 @@ function addon.ApplyPreset(db, preset)
     end
 end
 
+local function Choice(choices, key)
+    for _, choice in ipairs(choices) do
+        if choice.key == key then return choice end
+    end
+end
+
+-- Layout and missing-seal behavior; presets never change these.
+function addon.NormalizeDisplayOptions(db)
+    -- Test builds saved the Essential style as a separate checkbox.
+    if db.cdmStyle == true then db.displayStyle = "essential" end
+    db.cdmStyle = nil
+    local defaults = {displayStyle = "icon", missingAlert = "both",
+        missingSymbol = "bang", missingIcon = "might"}
+    local sources = {displayStyle = addon.LayoutChoices, missingAlert = addon.MissingAlertChoices,
+        missingSymbol = addon.MissingSymbols, missingIcon = addon.MissingIcons}
+    for key, choices in pairs(sources) do
+        if not Choice(choices, db[key]) then db[key] = defaults[key] end
+    end
+    db.showIconBar = db.showIconBar ~= false
+    db.showMissingText = db.showMissingText ~= false
+    db.hideWhenMissing = db.hideWhenMissing == true
+end
+
+function addon.WarningRGB(db)
+    return unpack((Choice(addon.WarningColors, db.warningColor) or addon.WarningColors[1]).rgb)
+end
+
+function addon.MissingIconPath(db)
+    return (Choice(addon.MissingIcons, db.missingIcon) or addon.MissingIcons[1]).path
+end
+
+function addon.MissingSymbol(db)
+    return (Choice(addon.MissingSymbols, db.missingSymbol) or addon.MissingSymbols[1]).text
+end
+
+-- Returns whether the in-combat missing alert glows and whether it bounces.
+function addon.MissingAlertParts(db)
+    local alert = db.missingAlert or "both"
+    return alert == "both" or alert == "glow", alert == "both" or alert == "bounce"
+end
+
 function addon.BorderRGB(db, warning)
-    if warning then return 1, 0.3, 0.15 end
+    if warning then return addon.WarningRGB(db) end
     for _, choice in ipairs(addon.BorderColors) do
         if choice.key == db.borderColor then return unpack(choice.rgb) end
     end

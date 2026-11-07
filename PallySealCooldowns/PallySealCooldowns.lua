@@ -18,6 +18,10 @@ local nativeDisplay
 local pendingNativeSettings = false
 local nativeAttempted = false
 local HideLegacyDisplay
+local snapped = false
+local worldEntered = false
+local snapWarned = false
+local appliedIconSize
 
 local function Message(text)
     DEFAULT_CHAT_FRAME:AddMessage("|cffffd36aPally Seals:|r " .. text)
@@ -40,9 +44,18 @@ local function ApplyPosition()
         return
     end
     frame:ClearAllPoints()
-    frame:SetPoint("CENTER", UIParent, "CENTER", db.x, db.y)
     frame:SetScale(db.scale)
-    frame:EnableMouse(not db.locked)
+    snapped = addon.SnapToCooldownViewer(frame, db)
+    if not snapped then frame:SetPoint("CENTER", UIParent, "CENTER", db.x, db.y) end
+    -- Blizzard's viewer may load after this addon; only report once the world is up.
+    if db.snapToCDM and not snapped and worldEntered and not snapWarned then
+        snapWarned = true
+        Message("Essential Cooldowns bar not found; using the saved position. "
+            .. "Enable the Cooldown Manager in Options to snap.")
+    end
+    if snapped then snapWarned = false end
+    frame:EnableMouse(not db.locked and not snapped)
+    appliedIconSize = db.displayStyle == "essential" and addon.IconLayoutSize(db) or nil
     if ApplyLayout then ApplyLayout() end
     if nativeDisplay then
         nativeDisplay:Apply(db)
@@ -169,6 +182,7 @@ ApplyLayout = function()
         border:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", 6, -5)
         bar:SetSize(db.barWidth, 19)
         bar:SetPoint("LEFT", icon, "RIGHT", 2, 0)
+        bar:SetAlpha(1)
         if nativeBar then
             bar:SetStatusBarTexture(nativeBar.file)
             bar:GetStatusBarTexture():SetAtlas("UI-HUD-CoolDownManager-Bar")
@@ -185,13 +199,23 @@ ApplyLayout = function()
         status:SetPoint("TOPLEFT", bar, "BOTTOMLEFT", 5, -7)
         status:SetJustifyH("LEFT")
     else
-        frame:SetSize(56, 56)
-        background:Show()
+        local iconSize = addon.IconLayoutSize(db)
+        -- The matched style has no padding, so snapped icons sit flush.
+        local essential = db.displayStyle == "essential"
+        local frameSize = essential and iconSize or 56
+        frame:SetSize(frameSize, frameSize)
+        background:SetShown(not essential)
         barBackground:Hide()
         bar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
-        icon:SetSize(52, 52)
+        icon:SetSize(iconSize, iconSize)
         icon:SetPoint("CENTER", frame, "CENTER")
-        bar:SetSize(56, 2)
+        local outsetX = math.floor(8 * iconSize / 52 + 0.5)
+        local outsetY = math.floor(7 * iconSize / 52 + 0.5)
+        border:ClearAllPoints()
+        border:SetPoint("TOPLEFT", icon, "TOPLEFT", -outsetX, outsetY)
+        border:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", outsetX, -outsetY)
+        bar:SetSize(frameSize, 2)
+        bar:SetAlpha(db.showIconBar and 1 or 0)
         bar:SetPoint("TOPLEFT", frame, "BOTTOMLEFT", 0, -2)
         title:SetPoint("TOP", frame, "BOTTOM", 0, -8)
         title:SetWidth(180)
@@ -213,6 +237,13 @@ ApplyLayout = function()
     customBorder:SetBackdrop(edge and {edgeFile = edge, edgeSize = db.borderSize} or nil)
     local texture = addon.MediaPath("statusbar", db.statusbar)
     if texture then bar:SetStatusBarTexture(texture) end
+    -- Restart a running combat alert with the chosen parts on the next render.
+    if missingAlertPlaying then
+        pulse:Stop()
+        bounce:Stop()
+        glow:Hide()
+        missingAlertPlaying = false
+    end
 end
 
 local function UpdateMissingAlert(state)
@@ -220,9 +251,12 @@ local function UpdateMissingAlert(state)
     if shouldPlay == missingAlertPlaying then return end
     missingAlertPlaying = shouldPlay
     if shouldPlay then
-        glow:Show()
-        pulse:Play()
-        bounce:Play()
+        local useGlow, useBounce = addon.MissingAlertParts(db)
+        if useGlow then
+            glow:Show()
+            pulse:Play()
+        end
+        if useBounce then bounce:Play() end
     else
         pulse:Stop()
         bounce:Stop()
@@ -236,12 +270,21 @@ local function SetVisualState(state)
     icon:SetDesaturated(state == "missing" or state == "restricted")
     border:SetVertexColor(addon.BorderRGB(db, warning))
     customBorder:SetBackdropBorderColor(addon.BorderRGB(db, warning))
-    timer:SetTextColor(1, warning and 0.35 or 1, warning and 0.2 or 1)
-    status:SetTextColor(1, warning and 0.35 or 0.82, warning and 0.2 or 0.5)
+    if warning then
+        timer:SetTextColor(addon.WarningRGB(db))
+        status:SetTextColor(addon.WarningRGB(db))
+    else
+        timer:SetTextColor(1, 1, 1)
+        status:SetTextColor(1, 0.82, 0.5)
+    end
+    -- Only the missing state hides its own text; other states keep the base toggles.
+    local missingText = state ~= "missing" or db.showMissingText
+    title:SetShown(db.showSealName and missingText)
+    status:SetShown(db.showStatusText and missingText)
     barBackground:SetVertexColor(1, warning and 0.45 or 1, warning and 0.35 or 1)
 end
 frame:SetScript("OnDragStart", function(self)
-    if not db.locked then self:StartMoving() end
+    if not db.locked and not snapped then self:StartMoving() end
 end)
 frame:SetScript("OnDragStop", function(self)
     self:StopMovingOrSizing()
@@ -307,7 +350,7 @@ local function Render()
     UpdateSoundAlerts(state)
     title:SetShown(db.showSealName)
     status:SetShown(db.showStatusText)
-    if db.hideOutOfCombat and not inCombat then
+    if (db.hideOutOfCombat and not inCombat) or (state == "missing" and db.hideWhenMissing) then
         UpdateMissingAlert("active")
         frame:Hide()
         return
@@ -326,10 +369,10 @@ local function Render()
             return
         end
         title:SetText("No active seal")
-        timer:SetText("!")
+        timer:SetText(addon.MissingSymbol(db))
         status:SetText("CAST A SEAL")
         SetVisualState("missing")
-        icon:SetTexture("Interface\\Icons\\Spell_Holy_SealOfMight")
+        icon:SetTexture(addon.MissingIconPath(db))
         return
     end
     title:SetText(activeAura.name)
@@ -347,14 +390,14 @@ local function Render()
         bar:SetValue(1)
         bar:SetStatusBarColor(1, 0.72, 0.25)
     elseif state == "missing" then
-        timer:SetText("!")
+        timer:SetText(addon.MissingSymbol(db))
         status:SetText("REFRESH SEAL")
     else
         if activeAura.estimated then status:SetText("ESTIMATED TIMER") end
         local fraction = remaining / activeAura.duration
         bar:SetValue(db.barCountdown and fraction or 1 - fraction)
-        bar:SetStatusBarColor(1, state == "refresh" and 0.25 or 0.72,
-            state == "refresh" and 0.15 or 0.25)
+        if state == "refresh" then bar:SetStatusBarColor(addon.WarningRGB(db))
+        else bar:SetStatusBarColor(1, 0.72, 0.25) end
         if db.counterMode == "refresh" and state == "active" then
             timer:SetText("")
         else
@@ -421,6 +464,13 @@ frame:SetScript("OnUpdate", function(_, elapsed)
     Render()
 end)
 
+-- Blizzard relayouts its bar often; re-apply only when the matched size changes.
+-- Position needs no work here because the snap anchor follows the bar natively.
+local function RefreshCooldownViewer()
+    if not db or db.displayStyle ~= "essential" or db.cdmIconSize > 0 then return end
+    if addon.IconLayoutSize(db) ~= appliedIconSize then ApplyPosition() end
+end
+
 local function ApplySettings()
     ApplyPosition()
     Render()
@@ -451,8 +501,8 @@ SlashCmdList.PALLYSEALCOOLDOWNS = function(input)
         Message("Refresh sound " .. (db.sound and "enabled." or "disabled."))
     elseif command == "style" then
         argument = argument:lower()
-        if argument ~= "icon" and argument ~= "bar" then
-            Message("Use /psc style icon or /psc style bar.")
+        if argument ~= "icon" and argument ~= "bar" and argument ~= "essential" then
+            Message("Use /psc style icon, /psc style bar, or /psc style essential.")
             return
         end
         db.displayStyle = argument
@@ -486,6 +536,9 @@ SlashCmdList.PALLYSEALCOOLDOWNS = function(input)
         local version, build, _, interface = GetBuildInfo()
         Message(string.format("Client %s / build %s / interface %s; aura API %s.",
             version, build, interface, C_UnitAuras and "available" or "missing"))
+        Message("Essential Cooldowns bar " .. (addon.CooldownViewer() and "found" or "not found")
+            .. (db.snapToCDM and ("; snap " .. (snapped and "active" or "inactive")) or "")
+            .. (db.displayStyle == "essential" and ("; icon size " .. addon.IconLayoutSize(db)) or "") .. ".")
     else
         Message("/psc unlock | lock | warn 5 | counter refresh/always | sound | scale 1 | reset | status | debug | native")
     end
@@ -494,12 +547,19 @@ end
 frame:RegisterEvent("ADDON_LOADED")
 frame:SetScript("OnEvent", function(_, event, unit, castGUID, spellID)
     if event == "ADDON_LOADED" then
+        if unit == "Blizzard_CooldownViewer" and db then
+            addon.WatchCooldownViewer(RefreshCooldownViewer)
+            ApplyPosition()
+            return
+        end
         if unit ~= addonName then return end
         local _, class = UnitClass("player")
         if class ~= "PALADIN" then frame:UnregisterAllEvents(); return end
         PallySealCooldownsDB = type(PallySealCooldownsDB) == "table" and PallySealCooldownsDB or {}
         db = PallySealCooldownsDB
         addon.NormalizeAppearance(db)
+        addon.NormalizeCooldownManager(db)
+        addon.NormalizeDisplayOptions(db)
         for key, value in pairs({x = 0, y = -160, scale = 1, threshold = 5}) do
             if type(db[key]) ~= "number" or db[key] ~= db[key] then db[key] = value end
         end
@@ -509,7 +569,6 @@ frame:SetScript("OnEvent", function(_, event, unit, castGUID, spellID)
         db.locked = db.locked ~= false
         db.sound = db.sound ~= false
         db.counterMode = db.counterMode == "refresh" and "refresh" or "always"
-        db.displayStyle = db.displayStyle == "bar" and "bar" or "icon"
         db.hideOutOfCombat = db.hideOutOfCombat == true
         db.showSealName = db.showSealName ~= false
         db.showStatusText = db.showStatusText ~= false
@@ -556,6 +615,10 @@ frame:SetScript("OnEvent", function(_, event, unit, castGUID, spellID)
         frame:RegisterEvent("SPELLS_CHANGED")
         frame:RegisterEvent("PLAYER_REGEN_ENABLED")
         frame:RegisterEvent("PLAYER_REGEN_DISABLED")
+        for _, cooldownEvent in ipairs({"EDIT_MODE_LAYOUTS_UPDATED", "COOLDOWN_VIEWER_DATA_LOADED"}) do
+            pcall(frame.RegisterEvent, frame, cooldownEvent)
+        end
+        addon.WatchCooldownViewer(RefreshCooldownViewer)
         inCombat = UnitAffectingCombat("player") == true
         frame:Show()
         ScanAuras()
@@ -636,9 +699,16 @@ frame:SetScript("OnEvent", function(_, event, unit, castGUID, spellID)
         end
         if nativeDisplay and pendingNativeSettings then ApplyPosition() end
         addon.RegisterSettings(db, ApplySettings)
-        if event == "PLAYER_ENTERING_WORLD" then ApplyPosition() end
+        if event == "PLAYER_ENTERING_WORLD" then
+            worldEntered = true
+            addon.WatchCooldownViewer(RefreshCooldownViewer)
+            ApplyPosition()
+        end
         inCombat = event == "PLAYER_ENTERING_WORLD" and UnitAffectingCombat("player") == true
         ScanAuras()
+    elseif event == "EDIT_MODE_LAYOUTS_UPDATED" or event == "COOLDOWN_VIEWER_DATA_LOADED" then
+        addon.WatchCooldownViewer(RefreshCooldownViewer)
+        ApplyPosition()
     elseif event == "SPELLS_CHANGED" then
         BuildSealNames()
         ScanAuras()

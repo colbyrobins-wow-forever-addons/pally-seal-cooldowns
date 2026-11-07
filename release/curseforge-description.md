@@ -4,13 +4,14 @@ Keep track of your paladin seals with clear countdowns, refresh reminders, and a
 
 ## Features
 
-- **Two display layouts:** a large icon with a radial timer or a compact horizontal duration bar.
+- **Three display layouts:** a large icon with a radial timer, a compact horizontal duration bar, or an icon that matches Blizzard's Essential Cooldowns bar.
+- **Snap to the Essential Cooldowns bar:** attach the tracker to any side of Blizzard's bar with an adjustable gap. It follows the bar when you move it in Edit Mode.
 - **Native seal tracking:** Blizzard manages the main icon and bar directly, including removal while combat aura data is restricted. Unsupported clients retain estimated tracking.
 - **Seal changes:** native bindings update the icon, name, countdown, and bar when the active seal changes. The fallback tracker uses cast estimates.
-- **Refresh reminders:** configurable warning threshold, red warning colors, a warning sound that works in combat, and optional countdown numbers that appear only when a refresh is due.
-- **Missing-seal visuals:** native layout shows the missing-seal icon, text, glow, and bounce without reading restricted buff state in addon Lua.
+- **Refresh reminders:** configurable warning threshold, a choice of warning colors, a warning sound that works in combat, and optional countdown numbers that appear only when a refresh is due.
+- **Missing-seal visuals:** shows a placeholder icon, text, glow, and bounce without reading restricted buff state in addon Lua. Choose the combat alert (glow, bounce, both, or none), the placeholder icon, and whether the "!" and text appear, or hide the tracker until a seal is cast.
 - **Sound settings:** separate refresh/missing choices, including gentle chime, raid warning, whisper, and soft UI click, with audio-channel selection and previews. Combat sound limitations are described below.
-- **Flexible layout:** movable tracker, adjustable scale and bar width, a duration bar that fills up or counts down, optional combat-only visibility, and separate toggles for the seal name and status text.
+- **Flexible layout:** movable tracker, adjustable scale and bar width, a duration bar that fills up or counts down, an optional thin bar under the large icon, optional combat-only visibility, and separate toggles for the seal name and status text.
 - **Saved preferences:** settings and minimap button position persist between sessions. No additional addons are required.
 
 ## Make it match your UI
@@ -34,9 +35,10 @@ Open **Options > AddOns > Pally Seal Cooldowns**, type **`/psc`**, or click the 
 
 Settings are organized into pages:
 
-- **General:** position lock, layout, combat-only visibility, text toggles, warning time, size, and bar width.
-- **Alerts & sounds:** refresh and missing-seal sounds, combat-only options, audio channel, and sound previews.
-- **Appearance:** fonts, outlines, borders, bar texture, and bar direction.
+- **General:** position lock, combat-only visibility, text toggles, warning time, and size.
+- **Layout:** the three layouts with each one's options, bar width, texture, and direction, and snapping to the Essential Cooldowns bar.
+- **Alerts:** refresh and missing-seal sounds, combat-only options, audio channel, sound previews, and what the tracker shows when no seal is active.
+- **Appearance:** fonts, outlines, borders, and warning color.
 - **Presets:** the six built-in styles.
 
 Changes apply immediately outside combat; native layout/appearance changes made during combat apply afterward. Presets change appearance without altering your timing, sound, position, or visibility settings.
@@ -70,7 +72,8 @@ Clients without the required native display retain the previous estimated tracke
 | `/psc sound` | Toggle the refresh warning sound |
 | `/psc scale 1` | Set display scale; accepts 0.5–2 |
 | `/psc reset` | Reset position and size |
-| `/psc status` | Show client version, build, interface, and aura API status |
+| `/psc style icon` | Use the large icon layout (also `bar` or `essential`) |
+| `/psc status` | Show client version, build, interface, aura API, and Essential Cooldowns bar status |
 
 The default warning threshold is **5 seconds**, sound is enabled, and position is locked.
 

@@ -1,5 +1,5 @@
 local addon = {}
-for _, file in ipairs({"SealLogic", "Diagnostics", "Appearance", "NativePrototype", "NativeDisplay"}) do
+for _, file in ipairs({"SealLogic", "Diagnostics", "Appearance", "CooldownManager", "NativePrototype", "NativeDisplay"}) do
     assert(loadfile("PallySealCooldowns/" .. file .. ".lua"))("PallySealCooldowns", addon)
 end
 local combat, failGroup = false, false
@@ -24,8 +24,18 @@ local function Widget(kind)
         if key == "SetBackdrop" or key == "SetBackdropBorderColor" then
             return function() error("Backdrop arithmetic cannot consume secret native geometry") end
         end
-        if key == "CreateTexture" or key == "CreateFontString" or key == "CreateAnimationGroup"
+        if key == "AddMaskTexture" then return function(self) self.masks = (rawget(self, "masks") or 0) + 1 end end
+        if key == "RemoveMaskTexture" then return function(self) self.masks = rawget(self, "masks") - 1 end end
+        if key == "CreateTexture" or key == "CreateFontString" or key == "CreateMaskTexture" or key == "CreateAnimationGroup"
             or key == "CreateAnimation" then return function() return Widget(key) end end
+        if key == "SetText" then return function(self, text) self.text = text end end
+        if key == "SetTexture" then return function(self, texture) self.texture = texture end end
+        if key == "SetTextColor" then return function(self, ...) self.color = {...} end end
+        if key == "AddPoint" then return function(self, ...)
+            self.points = rawget(self, "points") or {}
+            self.points[#self.points + 1] = {...}
+        end end
+        if key == "SetAlpha" then return function(self, alpha) self.alpha = alpha end end
         if key == "SetSize" then return function(self, w, h) self.width, self.height = w, h end end
         if key == "Show" then return function(self) self.shown = true end end
         if key == "Hide" then return function(self) self.shown = false end end
@@ -63,6 +73,7 @@ CreateFrame = function(kind, _, _, template)
     assert(template ~= "BackdropTemplate", "Native descendants must not install backdrop size callbacks")
     return Widget(kind)
 end
+C_Texture = {GetAtlasInfo = function() return {} end}
 local root = Widget("Root")
 local db = {displayStyle = "icon", barWidth = 188, counterMode = "refresh", threshold = 5,
     showSealName = true, showStatusText = true}
@@ -106,6 +117,71 @@ db.border = "none"
 assert(display:Apply(db) and not display.present.edges[1].shown)
 db.border = "solid"
 assert(display:Apply(db) and display.present.edges[1].shown)
+-- Essential-matching style: padding-free frame at the matched size, masked icon.
+db.border, db.scale = "default", 1
+db.displayStyle, db.cdmIconSize = "essential", 40
+assert(display:Apply(db))
+assert(display.present.frame.width == 40 and display.present.icon.width == 40)
+assert(display.missing.frame.width == 40 and display.present.bar.width == 40)
+assert(groups.Presence.layout.elementHeight == 40, "Missing gate follows the matched size")
+assert(display.present.icon.masks == 1 and display.missing.icon.masks == 1)
+assert(display:Apply(db) and display.present.icon.masks == 1, "Re-applying does not stack masks")
+db.cdmIconSize = 0
+assert(display:Apply(db) and display.present.frame.width == 50, "Auto size defaults to Blizzard's 50 px")
+db.displayStyle = "bar"
+assert(display:Apply(db) and display.present.icon.masks == 0, "Bar style is unaffected by the matched style")
+db.displayStyle = "icon"
+assert(display:Apply(db) and display.present.frame.width == 56 and display.present.icon.width == 52)
+-- The thin icon-layout bar can be hidden; the bar layout always shows its bar.
+assert(display.present.bar.alpha == 1, "Icon bar shows by default")
+db.showIconBar = false
+assert(display:Apply(db) and display.present.bar.alpha == 0 and display.missing.bar.alpha == 0)
+assert(slots.Seal.boundBar == display.present.bar, "Hidden bar stays bound to the native timer")
+db.displayStyle = "bar"
+assert(display:Apply(db) and display.present.bar.alpha == 1, "Bar layout ignores the icon-bar option")
+db.displayStyle, db.showIconBar = "icon", true
+assert(display:Apply(db) and display.present.bar.alpha == 1)
+-- Missing-seal options: alert parts, hiding, text, symbol, icon, and color.
+assert(display.missing.frame.alpha == 1, "Missing display shows by default")
+display:UpdateCombat(true)
+assert(display.glow.shown and display.pulse.plays and display.bounce.plays)
+local pulses, bounces = display.pulse.plays, display.bounce.plays
+display:UpdateCombat(false)
+db.missingAlert = "glow"
+assert(display:Apply(db))
+display:UpdateCombat(true)
+assert(display.pulse.plays == pulses + 1 and display.bounce.plays == bounces, "Glow only skips bounce")
+display:UpdateCombat(false)
+db.missingAlert = "bounce"
+assert(display:Apply(db))
+display:UpdateCombat(true)
+assert(display.pulse.plays == pulses + 1 and display.bounce.plays == bounces + 1, "Bounce only skips glow")
+assert(display.glow.shown == false)
+display:UpdateCombat(false)
+db.missingAlert = "none"
+assert(display:Apply(db))
+display:UpdateCombat(true)
+assert(display.pulse.plays == pulses + 1 and display.bounce.plays == bounces + 1, "None plays nothing")
+display:UpdateCombat(false)
+db.missingAlert = "both"
+db.hideWhenMissing = true
+assert(display:Apply(db) and display.missing.frame.alpha == 0, "Hide when missing clears the missing clip")
+assert(rawget(display.present.frame, "alpha") == nil, "Active seal display is unaffected")
+db.hideWhenMissing = false
+assert(display:Apply(db) and display.missing.frame.alpha == 1)
+db.showMissingText = false
+assert(display:Apply(db))
+assert(display.missing.name.shown == false and display.missing.status.shown == false)
+assert(display.present.name.shown == true, "Active seal name keeps its own toggle")
+db.showMissingText = true
+db.missingSymbol, db.missingIcon, db.warningColor = "none", "wisdom", "yellow"
+assert(display:Apply(db))
+assert(display.missing.timer.text == "" and display.missing.icon.texture:find("RighteousnessAura", 1, true))
+assert(display.missing.timer.color[2] == 0.9, "Missing symbol uses the warning color")
+assert(slots.Seal.textOptions.textColor.curve.points[1][2][2] == 0.9,
+    "Countdown warning uses the warning color")
+db.missingSymbol, db.missingIcon, db.warningColor = "bang", "might", "red"
+assert(display:Apply(db) and display.missing.timer.text == "!")
 failGroup = true
 assert(addon.CreateNativeDisplay(root, db, Message) == nil)
 assert(messages[#messages]:find("using estimated tracker", 1, true))
