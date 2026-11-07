@@ -13,5 +13,6 @@ display filter, and retain the addon's existing spell ID 21084 alias. No
 ForeverAuras implementation code is included. The display uses Blizzard's
 native aura-container API independently; ForeverAuras is not a dependency.
 
-This notice concerns the rank data and does not assign a license to the rest
-of the addon. No endorsement by the data source or Blizzard is implied.
+This notice concerns the rank data only. The rest of the addon is released
+under the MIT License; see `LICENSE` in the source repository. No endorsement
+by the data source or Blizzard is implied.

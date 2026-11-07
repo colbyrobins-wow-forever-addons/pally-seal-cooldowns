@@ -52,6 +52,28 @@ After in-game acceptance and a request to prepare a release:
 
 ## Current unreleased work
 
+### 2026-11-07: public repository preparation
+
+- Added the MIT `LICENSE`; README, upload guide, and `NOTICE.md` now name it.
+  The rank data keeps its CC BY 4.0 attribution.
+- Rewrote the unpublished Git history before the first push: commit and tag
+  emails now use the GitHub noreply address, and local paths in this file
+  were replaced with `<workspace>/` in every commit. File contents otherwise
+  match, and the shipped addon folder is identical at every release tag. A
+  stray local undo-checkpoint ref from another tool was removed. Backup
+  bundles of the old history are kept outside the repository.
+- Commit IDs changed, so IDs in older entries refer to the old history. Old to
+  new: 2229e14 → 38c85a9 (v0.1.22), a79034f → 4ae62e5 (v0.1.21),
+  d66b956 → 03c54a8 (v0.1.20), a1ec025 → eafb044, 5db969d → 5cebbf7,
+  ac7301a → 8c9e3fc, db8616c → 141b0b2, 0de4553 → a6d055b,
+  9b731b2 → 14c92b1, cd6db65 → b7fc7a2, 88475ea → 5cf4a44,
+  63620a5 → e38c97f, 80a1059 → da8d40c, b69846d → 90a4466,
+  244e5a4 → a6107f5, 5788153 → d22d9df, 19024ad → f976594,
+  43cbefc → 04b82ce, bc87432 → 018722a, 507c2c1 → 92854ac,
+  e40ea62 → 88c5045 (v0.1.23).
+- `AGENTS.md` now forbids personal paths and identifiers in committed files.
+- No runtime code change; `NOTICE.md` wording changes in the next release.
+
 ### 2026-11-07: 0.1.23 release preparation
 
 - User requested release packaging. Assigned next patch version 0.1.23,

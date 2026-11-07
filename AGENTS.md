@@ -18,3 +18,8 @@
   the user accepts in-game results and requests release preparation or publishing
   as applicable. Do not automatically publish when preparing a release.
 - Keep changes surgical, preserve existing patterns, and do not log secrets.
+- This repository is public. Never commit personal information: write local
+  paths outside the game folder as `<workspace>/...` (for example,
+  `<workspace>/addon-deployment-backups/...`), never `C:/Users/...`, and keep
+  emails, account, character, realm, and guild names out of files and commit
+  messages. Commits use the GitHub noreply email set in this repo's config.

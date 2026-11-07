@@ -264,3 +264,9 @@ Focused timer regression tests: `lua tests/seal_logic_test.lua` (Lua 5.1 or newe
 
 API reference:
 [Blizzard UI aura API declarations](https://github.com/Gethe/wow-ui-source/blob/live/Interface/AddOns/Blizzard_APIDocumentationGenerated/UnitAuraDocumentation.lua).
+
+## License
+
+Released under the [MIT License](LICENSE). The native seal rank data is
+adapted from talentsforever.com under CC BY 4.0; see
+[NOTICE.md](PallySealCooldowns/NOTICE.md).

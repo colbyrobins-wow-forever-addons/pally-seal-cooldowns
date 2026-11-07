@@ -18,7 +18,7 @@ in-game acceptance, and release preparation. Public upload is a separate step.
 | Description | Paste `curseforge-description.md` using Markdown mode |
 | Comments | Enabled for feedback |
 | Experimental | Off for normal distribution |
-| License | Choose your preference: All Rights Reserved to retain control, or MIT to allow reuse with attribution. No license has been selected on your behalf. |
+| License | MIT License (matches `LICENSE` in the repository). The seal rank data keeps its CC BY 4.0 attribution in `NOTICE.md`. |
 | Source / issue URL | Leave blank until you have a public repository or tracker |
 | Dependencies | None |
 
