@@ -52,6 +52,39 @@ After in-game acceptance and a request to prepare a release:
 
 ## Current unreleased work
 
+### 2026-11-06: 0.1.22 release preparation
+
+- User requested a new release version. Assigned next patch version 0.1.22.
+  Updated the TOC, README, changelog, and upload guide together. The
+  CurseForge description needed no change.
+- Scope since `v0.1.21`: plain countdown numbers (entry below).
+- Runtime Lua matches the build deployed to `_forever_` earlier today
+  (`diff -r` shows only the TOC version line). No in-game results were reported
+  before the release request, so the request is recorded as release
+  authorization, not as test confirmation.
+- Ten Lua 5.1 suites (Lupa) and three Python exporter tests passed.
+- Release archive: `dist/PallySealCooldowns-0.1.22.zip`, built with
+  `git archive` from tag `v0.1.22`. Public upload is a separate step; the
+  commit, tag, and archive are local.
+
+### 2026-11-06: plain countdown numbers
+
+- The native countdown's default format appends a unit ("12s"). The countdown
+  is now bound with a `C_StringUtil.CreateNumericRuleFormatter` formatter
+  (`%d` rounded up, `%d:%02d` from 60 seconds), the same API ForeverAuras and
+  BetterBlizzPlates use on this client. If the client rejects the
+  formatter, the default binding is kept. The "REFRESH SEAL" text binding is
+  unchanged. The estimated (non-native) display already showed bare numbers.
+- All ten suites pass, with new coverage for the bound formatter, its rules,
+  and the fallback. The TOC remains 0.1.21.
+- 2026-11-06: deployed base commit `a79034f` (`v0.1.21`) plus uncommitted
+  `PallySealCooldowns/NativeDisplay.lua` (with `tests/native_display_test.lua` and
+  `DEVELOPMENT.md` changed but not shipped) to
+  `C:/Program Files (x86)/World of Warcraft/_forever_/Interface/AddOns/PallySealCooldowns`.
+  Verified by `diff -r`. Backup:
+  `<workspace>/addon-deployment-backups/PallySealCooldowns-forever-before-plain-countdown-on-a79034f-20261106190813`.
+  Client build not recorded. No in-game testing performed yet.
+
 ### 2026-11-06: 0.1.21 release preparation
 
 - User requested release packaging. Assigned next patch version 0.1.21,

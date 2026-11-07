@@ -9,7 +9,11 @@ CustomAuraContainerAuraProcessingPolicy = {None = 0}
 AuraContainerSortMethod = {Default = 0}
 AuraContainerSortDirection = {Normal = 0}
 Enum = {LuaCurveType = {Step = 0}, DurationTextBindingProperty = {RemainingDuration = 0},
-    StatusBarTimerDirection = {ElapsedTime = 0, RemainingTime = 1}}
+    StatusBarTimerDirection = {ElapsedTime = 0, RemainingTime = 1},
+    NumericRuleFormatRounding = {Up = 2}}
+local rejectFormatter = false
+local formatter = {SetBreakpoints = function(self, rules) self.rules = rules end}
+C_StringUtil = {CreateNumericRuleFormatter = function() return formatter end}
 CreateColor = function(...) return {...} end
 C_UnitAuras = setmetatable({}, {__index = function() error("No aura state queries allowed") end})
 local function Widget(kind)
@@ -47,7 +51,10 @@ local function Widget(kind)
         end end
         if key == "SetPoint" then return function(self, ...) self.point = {...} end end
         if key == "SetClipsChildren" then return function(self, value) self.clips = value end end
-        if key == "SetDurationText" then return function(self, text, options) self.textOptions = options end end
+        if key == "SetDurationText" then return function(self, text, options)
+            if rejectFormatter and options and options.textFormatter then error("formatter rejected") end
+            self.textOptions = options
+        end end
         if key == "SetDurationBar" then return function(self, bar, options)
             self.boundBar, self.barOptions = bar, options
         end end
@@ -84,6 +91,21 @@ assert(display and #messages == 0, messages[1])
 assert(display.clip.clips and display.container.enabled and display.presence.enabled)
 assert(display.clip.point[2] == root, "Missing clip must use fixed root geometry")
 assert(slots.Seal.boundBar and slots.Seal.textOptions.textColor)
+-- The countdown shows bare numbers: no unit suffix such as "12s".
+assert(slots.Seal.textOptions.textFormatter == formatter, "Countdown binds the plain-number formatter")
+local rules = formatter.rules
+assert(rules[1].threshold == 0 and rules[1].format == "%d" and rules[1].rounding == 2)
+assert(rules[2].threshold == 60 and rules[2].format == "%d:%02d")
+for _, rule in ipairs(rules) do
+    assert(not rule.format:find("s", 1, true), "No seconds unit in any countdown format")
+end
+assert(slots.Warning.textOptions.textFormatter == nil, "REFRESH SEAL text keeps its literal format")
+rejectFormatter = true
+assert(display:Apply(db))
+assert(slots.Seal.textOptions and slots.Seal.textOptions.textFormatter == nil
+    and slots.Seal.textOptions.textColor, "A rejected formatter falls back to the native default")
+rejectFormatter = false
+assert(display:Apply(db) and slots.Seal.textOptions.textFormatter == formatter)
 assert(slots.Seal.barOptions.direction == nil, "Native bar keeps its default fill unless countdown is chosen")
 db.barCountdown = true
 assert(display:Apply(db))

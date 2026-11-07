@@ -171,8 +171,30 @@ local function Style(view, db, missing, iconSize)
     end
 end
 
+-- Plain countdown numbers: the native default appends a unit ("12s").
+-- Whole seconds round up like the game's countdown; a minute or more is M:SS.
+local countdownFormatter
+local function CountdownFormatter()
+    if countdownFormatter ~= nil then return countdownFormatter or nil end
+    countdownFormatter = false
+    if not (C_StringUtil and C_StringUtil.CreateNumericRuleFormatter
+        and Enum and Enum.NumericRuleFormatRounding) then return nil end
+    local up = Enum.NumericRuleFormatRounding.Up
+    local ok, formatter = pcall(function()
+        local created = C_StringUtil.CreateNumericRuleFormatter()
+        created:SetBreakpoints({
+            {threshold = 0, format = "%d", step = 1, rounding = up},
+            {threshold = 60, format = "%d:%02d", step = 1, rounding = up,
+                components = {{div = 60}, {mod = 60}}},
+        })
+        return created
+    end)
+    if ok and formatter then countdownFormatter = formatter end
+    return countdownFormatter or nil
+end
+
 local function BindDurationText(button, view, db)
-    local options = {}
+    local options = {textFormatter = CountdownFormatter()}
     local statusOptions
     if C_CurveUtil and CreateColor and Enum and Enum.LuaCurveType
         and Enum.DurationTextBindingProperty then
@@ -191,7 +213,11 @@ local function BindDurationText(button, view, db)
         statusOptions = {textFormat = {formatString = "REFRESH SEAL", components = {}},
             textColor = {curve = warning, property = remaining}}
     end
-    button:SetDurationText(view.timer, options)
+    if not (options.textFormatter and pcall(button.SetDurationText, button, view.timer, options)) then
+        -- Keep the native countdown even if a client rejects the formatter.
+        options.textFormatter = nil
+        button:SetDurationText(view.timer, options)
+    end
     -- A separate slot supplies status text because a button has one duration binding.
     return statusOptions
 end
