@@ -32,6 +32,10 @@ local function Widget(kind, parent)
             return function(self, value) self.parent = value end
         elseif name == "GetParent" then
             return function(self) return rawget(self, "parent") end
+        elseif name == "SetupMenu" then
+            return function(self, generator) self.generator = generator end
+        elseif name == "SetDefaultText" then
+            return function(self, text) self.defaultText = text end
         elseif name == "CreateTexture" or name == "CreateFontString" then
             return function(self) return Widget("Region", self) end
         end
@@ -344,6 +348,90 @@ for _, channel in ipairs({"Master", "SFX", "Dialog"}) do
         assert(kitCalls == previousCalls + 1, "Chime fallback plays exactly once")
     end
 end
+-- Every bundled sound ships with the addon, and keys and labels are unique.
+local seenKeys, seenLabels, bundled = {}, {}, 0
+for _, choice in ipairs(addon.SoundChoices) do
+    assert(not seenKeys[choice.key] and not seenLabels[choice.label], "Duplicate sound " .. choice.key)
+    seenKeys[choice.key], seenLabels[choice.label] = true, true
+    assert((choice.file ~= nil) ~= (choice.kit ~= nil), "Sound uses exactly one source: " .. choice.key)
+    if choice.file then
+        local prefix = "Interface\\AddOns\\PallySealCooldowns\\"
+        assert(choice.file:sub(1, #prefix) == prefix, "Bundled sound path points at this addon")
+        local handle = io.open("PallySealCooldowns/" .. choice.file:sub(#prefix + 1):gsub("\\", "/"), "rb")
+        assert(handle and handle:read(4) == "RIFF", "Bundled sound file exists: " .. choice.file)
+        handle:close()
+        bundled = bundled + 1
+    end
+end
+assert(bundled == 12, "Gentle chime, ten generated sounds, and cat meow are bundled")
+-- Added built-in sounds: bundled cat meow and extra game sounds.
+PlaySoundFile = function(path, channel)
+    filePlayed = path
+    return true
+end
+db.soundChannel = "Master"
+db.soundChoice = "meow"
+addon.PlayWarning(db)
+assert(filePlayed == "Interface\\AddOns\\PallySealCooldowns\\Sounds\\CatMeow.wav", "Cat meow uses bundled audio")
+SOUNDKIT.READY_CHECK, SOUNDKIT.ALARM_CLOCK_WARNING_3 = 8, 9
+PlaySound = function(kit) playedKit = kit end
+for choice, kit in pairs({readycheck = 8, alarm = 9}) do
+    db.soundChoice = choice
+    addon.PlayWarning(db)
+    assert(playedKit == kit, "Game sound choice plays its sound kit")
+end
+-- A sound the client cannot play falls back to that alert's own default.
+SOUNDKIT.ALARM_CLOCK_WARNING_3 = nil
+db.soundChoice, db.missingSoundChoice, playedKit, filePlayed = "alarm", "alarm", nil, nil
+addon.PlayWarning(db)
+assert(filePlayed:find("RefreshChime.wav", 1, true) and playedKit == nil,
+    "Missing refresh sound kit falls back to the gentle chime")
+filePlayed = nil
+addon.PlayWarning(db, "missing")
+assert(playedKit == SOUNDKIT.RAID_WARNING and filePlayed == nil,
+    "Missing missing-seal sound kit falls back to raid warning")
+-- SharedMedia sounds follow the built-ins, skip "None", and play by path.
+LibStub = function(name, silent)
+    assert(name == "LibSharedMedia-3.0" and silent)
+    return {
+        List = function(_, kind) return kind == "sound" and {"None", "Kitty"} or {} end,
+        Fetch = function(_, kind, key, noDefault)
+            assert(kind == "sound" and noDefault)
+            return key == "Kitty" and "Interface\\AddOns\\Pack\\kitty.ogg" or nil
+        end,
+    }
+end
+local options = addon.SoundOptions()
+assert(#options == #addon.SoundChoices + 1 and options[#options].key == "media:Kitty",
+    "Installed SharedMedia sounds are listed after built-ins without None")
+assert(not addon.IsValidSoundChoice("media:None") and addon.IsValidSoundChoice("media:Kitty"),
+    "SharedMedia's silent None sound is never a valid alert choice")
+db.soundChoice = options[#options - 1].key
+panel:Synchronize()
+playedKit, filePlayed = nil, nil
+soundButton.scripts.OnClick()
+assert(db.soundChoice == "media:Kitty", "Refresh selector cycles into SharedMedia sounds")
+assert(playedKit == nil and filePlayed == nil, "Cycling buttons never play a preview")
+missingButton.scripts.OnClick(nil, "RightButton")
+assert(playedKit == nil and filePlayed == nil, "Cycling the missing sound never plays a preview")
+assert(soundButton.value == "Refresh sound: Kitty  >")
+addon.PlayWarning(db)
+assert(filePlayed == "Interface\\AddOns\\Pack\\kitty.ogg", "SharedMedia sound plays its fetched file")
+db.missingSoundChoice = "media:Kitty"
+filePlayed = nil
+missingPreview.scripts.OnClick()
+assert(filePlayed == "Interface\\AddOns\\Pack\\kitty.ogg", "Missing alert can use SharedMedia sounds")
+db.soundChoice, playedKit, filePlayed = "media:Removed", nil, nil
+panel:Synchronize()
+assert(soundButton.value == "Refresh sound: Removed (unavailable)")
+addon.PlayWarning(db)
+assert(filePlayed:find("RefreshChime.wav", 1, true) and playedKit == nil,
+    "Removed SharedMedia refresh sound falls back to the gentle chime, not raid warning")
+db.missingSoundChoice, filePlayed = "media:Removed", nil
+addon.PlayWarning(db, "missing")
+assert(filePlayed == nil and playedKit == SOUNDKIT.RAID_WARNING,
+    "Removed SharedMedia missing-seal sound falls back to raid warning")
+LibStub = nil
 local fontButton = Find("Button", "Font: ")
 fontButton.scripts.OnClick()
 assert(db.font == "arial", "Font choice applies immediately")
@@ -477,4 +565,74 @@ assert(#legacy == 5 and not standalone.hosted and pages ~= standalone.pages)
 for index = 2, 5 do
     assert(standalone.pages[index].shown == false, "Late registration hides hosted sub-pages")
 end
+-- Native dropdowns replace click-cycling where the client has the template.
+assert(not panel.usesDropdowns, "Clients without the dropdown template keep cycling buttons")
+DoesTemplateExist = function(name) return name == "WowStyle1DropdownTemplate" end
+local ddb = {locked = true, sound = true, counterMode = "always", threshold = 5, scale = 1}
+ddb.barWidth, ddb.showSealName, ddb.showStatusText = 188, true, true
+ddb.soundChoice, ddb.missingSoundChoice, ddb.soundChannel = "raid", "raid", "Master"
+addon.NormalizeAppearance(ddb)
+addon.NormalizeCooldownManager(ddb)
+addon.NormalizeDisplayOptions(ddb)
+local ddApplied = 0
+local ddPanel = addon.CreateSettings(ddb, function() ddApplied = ddApplied + 1 end)
+assert(ddPanel.usesDropdowns)
+ddPanel:Synchronize()
+assert(ddApplied == 0, "Refreshing dropdowns must not change stored values")
+local function Menu(dropdown)
+    local radios, scroll = {}, nil
+    local root = {
+        SetScrollMode = function(_, height) scroll = height end,
+        CreateRadio = function(_, text, isSelected, choose, value)
+            radios[#radios + 1] = {text = text, isSelected = isSelected, choose = choose, value = value}
+        end,
+    }
+    dropdown.generator(dropdown, root)
+    return radios, scroll
+end
+local function Selected(radios)
+    for _, radio in ipairs(radios) do
+        if radio.isSelected() then return radio end
+    end
+end
+local function Choose(dropdown, value)
+    for _, radio in ipairs(Menu(dropdown)) do
+        if radio.value == value then return radio.choose() end
+    end
+    error("Missing choice " .. value)
+end
+for _, label in ipairs({"Layout: ", "Bar texture: ", "Snap position: ", "Refresh sound: ",
+    "Audio channel: ", "Combat alert: ", "Missing symbol: ", "Placeholder icon: ", "Missing sound: ",
+    "Font: ", "Outline: ", "Border: ", "Border color: ", "Warning color: "}) do
+    local dropdown = Find("DropdownButton", label)
+    assert(#Menu(dropdown) > 1 and Selected(Menu(dropdown)), "Dropdown lists choices and marks the saved one")
+end
+local soundDrop = Find("DropdownButton", "Refresh sound: ")
+local soundRadios, scroll = Menu(soundDrop)
+assert(scroll and #soundRadios == #addon.SoundChoices, "Sound list scrolls when long")
+assert(Selected(soundRadios).value == "raid")
+local played = {}
+PlaySoundFile = function(path) played[#played + 1] = path return true end
+PlaySound = function(kit) played[#played + 1] = kit end
+Choose(soundDrop, "meow")
+assert(ddb.soundChoice == "meow" and ddApplied == 1)
+assert(#played == 1 and played[1]:find("CatMeow.wav", 1, true), "Choosing a refresh sound previews it")
+assert(Selected(Menu(soundDrop)).value == "meow")
+Choose(Find("DropdownButton", "Missing sound: "), "chime")
+assert(ddb.missingSoundChoice == "chime" and ddb.soundChoice == "meow")
+assert(#played == 2 and played[2]:find("RefreshChime.wav", 1, true), "Choosing a missing sound previews it")
+Choose(Find("DropdownButton", "Font: "), "arial")
+assert(ddb.font == "arial" and #played == 2, "Non-sound choices apply silently")
+ddb.soundChoice = "media:Removed"
+ddPanel:Synchronize()
+assert(soundDrop.defaultText == "Removed (unavailable)" and not Selected(Menu(soundDrop)),
+    "Unavailable saved media is named, not silently replaced")
+assert(ddb.soundChoice == "media:Removed")
+for _, widget in ipairs(widgets) do
+    if widget.kind == "Region" and type(widget.value) == "string" and widget.value:find("^Changes apply live")
+        and widget.parent == ddPanel.pages.appearance.content then
+        assert(not widget.value:find("Left/right", 1, true), "Dropdown help does not mention cycling")
+    end
+end
+DoesTemplateExist = nil
 io.write("Settings interaction tests passed.\n")

@@ -10,7 +10,7 @@ Keep track of your paladin seals with clear countdowns, refresh reminders, and a
 - **Seal changes:** native bindings update the icon, name, countdown, and bar when the active seal changes. The fallback tracker uses cast estimates.
 - **Refresh reminders:** configurable warning threshold, a choice of warning colors, a warning sound that works in combat, and optional countdown numbers that appear only when a refresh is due.
 - **Missing-seal visuals:** shows a placeholder icon, text, glow, and bounce without reading restricted buff state in addon Lua. Choose the combat alert (glow, bounce, both, or none), the placeholder icon, and whether the "!" and text appear, or hide the tracker until a seal is cast.
-- **Sound settings:** separate refresh/missing choices, including gentle chime, raid warning, whisper, and soft UI click, with audio-channel selection and previews. Combat sound limitations are described below.
+- **Sound settings:** separate refresh/missing sounds chosen from dropdown menus, with 17 built-in choices: game sounds (raid warning, whisper, soft UI click, ready check, alarm clock) and original bundled sounds (gentle chime, double chime, bright bell, glass ping, rising arpeggio, holy shimmer, harp pluck, soft gong, wood block, bubble pop, urgent beeps, and a cat meow). Installed SharedMedia sounds are listed too. Picking a sound plays it; audio-channel selection and test buttons are included. Combat sound limitations are described below.
 - **Flexible layout:** movable tracker, adjustable scale and bar width, a duration bar that fills up or counts down, an optional thin bar under the large icon, optional combat-only visibility, and separate toggles for the seal name and status text.
 - **Saved preferences:** settings and minimap button position persist between sessions. No additional addons are required.
 
@@ -27,7 +27,7 @@ Six built-in presets make it easy to get started:
 - **Paladin Pink:** a pink border, Arial Narrow, and a flat bar.
 - **Clean Text:** a borderless layout with Arial Narrow and text shadows.
 
-All presets work without extra downloads. Optional **LibSharedMedia-3.0** support adds fonts, borders, and bar textures provided by installed media packs. If a selected media pack is unavailable, the display falls back to its defaults.
+All presets work without extra downloads. Optional **LibSharedMedia-3.0** support adds fonts, borders, bar textures, and alert sounds provided by installed media packs. If a selected media pack is unavailable, the display falls back to its defaults.
 
 ## Settings
 

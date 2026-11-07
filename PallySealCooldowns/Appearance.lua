@@ -78,20 +78,28 @@ local function SharedMedia()
     return LibStub and LibStub("LibSharedMedia-3.0", true)
 end
 
-function addon.MediaChoices(kind)
+-- SharedMedia's "None" sound is silence, which would quietly disable an alert.
+function addon.IsSilentMedia(kind, key)
+    return kind == "sound" and key == "media:None"
+end
+
+-- Built-in choices (this file's, or the caller's) followed by SharedMedia ones.
+function addon.MediaChoices(kind, base)
     local choices = {}
-    for _, choice in ipairs(builtins[kind]) do choices[#choices + 1] = choice end
+    for _, choice in ipairs(base or builtins[kind]) do choices[#choices + 1] = choice end
     local media = SharedMedia()
     if media then
         for _, name in ipairs(media:List(kind)) do
-            choices[#choices + 1] = {key = "media:" .. name, label = name}
+            if not addon.IsSilentMedia(kind, "media:" .. name) then
+                choices[#choices + 1] = {key = "media:" .. name, label = name}
+            end
         end
     end
     return choices
 end
 
 function addon.MediaPath(kind, key)
-    for _, choice in ipairs(builtins[kind]) do
+    for _, choice in ipairs(builtins[kind] or {}) do
         if choice.key == key then return choice.path end
     end
     if type(key) == "string" and key:sub(1, 6) == "media:" then

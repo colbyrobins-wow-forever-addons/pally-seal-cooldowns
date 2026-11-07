@@ -579,12 +579,9 @@ frame:SetScript("OnEvent", function(_, event, unit, castGUID, spellID)
         db.missingCombatOnly = db.missingCombatOnly ~= false
         if db.missingSound == nil then db.missingSound = db.sound end
         db.missingSound = db.missingSound == true
-        for key, fallback in pairs({soundChoice = "chime", missingSoundChoice = "raid"}) do
-            local validSound = false
-            for _, choice in ipairs(addon.SoundChoices) do
-                if choice.key == db[key] then validSound = true end
-            end
-            if not validSound then db[key] = fallback end
+        for key, fallback in pairs({soundChoice = addon.SoundDefaults.refresh,
+            missingSoundChoice = addon.SoundDefaults.missing}) do
+            if not addon.IsValidSoundChoice(db[key]) then db[key] = fallback end
         end
         if db.soundChannel ~= "Master" and db.soundChannel ~= "SFX"
             and db.soundChannel ~= "Dialog" then db.soundChannel = "Master" end

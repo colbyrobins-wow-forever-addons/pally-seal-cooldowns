@@ -327,7 +327,8 @@ local function ReloadWithSettings(saved)
     scripts.OnEvent(widget, "ADDON_LOADED", "PallySealCooldowns")
     return PallySealCooldownsDB
 end
-for _, choice in ipairs({"raid", "whisper", "click", "chime"}) do
+for _, choice in ipairs({"raid", "whisper", "click", "chime", "readycheck", "alarm", "meow", "shimmer", "beeps",
+    "media:Kitty"}) do
     local saved = ReloadWithSettings({sound = false, soundChoice = choice, soundChannel = "Dialog"})
     assert(not saved.sound and not saved.missingSound,
         "Previously disabled sounds must keep both alerts disabled")
@@ -353,6 +354,11 @@ local repaired = ReloadWithSettings({soundChoice = "invalid", missingSoundChoice
     soundChannel = "invalid"})
 assert(repaired.soundChoice == "chime" and repaired.missingSoundChoice == "raid"
     and repaired.soundChannel == "Master", "Invalid audio choices use supported defaults")
+repaired = ReloadWithSettings({soundChoice = "media:", missingSoundChoice = 42})
+assert(repaired.soundChoice == "chime" and repaired.missingSoundChoice == "raid")
+repaired = ReloadWithSettings({soundChoice = "media:None", missingSoundChoice = "media:None"})
+assert(repaired.soundChoice == "chime" and repaired.missingSoundChoice == "raid",
+    "Silent SharedMedia None sounds are repaired to defaults")
 
 -- Snapping anchors to Blizzard's Essential bar, blocks dragging, and falls
 -- back to the saved position with a single warning once the world is up.

@@ -52,6 +52,146 @@ After in-game acceptance and a request to prepare a release:
 
 ## Current unreleased work
 
+### 2026-11-07: 0.1.23 release preparation
+
+- User requested release packaging. Assigned next patch version 0.1.23,
+  following the 0.1.22 precedent. No in-game results were reported for the
+  test deployment before the request, so the request is recorded as release
+  authorization, not as test confirmation.
+- Scope since `v0.1.22`: more alert sounds (ten generated sounds, cat meow,
+  Ready check, Alarm clock, SharedMedia sounds), dropdown menus for all
+  settings choices, and the code review fixes (entries below).
+- Updated the TOC, README, `release/changelog-0.1.23.md` (new),
+  `release/curseforge-description.md` (sound features), and
+  `release/UPLOAD-GUIDE.md`.
+- Runtime files match the build deployed to `_forever_` earlier today
+  (`diff -r` shows only the TOC version line).
+- Ten Lua 5.1 suites (Lupa) and three Python exporter tests passed; TOC files
+  present; `git diff --check` clean.
+- Release archive: `dist/PallySealCooldowns-0.1.23.zip`, built with
+  `git archive` from tag `v0.1.23`. Public upload is a separate step; the
+  commit, tag, and archive are local.
+
+### 2026-11-07: test deployment of dropdowns, ten new sounds, and review fixes
+
+- Base commit `2229e14` plus uncommitted `Appearance.lua`, `Settings.lua`,
+  `PallySealCooldowns.lua`, and new sounds `CatMeow.wav`, `BrightBell.wav`,
+  `DoubleChime.wav`, `RisingArpeggio.wav`, `HolyShimmer.wav`, `SoftGong.wav`,
+  `HarpPluck.wav`, `WoodBlock.wav`, `BubblePop.wav`, `GlassPing.wav`,
+  `UrgentBeeps.wav` (tests, docs, and scripts are not shipped). Supersedes the
+  earlier sound-options test deployment today.
+- Target: `C:/Program Files (x86)/World of Warcraft/_forever_/Interface/AddOns/PallySealCooldowns`.
+- Backup (the earlier test deployment):
+  `<workspace>/addon-deployment-backups/PallySealCooldowns-before-2229e14-uncommitted-a74fc2d9-c494-4b56-a03f-f313c792f02e`;
+  all 13 files matched by SHA-256.
+- All 23 deployed files match the source by SHA-256. Saved variables and other
+  addons untouched; TOC version unchanged (0.1.22); no archive built.
+- In-game checklist: fully restart the client (new sound files); every choice
+  on Layout, Alerts, and Appearance is a dropdown that lines up with its label
+  and opens above the window, both from `/psc` and inside Blizzard Settings;
+  picking a sound plays it once; each of the 17 built-in sounds plays and is a
+  reasonable volume; Ready check and Alarm clock exist on this client (else
+  refresh falls back to the chime); SharedMedia sounds appear and scroll, with
+  no "None"; choices persist after `/reload`; the Appearance hint no longer
+  mentions left/right click.
+- In-game acceptance pending.
+
+### 2026-11-07: code review fixes for sounds and dropdowns
+
+- Cycling buttons (clients without the dropdown template) no longer play a
+  preview on every click; only picking a sound from a dropdown previews it.
+- A sound that cannot play (removed SharedMedia sound, sound kit missing from
+  the client, failed file) now falls back to that alert's own default: gentle
+  chime for refresh, raid warning for missing seal. Previously every failure
+  played raid warning. Defaults live in `addon.SoundDefaults`, which reload
+  repair also uses.
+- SharedMedia's silent "None" sound is rejected as a saved choice and repaired
+  to the default on reload, so an alert cannot be silently disabled.
+- Sound lists reuse `addon.MediaChoices`/`addon.MediaPath` from
+  `Appearance.lua` instead of a second copy of the SharedMedia lookup.
+- Both sound generators write next to the addon regardless of the current
+  directory; regenerating from `scripts/` produced byte-identical WAVs.
+- Skipped review items: regenerating all dropdown menus on page show (cheap,
+  page-show only) and restructuring the sound list literal (style only).
+- Ten Lua 5.1 suites pass with new regression checks for each fix. Not
+  deployed. No version change.
+
+### 2026-11-07: ten more bundled alert sounds
+
+- User asked for a variety of chimes for the community. Added Double chime,
+  Bright bell, Glass ping, Rising arpeggio, Holy shimmer, Harp pluck, Soft
+  gong, Wood block, Bubble pop, and Urgent beeps, listed right after Gentle
+  chime in both sound dropdowns.
+- All ten are synthesized from scratch by `scripts/make_alert_sounds.py`
+  (stdlib only, seeded randomness, reproducible), 0.35-1.8 s mono 16-bit
+  44.1 kHz WAV, about 800 KB together. Levels are normalized to a common RMS
+  (about -19 dBFS) between the gentle chime and the cat meow, peak capped at
+  about -4.4 dBFS.
+- New test checks that every bundled sound file exists in the addon, has a
+  RIFF header, and that sound keys and labels are unique; reload test covers
+  two new keys. Ten Lua 5.1 suites pass.
+- In game pending: how each sound actually sounds and its volume relative to
+  game audio. Not deployed. No version change.
+
+### 2026-11-07: dropdown menus for settings choices
+
+- User found left/right-click cycling awkward. All 14 choice selectors
+  (layout, textures, snap side, sounds, channel, missing-seal options, font,
+  outline, border, colors) are now Blizzard dropdowns
+  (`WowStyle1DropdownTemplate` with `SetupMenu`/`CreateRadio`), the same API
+  Questie and Bagnon use on the installed Forever client. Label on the left,
+  dropdown on the right, same row positions.
+- Choosing a refresh or missing sound plays it once. Long lists (SharedMedia)
+  scroll. A saved but unavailable media choice shows "<name> (unavailable)".
+- If `DoesTemplateExist` reports no template, the old cycling buttons are kept
+  (and the Appearance hint still mentions left/right click).
+- Ten Lua 5.1 suites pass, with new tests for the dropdown path (choices,
+  selected mark, sound previews, silent non-sound choices, unavailable media,
+  no write on refresh) alongside the unchanged fallback tests.
+- In game pending: dropdown appearance and alignment on each page, menus
+  opening above the settings window both standalone and inside Blizzard
+  Settings, sound preview on choose, and scrolling with many SharedMedia sounds.
+- Not deployed yet (the earlier sound-options deployment does not include this).
+  No version change.
+
+### 2026-11-07: test deployment of more alert sounds
+
+- Base commit `2229e14` plus uncommitted `PallySealCooldowns/Settings.lua`,
+  `PallySealCooldowns/PallySealCooldowns.lua`, and new
+  `PallySealCooldowns/Sounds/CatMeow.wav` (tests, docs, and the generator
+  script are not shipped).
+- Target: `C:/Program Files (x86)/World of Warcraft/_forever_/Interface/AddOns/PallySealCooldowns`.
+- Backup: `<workspace>/addon-deployment-backups/PallySealCooldowns-before-2229e14-uncommitted-d1b29095-9a5e-4563-9638-22428bcd427b`;
+  all 12 files matched the prior install by SHA-256.
+- All 13 deployed files match the source by SHA-256. Saved variables and other
+  addons untouched; TOC version unchanged (0.1.22); no archive built.
+- In-game checklist: `/reload`; on the Alerts page cycle **Refresh sound** and
+  **Missing sound** through Ready check, Alarm clock, and Cat meow and use the
+  Test buttons on each audio channel; judge the meow's volume against the
+  chime; with a SharedMedia sound pack installed, confirm its sounds appear after
+  the built-ins (no "None") and play; `/reload` and confirm choices persist;
+  confirm the longer hint fits on the Alerts page.
+- In-game acceptance pending.
+
+### 2026-11-07: more alert sounds (community request)
+
+- Community feedback asked for more sound options, such as a cat meow. Both
+  sound selectors now offer **Ready check**, **Alarm clock**, and a bundled
+  **Cat meow**, followed by any installed SharedMedia sounds (same pattern as
+  fonts and textures; LSM's "None" entry is skipped).
+- `Sounds/CatMeow.wav` is synthesized from scratch by
+  `scripts/make_cat_meow.py` (no third-party recording), 0.72 s mono 16-bit
+  44.1 kHz, peak about -9 dBFS. Windows playback succeeded.
+- Saved SharedMedia choices survive reloads even before the media pack
+  registers; empty or non-string choices are repaired to defaults. A missing
+  SharedMedia sound or a sound kit absent from the client falls back to raid
+  warning. Alerts page height grew for the longer hint.
+- Ten Lua 5.1 suites (Lupa) pass, including new settings and reload
+  regression checks; TOC files present; `git diff --check` clean.
+- In game pending: the cat meow's sound and volume, the Ready check and Alarm
+  clock sounds on Forever 1.60.1, and SharedMedia sound listing and playback.
+- Not deployed. No version change.
+
 ### 2026-11-06: 0.1.22 release preparation
 
 - User requested a new release version. Assigned next patch version 0.1.22.

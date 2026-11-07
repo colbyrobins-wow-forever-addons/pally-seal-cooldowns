@@ -3,7 +3,7 @@
 Development follows [the test-before-version workflow](DEVELOPMENT.md): changes
 are tracked in Git and tested in game before a new release version is assigned.
 
-Version **0.1.22** uses Blizzard-managed aura displays for the main
+Version **0.1.23** uses Blizzard-managed aura displays for the main
 icon and bar when supported by the client. Seal visibility, name, countdown, and
 bar progress update natively, including removal during restricted combat. The
 missing-seal icon/text and combat animation use native layout clipping, without
@@ -145,7 +145,12 @@ missing-seal state:
 missing seal: red (default), orange, yellow, Paladin pink, or white.
 Settings also include independent
 seal-name and status-text visibility, and separate refresh and missing-seal
-sounds (gentle chime, raid warning, whisper, or soft UI click). New settings use
+sounds. Game sounds: raid warning, whisper, soft UI click, ready check, and
+alarm clock. Bundled original sounds: gentle chime, double chime, bright bell,
+glass ping, rising arpeggio, holy shimmer, harp pluck, soft gong, wood block,
+bubble pop, urgent beeps, and cat meow. Installed SharedMedia sounds are listed after the
+built-in choices; if a chosen SharedMedia sound is later removed, the alert
+falls back to raid warning. New settings use
 the bundled gentle chime for refresh and raid warning for a missing seal;
 existing refresh sound selections are preserved. Each alert has its own enable
 and combat-only checkbox. Both default to combat-only. If refresh sounds were
@@ -156,7 +161,7 @@ including combat entry without a seal, and rearms when a seal becomes active.
 With combat-only enabled, it also rearms after leaving combat. Restricted aura
 data and expired estimates do not trigger missing-seal sounds. Audio settings
 apply even when the tracker is hidden outside combat.
-Click the sound and audio-channel buttons to cycle choices. Use **Test refresh
+Choosing a sound from its dropdown plays it once so you can hear it. Use **Test refresh
 sound** or **Test missing sound** to preview on the shared Master, SFX, or Dialog
 channel. Previews work regardless of enable and combat-only settings.
 The bar style uses Retail cooldown-manager bar and frame textures when present,
@@ -166,8 +171,9 @@ size, and position reset. `/psc` also opens it.
 
 Use the **Appearance** sub-page for font, outline, shadow, border, and bar
 texture controls. Countdown and seal-name font sizes are independent; 0 keeps
-the layout's original size, and custom sizes start at 8 pixels. Left-click a
-choice to advance or right-click to go back. Border colors include white,
+the layout's original size, and custom sizes start at 8 pixels. Choices such as
+font, border, and colors are dropdown menus; on a client without Blizzard's
+dropdown menu, left-click a choice to advance or right-click to go back. Border colors include white,
 gold, black, and paladin pink. Thickness applies to custom borders; the default
 icon artwork keeps its original shape. Refresh warnings still use red.
 
