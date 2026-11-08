@@ -3,6 +3,7 @@
 ## Notes: Paladin seal duration and refresh reminders for Forever beta.
 ## Author: Colby
 ## Version: 0.1.24
+## X-Curse-Project-ID: 1722816
 ## OptionalDeps: LibSharedMedia-3.0, SharedMedia
 ## SavedVariables: PallySealCooldownsDB
 

@@ -66,9 +66,11 @@ After in-game acceptance and a request to prepare a release:
 - Tested in an Ubuntu 24.04 container: the check steps and `release.sh -d` pass,
   and the failure cases (Lua test, lint typo, missing TOC file, tag mismatch,
   missing changelog) each stop the job. The ZIP matches the addon folder apart
-  from CRLF line endings added by the packager. No GitHub Actions run or
-  CurseForge upload has been verified yet.
-- Pending: the `CF_API_TOKEN` secret and `X-Curse-Project-ID` in the TOC. No
+  from CRLF line endings added by the packager.
+- User reported the push and tag workflows passing on GitHub Actions in a
+  private test repo, from a commit without the project ID so that no upload was
+  possible. A real CurseForge upload is still unverified.
+- Added `X-Curse-Project-ID` to the TOC; `CF_API_TOKEN` is a repository secret. No
   runtime changes, version change, or in-game testing needed.
 
 ### 2026-11-07: 0.1.24 release preparation
