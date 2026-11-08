@@ -48,7 +48,8 @@ local function ApplyPosition()
     snapped = addon.SnapToCooldownViewer(frame, db)
     if not snapped then frame:SetPoint("CENTER", UIParent, "CENTER", db.x, db.y) end
     -- Blizzard's viewer may load after this addon; only report once the world is up.
-    if db.snapToCDM and not snapped and worldEntered and not snapWarned then
+    -- Only the Essential Cooldowns icon snaps, so only it can miss the bar.
+    if db.displayStyle == "essential" and not snapped and worldEntered and not snapWarned then
         snapWarned = true
         Message("Essential Cooldowns bar not found; using the saved position. "
             .. "Enable the Cooldown Manager in Options to snap.")
@@ -138,6 +139,8 @@ cooldown:SetHideCountdownNumbers(true)
 cooldown:SetReverse(true)
 cooldown:SetSwipeColor(0, 0, 0, 0.65)
 
+local swingArt = addon.CreateSwingArt(frame, bar)
+
 local glow = overlay:CreateTexture(nil, "OVERLAY")
 glow:SetTexture("Interface\\Buttons\\UI-ActionButton-Border")
 glow:SetBlendMode("ADD")
@@ -172,7 +175,36 @@ ApplyLayout = function()
     border:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", 8, -7)
     glow:SetPoint("TOPLEFT", icon, "TOPLEFT", -20, 20)
     glow:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", 20, -20)
-    if db.displayStyle == "bar" then
+    local swing = db.displayStyle == "swing"
+    icon:SetAlpha(swing and 0 or 1)
+    cooldown:SetAlpha(swing and 0 or 1)
+    if swing then
+        -- Swing timer bar: Blizzard_SwingTimer geometry, with no visible icon.
+        local width, height = addon.SwingSize(db)
+        local insetX, insetY = addon.SwingInsetX, addon.SwingInsetY
+        frame:SetSize(width, height)
+        background:Hide()
+        barBackground:Hide()
+        icon:SetSize(height - 2 * insetY, height - 2 * insetY)
+        icon:SetPoint("LEFT", frame, "LEFT", insetX, 0)
+        glow:ClearAllPoints()
+        glow:SetPoint("TOPLEFT", frame, "TOPLEFT", -12, 12)
+        glow:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 12, -12)
+        bar:SetSize(width - 2 * insetX, height - 2 * insetY)
+        bar:SetPoint("TOPLEFT", frame, "TOPLEFT", insetX, -insetY)
+        bar:SetAlpha(1)
+        bar:SetStatusBarTexture(addon.SwingFill(db) or "Interface\\TargetingFrame\\UI-StatusBar")
+        title:SetPoint("LEFT", bar, "LEFT", 10, 0)
+        title:SetWidth(db.barWidth - 40)
+        title:SetFontObject("GameFontHighlightSmall")
+        title:SetTextColor(1, 1, 1)
+        title:SetJustifyH("LEFT")
+        timer:SetFontObject("GameFontHighlightSmall")
+        timer:SetPoint("RIGHT", bar, "RIGHT", -10, 0)
+        status:SetFontObject("GameFontNormalSmall")
+        status:SetPoint("TOPLEFT", frame, "BOTTOMLEFT", 6, -5)
+        status:SetJustifyH("LEFT")
+    elseif db.displayStyle == "bar" then
         frame:SetSize(db.barWidth + 32, 30)
         background:Hide()
         icon:SetSize(30, 30)
@@ -232,11 +264,13 @@ ApplyLayout = function()
     addon.ApplyFont(timer, db, db.timerSize)
     addon.ApplyFont(status, db, 0)
     local edge = addon.MediaPath("border", db.border)
-    border:SetShown(db.border ~= "none" and not edge)
-    customBorder:SetShown(edge ~= nil)
+    border:SetShown(db.border ~= "none" and not edge and not swing)
+    customBorder:SetShown(edge ~= nil and not swing)
     customBorder:SetBackdrop(edge and {edgeFile = edge, edgeSize = db.borderSize} or nil)
     local texture = addon.MediaPath("statusbar", db.statusbar)
     if texture then bar:SetStatusBarTexture(texture) end
+    -- After the fill is set: the swing pip anchors to the fill texture.
+    addon.StyleSwingArt(swingArt, frame, bar, db)
     -- Restart a running combat alert with the chosen parts on the next render.
     if missingAlertPlaying then
         pulse:Stop()
@@ -267,6 +301,9 @@ end
 local function SetVisualState(state)
     UpdateMissingAlert(state)
     local warning = state == "refresh" or state == "missing"
+    -- The swing pip marks a running timer, like Blizzard's.
+    swingArt.pip:SetShown(db.displayStyle == "swing" and addon.HasSwingAtlas()
+        and state ~= "missing" and state ~= "restricted")
     icon:SetDesaturated(state == "missing" or state == "restricted")
     border:SetVertexColor(addon.BorderRGB(db, warning))
     customBorder:SetBackdropBorderColor(addon.BorderRGB(db, warning))
@@ -279,7 +316,8 @@ local function SetVisualState(state)
     end
     -- Only the missing state hides its own text; other states keep the base toggles.
     local missingText = state ~= "missing" or db.showMissingText
-    title:SetShown(db.showSealName and missingText)
+    -- The swing bar's "Seal Timer" title is fixed, like Blizzard's "Main Hand".
+    title:SetShown(db.displayStyle == "swing" or (db.showSealName and missingText))
     status:SetShown(db.showStatusText and missingText)
     barBackground:SetVertexColor(1, warning and 0.45 or 1, warning and 0.35 or 1)
 end
@@ -315,10 +353,20 @@ local function UpdateSoundAlerts(state)
 end
 
 HideLegacyDisplay = function()
-    for _, region in ipairs({background, icon, overlay, bar, cooldown}) do region:Hide() end
+    for _, region in ipairs({background, icon, overlay, bar, cooldown, swingArt.back, swingArt.frame}) do
+        region:Hide()
+    end
+    for _, group in ipairs({swingArt.edges, swingArt.corners}) do
+        for _, texture in ipairs(group) do texture:Hide() end
+    end
     pulse:Stop()
     bounce:Stop()
     missingAlertPlaying = false
+end
+
+-- The swing timer bar keeps a fixed label, like Blizzard's "Main Hand".
+local function SetTitle(text)
+    title:SetText(db.displayStyle == "swing" and addon.SwingLabel or text)
 end
 
 local function Render()
@@ -348,7 +396,7 @@ local function Render()
         state = accessRestricted and "restricted" or "missing"
     end
     UpdateSoundAlerts(state)
-    title:SetShown(db.showSealName)
+    title:SetShown(db.showSealName or db.displayStyle == "swing")
     status:SetShown(db.showStatusText)
     if (db.hideOutOfCombat and not inCombat) or (state == "missing" and db.hideWhenMissing) then
         UpdateMissingAlert("active")
@@ -361,21 +409,21 @@ local function Render()
     status:SetText("")
     if not activeAura then
         if accessRestricted then
-            title:SetText("Seal status unavailable")
+            SetTitle("Seal status unavailable")
             timer:SetText("?")
             status:SetText("Beta API restricted")
             SetVisualState("restricted")
             icon:SetTexture("Interface\\Icons\\Spell_Holy_SealOfMight")
             return
         end
-        title:SetText("No active seal")
+        SetTitle("No active seal")
         timer:SetText(addon.MissingSymbol(db))
         status:SetText("CAST A SEAL")
         SetVisualState("missing")
         icon:SetTexture(addon.MissingIconPath(db))
         return
     end
-    title:SetText(activeAura.name)
+    SetTitle(activeAura.name)
     icon:SetTexture(activeAura.icon)
     if state == "restricted" and activeAura.estimated then
         cooldown:Hide()
@@ -388,7 +436,7 @@ local function Render()
         timer:SetText("")
         status:SetText("ACTIVE")
         bar:SetValue(1)
-        bar:SetStatusBarColor(1, 0.72, 0.25)
+        bar:SetStatusBarColor(addon.ActiveBarRGB(db))
     elseif state == "missing" then
         timer:SetText(addon.MissingSymbol(db))
         status:SetText("REFRESH SEAL")
@@ -397,11 +445,12 @@ local function Render()
         local fraction = remaining / activeAura.duration
         bar:SetValue(db.barCountdown and fraction or 1 - fraction)
         if state == "refresh" then bar:SetStatusBarColor(addon.WarningRGB(db))
-        else bar:SetStatusBarColor(1, 0.72, 0.25) end
+        else bar:SetStatusBarColor(addon.ActiveBarRGB(db)) end
         if db.counterMode == "refresh" and state == "active" then
             timer:SetText("")
         else
-            timer:SetText(remaining < 10 and string.format("%.1f", remaining)
+            -- The swing timer bar always shows tenths, like the swing timer.
+            timer:SetText((remaining < 10 or db.displayStyle == "swing") and string.format("%.1f", remaining)
                 or tostring(math.ceil(remaining)))
         end
         if state == "refresh" then
@@ -501,8 +550,8 @@ SlashCmdList.PALLYSEALCOOLDOWNS = function(input)
         Message("Refresh sound " .. (db.sound and "enabled." or "disabled."))
     elseif command == "style" then
         argument = argument:lower()
-        if argument ~= "icon" and argument ~= "bar" and argument ~= "essential" then
-            Message("Use /psc style icon, /psc style bar, or /psc style essential.")
+        if argument ~= "icon" and argument ~= "bar" and argument ~= "essential" and argument ~= "swing" then
+            Message("Use /psc style icon, bar, essential, or swing.")
             return
         end
         db.displayStyle = argument
@@ -537,8 +586,8 @@ SlashCmdList.PALLYSEALCOOLDOWNS = function(input)
         Message(string.format("Client %s / build %s / interface %s; aura API %s.",
             version, build, interface, C_UnitAuras and "available" or "missing"))
         Message("Essential Cooldowns bar " .. (addon.CooldownViewer() and "found" or "not found")
-            .. (db.snapToCDM and ("; snap " .. (snapped and "active" or "inactive")) or "")
-            .. (db.displayStyle == "essential" and ("; icon size " .. addon.IconLayoutSize(db)) or "") .. ".")
+            .. (db.displayStyle == "essential" and ("; snap " .. (snapped and "active" or "inactive")
+                .. "; icon size " .. addon.IconLayoutSize(db)) or "") .. ".")
     else
         Message("/psc unlock | lock | warn 5 | counter refresh/always | sound | scale 1 | reset | status | debug | native")
     end

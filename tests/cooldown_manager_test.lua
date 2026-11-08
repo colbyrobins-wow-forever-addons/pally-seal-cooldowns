@@ -2,26 +2,30 @@ local addon = {}
 assert(loadfile("PallySealCooldowns/SealLogic.lua"))("PallySealCooldowns", addon)
 assert(loadfile("PallySealCooldowns/CooldownManager.lua"))("PallySealCooldowns", addon)
 
--- Normalization: off by default, invalid values repaired, sizes clamped.
+-- Normalization: invalid values repaired, sizes clamped. Snapping is no longer
+-- a setting, so an old saved checkbox is dropped.
 local db = {scale = 1}
 addon.NormalizeCooldownManager(db)
-assert(db.snapToCDM == false)
+assert(db.snapToCDM == nil)
 assert(db.snapSide == "right" and db.cdmIconSize == 0 and db.snapGap == 2)
 db.snapToCDM, db.snapSide = true, "diagonal"
 db.cdmIconSize, db.snapGap = 0 / 0, 99
 addon.NormalizeCooldownManager(db)
-assert(db.snapToCDM == true and db.snapSide == "right")
+assert(db.snapToCDM == nil and db.snapSide == "right", "The old snap checkbox is removed")
 assert(db.cdmIconSize == 0 and db.snapGap == 20)
 db.cdmIconSize = 7
 addon.NormalizeCooldownManager(db)
 assert(db.cdmIconSize == 16, "Manual sizes start at 16")
 db.cdmIconSize, db.snapGap = 2, 2
 
--- The tracker's own placement is kept when snapping is off or the bar is missing.
+-- Only the Essential Cooldowns icon snaps; other layouts keep their placement.
 local frame = {SetPoint = function(self, ...) self.point = {...} end}
-db.snapToCDM = false
-assert(not addon.SnapToCooldownViewer(frame, db) and frame.point == nil)
-db.snapToCDM = true
+EssentialCooldownViewer = {}
+for _, style in ipairs({"icon", "bar", "swing"}) do
+    db.displayStyle = style
+    assert(not addon.SnapToCooldownViewer(frame, db) and frame.point == nil, style .. " never snaps")
+end
+db.displayStyle = "essential"
 EssentialCooldownViewer = nil
 assert(not addon.SnapToCooldownViewer(frame, db), "Missing bar falls back to saved position")
 EssentialCooldownViewer = {IsForbidden = function() return true end}

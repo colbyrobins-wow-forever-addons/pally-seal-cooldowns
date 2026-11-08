@@ -52,6 +52,251 @@ After in-game acceptance and a request to prepare a release:
 
 ## Current unreleased work
 
+### 2026-11-07: 0.1.24 release preparation
+
+- User accepted the in-game results ("looks great") for the Essential-only
+  snapping deployment, which contains all work below, and requested a
+  release. Chose patch version 0.1.24 with the user, following the
+  0.1.21–0.1.23 precedent.
+- Scope since `v0.1.23`: the Swing timer bar layout built on Blizzard's swing
+  timer atlases with the fixed "Seal Timer" label and tenths countdown;
+  layout-aware settings; swing-safe presets; snapping only for the Essential
+  Cooldowns icon with the snap checkbox removed (entries below).
+- Updated the TOC, README, `release/changelog-0.1.24.md` (new),
+  `release/curseforge-description.md` (four layouts, Essential-only
+  snapping, presets, `/psc style swing`), and `release/UPLOAD-GUIDE.md`. Also
+  repaired a non-UTF-8 byte in the upload guide's source/issues separator.
+- Runtime files match the accepted test build (`diff -r` shows only the TOC
+  version line).
+- Ten Lua 5.1 suites (Lupa) and three Python exporter tests passed; TOC files
+  present; `git diff --check` clean.
+- Release archive: `dist/PallySealCooldowns-0.1.24.zip`, built with
+  `git archive` from tag `v0.1.24`. Public upload is a separate step; the
+  commit, tag, and archive are local.
+
+### 2026-11-07: test deployment of Essential-only snapping
+
+- Base commit `c0703df` plus uncommitted `Appearance.lua`,
+  `CooldownManager.lua`, `NativeDisplay.lua`, `PallySealCooldowns.lua`, and
+  `Settings.lua` (everything in the entries below). Supersedes the
+  layout-aware settings deployment.
+- Target: `C:/Program Files (x86)/World of Warcraft/_forever_/Interface/AddOns/PallySealCooldowns`.
+- Backup of the previous test build:
+  `<workspace>/addon-deployment-backups/PallySealCooldowns-before-c0703df-uncommitted-b54ccea3-382b-4865-9d85-4ab1a2572b6d`;
+  all 23 files matched by SHA-256. All 23 deployed files match the source by
+  SHA-256, with no extra files. TOC version unchanged (0.1.23); no archive.
+- In-game checklist: `/reload`; Essential icon attaches to the bar and
+  follows it in Edit Mode, with Snap position and Gap from bar under its
+  options; the other three layouts show no snap options, stay at their saved
+  position, drag when unlocked, and never print the bar-not-found message;
+  `/psc status`; no snap checkbox anywhere.
+- In-game acceptance pending.
+
+### 2026-11-07: snapping is the Essential Cooldowns icon's behavior
+
+- User decided only the Essential Cooldowns icon should snap, and that
+  snapping should not be a setting. Supersedes the swing-only snap change
+  below. `SnapToCooldownViewer` now snaps exactly when the layout is
+  `essential`; the Snap to Essential Cooldowns bar checkbox is removed and
+  `NormalizeCooldownManager` drops the saved `snapToCDM` value. Snap
+  position, Gap from bar, and the placement note now sit under Essential
+  icon size and show only for that layout. The bar-not-found warning and
+  `/psc status` snap state apply only to the Essential icon.
+- Behavior change for existing users: a Large icon or Small icon with timer
+  bar tracker that was snapped now uses its saved free position; an
+  Essential icon that was not snapped now attaches to the bar.
+- Ten Lua 5.1 suites (Lupa) passed with updated cooldown manager, addon
+  event, and settings tests; `git diff --check` clean. Not deployed;
+  in-game check pending. `release/curseforge-description.md` still
+  describes snapping as an option and is updated at release.
+
+### 2026-11-07: no Essential Cooldowns snapping for the Swing timer bar
+
+- User asked that snapping not be an option for the swing bar. The snap
+  heading, checkbox, position, gap, and hint are hidden on that layout,
+  and `SnapToCooldownViewer` returns false for it, so a saved snap setting
+  neither anchors the bar nor prints the "bar not found" warning; the bar
+  stays free and draggable. `/psc status` omits the snap state there.
+  Switching to another layout snaps again with the saved setting.
+- Ten Lua 5.1 suites (Lupa) passed, with new coverage in the cooldown
+  manager, addon event, and settings tests; `git diff --check` clean.
+  Not deployed; in-game check pending.
+
+### 2026-11-07: test deployment of layout-aware settings and presets
+
+- Base commit `c0703df` plus uncommitted `Appearance.lua`, `NativeDisplay.lua`,
+  `PallySealCooldowns.lua`, and `Settings.lua` (everything in the entries
+  below). Supersedes the "Seal Timer" label deployment.
+- Target: `C:/Program Files (x86)/World of Warcraft/_forever_/Interface/AddOns/PallySealCooldowns`.
+- Backup of the previous test build:
+  `<workspace>/addon-deployment-backups/PallySealCooldowns-before-c0703df-uncommitted-1c5ba2f9-9fba-433b-b24d-fd91aa1e8cd1`;
+  all 23 files matched by SHA-256. All 23 deployed files match the source by
+  SHA-256, with no extra files. TOC version unchanged (0.1.23); no archive.
+- In-game checklist: `/reload`; in both the `/psc` window and Options >
+  AddOns, switch each layout and confirm only its options show with no gaps
+  or overlaps; the Layout heading names the layout; toggling Show duration
+  bar under icon and Border None hide their dependent options at once; on
+  the swing bar, presets keep Blizzard's fill and frame and Classic Gold and
+  Paladin Pink are hidden; settings persist after `/reload`.
+- In-game acceptance pending.
+
+### 2026-11-07: layout-aware settings and presets
+
+- User asked that settings show only what applies to the chosen layout,
+  and that presets be cleaned up. Settings rows now register with an
+  optional condition; `panel:Relayout()` (after every change and on
+  Synchronize) hides rows that do not apply and moves later rows up.
+- Hidden by layout: Show seal name (swing); Show duration bar under icon
+  (bar, swing); Essential icon size (all but Essential); Bar width (icon,
+  Essential); Bar texture and Bar counts down (icon layouts with the icon
+  bar off); Placeholder icon (swing); Border color (swing, or Border None);
+  Custom border thickness (swing, Border None, or default border). The
+  Layout page heading names the chosen layout; the name font slider reads
+  "Label font size" on the swing bar.
+- Presets: on the swing bar they keep `statusbar`, `border`, `borderColor`,
+  and `borderSize`, so Blizzard's fill and frame survive (Minimal, High
+  Contrast, Paladin Pink, and Clean Text used to switch the fill to flat
+  gold). Classic Gold and Paladin Pink are hidden there.
+- Ten Lua 5.1 suites (Lupa) passed, with new coverage in the settings and
+  appearance tests; `git diff --check` clean. Not deployed; in-game check
+  pending (both the standalone window and Blizzard Settings pages).
+
+### 2026-11-07: "Seal Timer" label visibility fix and test deployment
+
+- User reported the label still missing (with `/fstack` showing the overlay
+  frame on top). Actual cause, from the client's saved variables: Show seal
+  name and Show missing-seal text were both off, and the label followed those
+  options. The previous entry's native-binding theory was not the cause (the
+  separate font string is kept). "Seal Timer" is now a fixed title in the
+  swing layout, shown regardless of those options, like Blizzard's "Main
+  Hand"; the label shadow follows it. Other layouts unchanged.
+- Ten Lua 5.1 suites (Lupa) passed, with regressions for both options off in
+  the native display and addon event tests; `git diff --check` clean.
+- Deployed on base commit `c0703df` plus uncommitted `Appearance.lua`,
+  `NativeDisplay.lua`, `PallySealCooldowns.lua`, and `Settings.lua`. Backup of
+  the previous test build:
+  `<workspace>/addon-deployment-backups/PallySealCooldowns-before-c0703df-uncommitted-6eb7d61c-8f95-4cac-9f46-677d9cf15fcd`;
+  all 23 files matched by SHA-256. All 23 deployed files match the source by
+  SHA-256, with no extra files. TOC version unchanged (0.1.23); no archive.
+- In-game checklist: `/reload`; "Seal Timer" shows with and without a seal
+  while Show seal name is off; other layouts still hide the seal name.
+- In-game acceptance pending.
+
+### 2026-11-07: fix and test deployment for the missing "Seal Timer" label
+
+- User reported in game that the "Seal Timer" text did not appear. Likely
+  cause: the label was written into the font string the native button binds
+  for the spell name, which the native button clears after the binding is
+  removed. The swing layout now uses its own font string (`view.label`) that
+  is never natively bound; the bound name string is hidden in this layout.
+  Not confirmed in game which state (with or without a seal) was affected.
+- Ten Lua 5.1 suites (Lupa) passed; `git diff --check` clean.
+- Deployed `NativeDisplay.lua` change on top of the previous build (base
+  commit `c0703df` plus uncommitted `Appearance.lua`, `NativeDisplay.lua`,
+  `PallySealCooldowns.lua`, and `Settings.lua`). Backup of the previous test
+  build:
+  `<workspace>/addon-deployment-backups/PallySealCooldowns-before-c0703df-uncommitted-debf760c-dbc3-410c-9a71-e76b70ee419a`;
+  all 23 files matched by SHA-256. All 23 deployed files match the source by
+  SHA-256, with no extra files. TOC version unchanged (0.1.23); no archive.
+- In-game checklist: `/reload`; "Seal Timer" shows with a seal, after a seal
+  switch, and with no seal; Show seal name hides it; other layouts show the
+  seal name.
+- In-game acceptance pending.
+
+### 2026-11-07: test deployment of the "Seal Timer" label
+
+- User reported the atlas-based Swing timer bar "looks good" in game and
+  asked for "Seal Timer" on the left of the bar. The swing layout now shows
+  the fixed label "Seal Timer" (like Blizzard's "Main Hand") instead of the
+  seal name, in every state; the native seal-name binding is cleared for this
+  layout. Show seal name still toggles the label. Other layouts unchanged.
+- Ten Lua 5.1 suites (Lupa) passed, with label coverage in the native display
+  and addon event tests; `git diff --check` clean.
+- Base commit `c0703df` plus uncommitted `Appearance.lua`, `NativeDisplay.lua`,
+  `PallySealCooldowns.lua`, and `Settings.lua`. Supersedes the atlas-based
+  test deployment below.
+- Target: `C:/Program Files (x86)/World of Warcraft/_forever_/Interface/AddOns/PallySealCooldowns`.
+- Backup (the atlas-based test build):
+  `<workspace>/addon-deployment-backups/PallySealCooldowns-before-c0703df-uncommitted-e9ff03bf-f149-41e7-9947-f452bf2be28e`;
+  all 23 files matched by SHA-256.
+- All 23 deployed files match the source by SHA-256, with no extra files.
+  Saved variables and other addons untouched; TOC version unchanged
+  (0.1.23); no archive built.
+- In-game checklist: `/reload`; the bar reads "Seal Timer" with a seal, after
+  a seal switch, and with no seal; other layouts still show the seal name.
+- In-game acceptance pending.
+
+### 2026-11-07: test deployment of the atlas-based Swing timer bar
+
+- Base commit `c0703df` plus uncommitted `Appearance.lua`, `NativeDisplay.lua`,
+  `PallySealCooldowns.lua`, and `Settings.lua`. Supersedes the drawn-frame
+  test deployment earlier today.
+- Target: `C:/Program Files (x86)/World of Warcraft/_forever_/Interface/AddOns/PallySealCooldowns`.
+- Backup (the drawn-frame test build):
+  `<workspace>/addon-deployment-backups/PallySealCooldowns-before-c0703df-uncommitted-382f20af-ff36-467c-a4a8-571869ae716b`;
+  all 23 files matched by SHA-256.
+- All 23 deployed files match the source by SHA-256, with no extra files.
+  Saved variables and other addons untouched; TOC version unchanged
+  (0.1.23); no archive built.
+- In-game checklist: `/reload`; with Swing timer bar chosen, compare side by
+  side with Blizzard's main-hand bar (frame, background, fill color, pip at
+  the fill edge, label shadow, font, 213 x 30 size); tenths countdown on the
+  native display; warning color at the refresh threshold; no pip and the
+  glow/bounce when no seal is active in combat; Bar texture and Border None
+  options; switching to and from the other layouts; persists after `/reload`.
+- In-game acceptance pending.
+
+### 2026-11-07: test deployment of the Swing timer bar layout
+
+- Base commit `c0703df` plus uncommitted `Appearance.lua`, `NativeDisplay.lua`,
+  `PallySealCooldowns.lua`, and `Settings.lua` (tests and docs are not shipped).
+- Target: `C:/Program Files (x86)/World of Warcraft/_forever_/Interface/AddOns/PallySealCooldowns`.
+- Backup (the 0.1.23 release build):
+  `<workspace>/addon-deployment-backups/PallySealCooldowns-before-c0703df-uncommitted-f47abfbb-a755-409b-83bc-18fc292b3163`;
+  all 23 files matched by SHA-256.
+- All 23 deployed files match the source by SHA-256, with no extra files.
+  Saved variables and other addons untouched; TOC version unchanged
+  (0.1.23); no archive built.
+- In-game checklist: `/reload`; pick Swing timer bar from the Layout
+  dropdown and with `/psc style swing`; compare with the built-in swing
+  timer; countdown shows tenths (`12.3`) on the native display; fill and
+  warning color at the refresh threshold; missing state, glow, and bounce
+  in combat; Border None removes the frame; Bar width, texture, and
+  countdown options; switching back to the other three layouts restores
+  their icons; choice persists after `/reload`.
+- In-game acceptance pending.
+- Superseded in source: this build used the drawn bronze frame. The layout
+  was then rebuilt on Blizzard's swing timer atlases (entry below), which is
+  not yet deployed.
+
+### 2026-11-07: Swing timer bar layout
+
+- New fourth layout, **Swing timer bar** (`/psc style swing`), matching
+  Forever's built-in main-hand swing timer (`SwingTimerMainHandFrame`, found
+  with `/fstack`). Its art and geometry follow `Blizzard_SwingTimer.xml` in
+  the public UI source mirror (Gethe/wow-ui-source, `forever` branch): atlases
+  `ui-swingtimerbar-background`, `-frame`, `-filling-mainhand`, `-pip`, and
+  `-textshadow-left` (171 px); bar inset 5/4 px; `GameFontHighlightSmall`
+  labels 10 px inside; tenths countdown. Only atlas names and layout values
+  are reused; Blizzard's template is not inherited, so no Edit Mode or swing
+  event code runs. Size is 30 px tall and Bar width + 25 (213 at the default,
+  Blizzard's minimum width).
+- The atlas fill keeps its own color (white vertex) until the refresh
+  warning; a chosen Bar texture replaces it with the gold fill. The pip
+  follows the fill's edge and hides without a seal. Border None removes the
+  frame. Clients without the atlases fall back to a drawn bronze frame.
+- Works for the native display and the estimated tracker. The native icon
+  and swipe stay bound but use alpha 0; the missing-seal glow surrounds the
+  whole bar. Settings Layout page lists it and shares the bar width,
+  texture, and countdown options with it.
+- Ten Lua 5.1 suites (Lupa) passed with new coverage in the native display
+  (atlases, size, pip, fill, fallback frame), addon event, appearance, and
+  settings tests; `git diff --check` clean.
+- Pending in game: the look against the real swing timer, the pip position,
+  that the native `%.1f` countdown renders, warning colors, missing state
+  and glow, and switching layouts in and out.
+- Not deployed; no version change.
+
 ### 2026-11-07: public repository preparation
 
 - Added the MIT `LICENSE`; README, upload guide, and `NOTICE.md` now name it.

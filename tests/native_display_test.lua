@@ -13,7 +13,13 @@ Enum = {LuaCurveType = {Step = 0}, DurationTextBindingProperty = {RemainingDurat
     NumericRuleFormatRounding = {Up = 2}}
 local rejectFormatter = false
 local formatter = {SetBreakpoints = function(self, rules) self.rules = rules end}
-C_StringUtil = {CreateNumericRuleFormatter = function() return formatter end}
+-- The first formatter created is the whole-second one; later ones are new objects.
+local createdFormatters = 0
+C_StringUtil = {CreateNumericRuleFormatter = function()
+    createdFormatters = createdFormatters + 1
+    if createdFormatters == 1 then return formatter end
+    return {SetBreakpoints = formatter.SetBreakpoints}
+end}
 CreateColor = function(...) return {...} end
 C_UnitAuras = setmetatable({}, {__index = function() error("No aura state queries allowed") end})
 local function Widget(kind)
@@ -34,6 +40,11 @@ local function Widget(kind)
             or key == "CreateAnimation" then return function() return Widget(key) end end
         if key == "SetText" then return function(self, text) self.text = text end end
         if key == "SetTexture" then return function(self, texture) self.texture = texture end end
+        if key == "SetAtlas" then return function(self, atlas) self.atlas = atlas end end
+        if key == "SetSpellName" then return function(self, region) self.spellName = region end end
+        if key == "ClearSpellName" then return function(self) self.spellName = false end end
+        if key == "SetStatusBarTexture" then return function(self, texture) self.fill = texture end end
+        if key == "SetStatusBarColor" then return function(self, ...) self.fillColor = {...} end end
         if key == "SetTextColor" then return function(self, ...) self.color = {...} end end
         if key == "AddPoint" then return function(self, ...)
             self.points = rawget(self, "points") or {}
@@ -154,6 +165,69 @@ db.displayStyle = "bar"
 assert(display:Apply(db) and display.present.icon.masks == 0, "Bar style is unaffected by the matched style")
 db.displayStyle = "icon"
 assert(display:Apply(db) and display.present.frame.width == 56 and display.present.icon.width == 52)
+-- Swing timer bar: Blizzard's swing timer atlases, no visible icon, tenths.
+db.displayStyle, db.barWidth = "swing", 188
+assert(display:Apply(db))
+local swingArt = display.present.swing
+assert(display.present.frame.width == 213 and display.present.frame.height == 30,
+    "Default width matches Blizzard's 213 px bar")
+assert(display.missing.frame.width == 213 and groups.Presence.layout.elementHeight == 30,
+    "Missing gate follows the swing bar size")
+assert(display.present.bar.width == 203 and display.present.bar.height == 22,
+    "Bar uses Blizzard's 5/4 px insets")
+assert(display.present.icon.alpha == 0 and display.present.cooldown.alpha == 0,
+    "Icon and swipe stay bound but invisible")
+assert(display.present.bar.alpha == 1 and display.present.back.alpha == 0)
+assert(swingArt.back.atlas == "ui-swingtimerbar-background" and swingArt.back.shown)
+assert(swingArt.frame.atlas == "ui-swingtimerbar-frame" and swingArt.frame.shown)
+assert(swingArt.shadow.atlas == "ui-swingtimerbar-textshadow-left" and swingArt.shadow.shown)
+assert(swingArt.pip.atlas == "ui-swingtimerbar-pip" and swingArt.pip.shown, "Pip marks the running seal")
+assert(display.missing.swing.pip.shown == false, "No pip without a seal")
+assert(not swingArt.edges[1].shown, "Atlas frame replaces the drawn fallback")
+assert(display.present.bar.fill == "ui-swingtimerbar-filling-mainhand")
+assert(display.present.bar.fillColor[2] == 1, "Atlas fill keeps its own color")
+assert(not display.present.border.shown and not display.present.edges[1].shown, "Icon borders stay hidden")
+assert(display.present.label.text == "Seal Timer" and display.present.label.shown
+    and display.missing.label.text == "Seal Timer" and display.missing.label.shown,
+    "Swing bar shows a fixed Seal Timer label")
+assert(display.present.label ~= slots.Seal.spellName, "The label is never a natively bound region")
+assert(display.present.name.shown == false and display.missing.name.shown == false,
+    "Seal name text is hidden in the swing layout")
+-- Reported in game: the label was hidden by Show seal name and missing-text off.
+db.showSealName, db.showMissingText = false, false
+assert(display:Apply(db) and display.present.label.shown and display.missing.label.shown
+    and swingArt.shadow.shown, "Seal Timer ignores the seal-name and missing-text options")
+db.showSealName, db.showMissingText = true, true
+assert(display:Apply(db))
+assert(slots.Seal.spellName == false, "Seal name binding is cleared so it cannot replace the label")
+local tenths = slots.Seal.textOptions.textFormatter
+assert(tenths and tenths ~= formatter and tenths.rules[1].format == "%.1f", "Swing bar counts in tenths")
+assert(display.glow.point[2] == display.missing.frame, "Missing glow surrounds the whole bar")
+db.statusbar = "flat"
+assert(display:Apply(db) and display.present.bar.fill == "Interface\\Buttons\\WHITE8X8"
+    and display.present.bar.fillColor[2] == 0.72, "A chosen bar texture replaces the atlas fill")
+db.statusbar = "default"
+db.border = "none"
+assert(display:Apply(db) and swingArt.back.shown and not swingArt.frame.shown
+    and not swingArt.edges[1].shown, "Border None removes the frame")
+db.border = "default"
+-- Clients without the swing timer atlases get the drawn bronze frame.
+local atlasInfo = C_Texture.GetAtlasInfo
+C_Texture.GetAtlasInfo = function(name) if not name:find("swingtimer", 1, true) then return {} end end
+assert(display:Apply(db) and swingArt.edges[1].shown and swingArt.corners[1].shown)
+assert(not swingArt.frame.shown and not swingArt.pip.shown and not swingArt.shadow.shown)
+assert(display.present.bar.fill == "Interface\\TargetingFrame\\UI-StatusBar"
+    and display.present.bar.fillColor[2] == 0.72)
+C_Texture.GetAtlasInfo = atlasInfo
+db.displayStyle = "icon"
+assert(display:Apply(db) and not swingArt.back.shown and not swingArt.frame.shown
+    and not swingArt.edges[1].shown and not swingArt.pip.shown)
+assert(slots.Seal.spellName == display.present.name and display.missing.name.text == "No active seal",
+    "Other layouts show the seal name again")
+assert(display.present.name.shown and not display.present.label.shown and not display.missing.label.shown)
+assert(display.present.icon.alpha == 1 and display.present.cooldown.alpha == 1 and display.present.back.alpha == 1)
+assert(slots.Seal.textOptions.textFormatter == formatter, "Other layouts keep whole seconds")
+assert(display.glow.point[2] == display.missing.icon)
 -- The thin icon-layout bar can be hidden; the bar layout always shows its bar.
 assert(display.present.bar.alpha == 1, "Icon bar shows by default")
 db.showIconBar = false

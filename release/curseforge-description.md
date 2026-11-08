@@ -4,8 +4,8 @@ Keep track of your paladin seals with clear countdowns, refresh reminders, and a
 
 ## Features
 
-- **Three display layouts:** a large icon with a radial timer, a compact horizontal duration bar, or an icon that matches Blizzard's Essential Cooldowns bar.
-- **Snap to the Essential Cooldowns bar:** attach the tracker to any side of Blizzard's bar with an adjustable gap. It follows the bar when you move it in Edit Mode.
+- **Four display layouts:** a large icon with a radial timer, a compact horizontal duration bar, an icon that matches Blizzard's Essential Cooldowns bar, or a **Swing timer bar** built from the artwork of Forever's main-hand swing timer, labeled "Seal Timer" with a countdown in tenths of a second.
+- **Attaches to the Essential Cooldowns bar:** the Essential Cooldowns icon layout attaches to any side of Blizzard's bar with an adjustable gap and follows the bar when you move it in Edit Mode.
 - **Native seal tracking:** Blizzard manages the main icon and bar directly, including removal while combat aura data is restricted. Unsupported clients retain estimated tracking.
 - **Seal changes:** native bindings update the icon, name, countdown, and bar when the active seal changes. The fallback tracker uses cast estimates.
 - **Refresh reminders:** configurable warning threshold, a choice of warning colors, a warning sound that works in combat, and optional countdown numbers that appear only when a refresh is due.
@@ -18,7 +18,7 @@ Keep track of your paladin seals with clear countdowns, refresh reminders, and a
 
 Choose a font, set countdown and seal-name sizes independently, and adjust outlines and text shadows. Customize border style, color, and thickness, choose a different bar texture, or make the bar count down so it starts full and drains as the seal expires. Warning colors remain active with every style.
 
-Six built-in presets make it easy to get started:
+Six built-in presets make it easy to get started (on the Swing timer bar, presets change only text styling and keep Blizzard's bar art, and the two border looks are hidden):
 
 - **Default:** the original game-style fonts and icon border.
 - **Minimal:** a thin dark border and flat bar with no text outline or shadow.
@@ -36,12 +36,12 @@ Open **Options > AddOns > Pally Seal Cooldowns**, type **`/psc`**, or click the 
 Settings are organized into pages:
 
 - **General:** position lock, combat-only visibility, text toggles, warning time, and size.
-- **Layout:** the three layouts with each one's options, bar width, texture, and direction, and snapping to the Essential Cooldowns bar.
+- **Layout:** the four layouts with each one's options: bar width, texture, and direction, and where the Essential Cooldowns icon attaches to Blizzard's bar.
 - **Alerts:** refresh and missing-seal sounds, combat-only options, audio channel, sound previews, and what the tracker shows when no seal is active.
 - **Appearance:** fonts, outlines, borders, and warning color.
 - **Presets:** the six built-in styles.
 
-Changes apply immediately outside combat; native layout/appearance changes made during combat apply afterward. Presets change appearance without altering your timing, sound, position, or visibility settings.
+Each page shows only the options that apply to the chosen layout. Changes apply immediately outside combat; native layout/appearance changes made during combat apply afterward. Presets change appearance without altering your timing, sound, position, or visibility settings.
 
 ## Compatibility
 
@@ -72,7 +72,7 @@ Clients without the required native display retain the previous estimated tracke
 | `/psc sound` | Toggle the refresh warning sound |
 | `/psc scale 1` | Set display scale; accepts 0.5–2 |
 | `/psc reset` | Reset position and size |
-| `/psc style icon` | Use the large icon layout (also `bar` or `essential`) |
+| `/psc style icon` | Use the large icon layout (also `bar`, `essential`, or `swing`) |
 | `/psc status` | Show client version, build, interface, aura API, and Essential Cooldowns bar status |
 
 The default warning threshold is **5 seconds**, sound is enabled, and position is locked.

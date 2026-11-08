@@ -76,7 +76,7 @@ end
 
 addon.SettingsPages = {
     {key = "general", label = "General", height = 360},
-    {key = "layout", label = "Layout", height = 580},
+    {key = "layout", label = "Layout", height = 490},
     {key = "alerts", label = "Alerts", height = 700},
     {key = "appearance", label = "Appearance", height = 520},
     {key = "presets", label = "Presets", height = 140},
@@ -115,6 +115,12 @@ function addon.CreateSettings(db, apply)
     end
     panel:SetEmbedded(false)
 
+    -- Every change can alter which settings apply, so relayout after it.
+    local applySettings = apply
+    apply = function()
+        applySettings()
+        panel:Relayout()
+    end
     local syncing = false
     local controls = {}
     local pages, tabs, selected = {}, {}, "general"
@@ -122,7 +128,7 @@ function addon.CreateSettings(db, apply)
     for index, info in ipairs(addon.SettingsPages) do
         -- General is the category's own page; the rest become sub-pages.
         local page = CreateFrame("Frame", nil, index == 1 and panel or UIParent)
-        page.key, page.name = info.key, info.label
+        page.key, page.name, page.height = info.key, info.label, info.height
         local heading = page:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
         heading:SetPoint("TOPLEFT", 20, -20)
         heading:SetText(info.label)
@@ -181,7 +187,22 @@ function addon.CreateSettings(db, apply)
         end
     end
 
+    -- Rows register in page order. Rows whose condition fails are hidden and
+    -- the rows below move up, so each page lists only settings that apply.
     local section
+    local rows = {}
+    local function Row(top, y, frames, place)
+        local row = {page = section, top = top, y = y, frames = frames, place = place}
+        rows[#rows + 1] = row
+        return row
+    end
+    local function When(row, test)
+        row.when = test
+        return row
+    end
+    local function Style() return db.displayStyle end
+    local function IsSwing() return db.displayStyle == "swing" end
+
     local function Checkbox(label, y, key, checkedValue, uncheckedValue)
         local button = CreateFrame("CheckButton", nil, section, "UICheckButtonTemplate")
         button:SetPoint("TOPLEFT", 18, y)
@@ -193,9 +214,15 @@ function addon.CreateSettings(db, apply)
             apply()
         end)
         controls[#controls + 1] = function() button:SetChecked(db[key] == checkedValue) end
+        return Row(y, y, {button}, function(at)
+            button:ClearAllPoints()
+            button:SetPoint("TOPLEFT", 18, at)
+        end)
     end
 
+    -- A label may be a function so it can name what it sizes in each layout.
     local function Slider(label, y, key, minimum, maximum, step, format)
+        local function Label() return type(label) == "function" and label() or label end
         local slider = CreateFrame("Slider", nil, section)
         slider:SetPoint("TOPLEFT", 26, y)
         slider:SetSize(330, 16)
@@ -214,14 +241,22 @@ function addon.CreateSettings(db, apply)
             if (key == "timerSize" or key == "nameSize")
                 and rounded > 0 and rounded < 8 then rounded = 0 end
             if key == "cdmIconSize" and rounded > 0 and rounded < 16 then rounded = 0 end
-            text:SetText(label .. string.format(format, rounded))
+            text:SetText(Label() .. string.format(format, rounded))
             if syncing then return end
             db[key] = rounded
             addon.NormalizeAppearance(db)
             addon.NormalizeCooldownManager(db)
             apply()
         end)
-        controls[#controls + 1] = function() slider:SetValue(db[key]) end
+        controls[#controls + 1] = function()
+            slider:SetValue(db[key])
+            text:SetText(Label() .. string.format(format, db[key]))
+        end
+        -- The label sits above the slider, so the row starts 25 px higher.
+        return Row(y + 25, y, {slider}, function(at)
+            slider:ClearAllPoints()
+            slider:SetPoint("TOPLEFT", 26, at)
+        end)
     end
 
     -- Choices use Blizzard's native dropdown (as Questie and Bagnon do on this
@@ -260,7 +295,13 @@ function addon.CreateSettings(db, apply)
                 if dropdown.SetDefaultText then dropdown:SetDefaultText(Unavailable()) end
                 dropdown:GenerateMenu()
             end
-            return
+            local page = section
+            return Row(y, y, {dropdown}, function(at)
+                dropdown:ClearAllPoints()
+                dropdown:SetPoint("TOPLEFT", 150, at)
+                text:ClearAllPoints()
+                text:SetPoint("LEFT", page, "TOPLEFT", 26, at - 13)
+            end)
         end
         local button = CreateFrame("Button", nil, section, "UIPanelButtonTemplate")
         button:SetPoint("TOPLEFT", 26, y)
@@ -287,6 +328,10 @@ function addon.CreateSettings(db, apply)
             Update()
         end)
         controls[#controls + 1] = Update
+        return Row(y, y, {button}, function(at)
+            button:ClearAllPoints()
+            button:SetPoint("TOPLEFT", 26, at)
+        end)
     end
 
     local function ActionButton(label, y, width, onClick)
@@ -295,7 +340,10 @@ function addon.CreateSettings(db, apply)
         button:SetPoint("TOPLEFT", 26, y)
         button:SetText(label)
         button:SetScript("OnClick", onClick)
-        return button
+        return Row(y, y, {button}, function(at)
+            button:ClearAllPoints()
+            button:SetPoint("TOPLEFT", 26, at)
+        end)
     end
 
     local function Hint(y, text)
@@ -304,19 +352,32 @@ function addon.CreateSettings(db, apply)
         hint:SetWidth(330)
         hint:SetJustifyH("LEFT")
         hint:SetText(text)
+        local row = Row(y, y, {hint}, function(at)
+            hint:ClearAllPoints()
+            hint:SetPoint("TOPLEFT", 26, at)
+        end)
+        row.region = hint
+        return row
     end
 
     local function Heading(y, text)
         local heading = section:CreateFontString(nil, "OVERLAY", "GameFontNormal")
         heading:SetPoint("TOPLEFT", 22, y)
         heading:SetText(text)
+        local row = Row(y, y, {heading}, function(at)
+            heading:ClearAllPoints()
+            heading:SetPoint("TOPLEFT", 22, at)
+        end)
+        row.region = heading
+        return row
     end
 
     section = pages.general.content
     Checkbox("Lock tracker position", -10, "locked", true, false)
     Checkbox("Show countdown only when refresh is due", -45, "counterMode", "refresh", "always")
     Checkbox("Hide outside combat", -80, "hideOutOfCombat", true, false)
-    Checkbox("Show seal name", -115, "showSealName", true, false)
+    -- The swing bar shows the fixed "Seal Timer" title instead.
+    When(Checkbox("Show seal name", -115, "showSealName", true, false), function() return not IsSwing() end)
     Checkbox("Show status text", -150, "showStatusText", true, false)
     Slider("Refresh warning: ", -220, "threshold", 1, 30, 1, "%d seconds")
     Slider("Display size: ", -275, "scale", 0.5, 2, 0.05, "%.2fx")
@@ -326,27 +387,32 @@ function addon.CreateSettings(db, apply)
         panel:Synchronize()
     end)
 
-    -- Each layout's own options sit under a heading naming that layout.
+    -- Only the chosen layout's options appear, under a heading naming it.
     section = pages.layout.content
     Selector("Layout: ", -10, "displayStyle", addon.LayoutChoices)
     Hint(-45, "Large icon: 52 px icon with a thin bar beneath.\n"
         .. "Small icon with timer bar: 30 px icon and a long bar.\n"
-        .. "Essential Cooldowns icon: matches Blizzard's bar icons.")
-    Heading(-100, "Large icon and Essential Cooldowns icon")
-    Checkbox("Show duration bar under icon", -118, "showIconBar", true, false)
-    Slider("Essential icon size: ", -180, "cdmIconSize", 0, 80, 1, "%d px (0 follows Blizzard)")
-    Heading(-215, "Small icon with timer bar")
-    Slider("Bar width: ", -255, "barWidth", 120, 360, 1, "%d px")
-    Selector("Bar texture: ", -290, "statusbar", function() return addon.MediaChoices("statusbar") end)
-    Checkbox("Bar counts down (starts full, drains right to left)", -322, "barCountdown", true, false)
-    Heading(-365, "Snap to Blizzard's Essential Cooldowns bar (any layout)")
-    Checkbox("Snap to Essential Cooldowns bar", -383, "snapToCDM", true, false)
-    Selector("Snap position: ", -423, "snapSide", addon.SnapSides)
-    Slider("Gap from bar: ", -478, "snapGap", 0, 20, 1, "%d px")
-    Hint(-505, "While snapped, the tracker follows the bar when it moves in\n"
-        .. "Edit Mode and cannot be dragged. If the bar is unavailable,\n"
-        .. "the saved position is used. Bar countdown and texture also\n"
-        .. "apply to the thin bar under the large icon.")
+        .. "Essential Cooldowns icon: matches and attaches to Blizzard's bar.\n"
+        .. "Swing timer bar: matches Forever's main-hand swing timer.")
+    local layoutHeading = Heading(-115, "Layout options")
+    local function IconLayout() return Style() == "icon" or Style() == "essential" end
+    local function Essential() return Style() == "essential" end
+    local function BarLayout() return Style() == "bar" or IsSwing() end
+    -- Texture and countdown also style the thin bar under an icon layout.
+    local function HasBar() return BarLayout() or db.showIconBar ~= false end
+    When(Checkbox("Show duration bar under icon", -133, "showIconBar", true, false), IconLayout)
+    When(Slider("Essential icon size: ", -195, "cdmIconSize", 0, 80, 1, "%d px (0 follows Blizzard)"), Essential)
+    -- The Essential Cooldowns icon always snaps to Blizzard's bar; these place it.
+    When(Selector("Snap position: ", -220, "snapSide", addon.SnapSides), Essential)
+    When(Slider("Gap from bar: ", -275, "snapGap", 0, 20, 1, "%d px"), Essential)
+    When(Hint(-302, "The icon attaches to Blizzard's Essential Cooldowns bar,\n"
+        .. "follows it in Edit Mode, and cannot be dragged. If the bar\n"
+        .. "is unavailable, the saved position is used."), Essential)
+    When(Slider("Bar width: ", -375, "barWidth", 120, 360, 1, "%d px"), BarLayout)
+    When(Selector("Bar texture: ", -410, "statusbar", function() return addon.MediaChoices("statusbar") end),
+        HasBar)
+    When(Checkbox("Bar counts down (starts full, drains right to left)", -445, "barCountdown", true, false),
+        HasBar)
 
     section = pages.alerts.content
     Heading(-10, "Refresh warning")
@@ -364,7 +430,9 @@ function addon.CreateSettings(db, apply)
     Checkbox("Hide tracker when no seal is active", -270, "hideWhenMissing", true, false)
     Checkbox("Show missing-seal text", -305, "showMissingText", true, false)
     Selector("Missing symbol: ", -343, "missingSymbol", addon.MissingSymbols)
-    Selector("Placeholder icon: ", -378, "missingIcon", addon.MissingIcons)
+    -- The swing bar has no icon to stand in for.
+    When(Selector("Placeholder icon: ", -378, "missingIcon", addon.MissingIcons),
+        function() return not IsSwing() end)
     Checkbox("Play missing-seal sound", -410, "missingSound", true, false)
     Checkbox("Missing sound only in combat", -445, "missingCombatOnly", true, false)
     Selector("Missing sound: ", -485, "missingSoundChoice", addon.SoundOptions,
@@ -381,34 +449,81 @@ function addon.CreateSettings(db, apply)
     Selector("Outline: ", -83, "outline", addon.OutlineChoices)
     Checkbox("Text shadow", -113, "fontShadow", true, false)
     Slider("Countdown font size: ", -178, "timerSize", 0, 40, 1, "%d px")
-    Slider("Seal name font size: ", -233, "nameSize", 0, 24, 1, "%d px")
+    Slider(function() return IsSwing() and "Label font size: " or "Seal name font size: " end,
+        -233, "nameSize", 0, 24, 1, "%d px")
     Selector("Border: ", -268, "border", function() return addon.MediaChoices("border") end)
-    Selector("Border color: ", -303, "borderColor", addon.BorderColors)
-    Slider("Custom border thickness: ", -368, "borderSize", 1, 16, 1, "%d px")
+    -- The swing frame is Blizzard's art: Border only turns it on or off.
+    When(Selector("Border color: ", -303, "borderColor", addon.BorderColors),
+        function() return not IsSwing() and db.border ~= "none" end)
+    When(Slider("Custom border thickness: ", -368, "borderSize", 1, 16, 1, "%d px"),
+        function() return not IsSwing() and db.border ~= "none" and db.border ~= "default" end)
     Selector("Warning color: ", -403, "warningColor", addon.WarningColors)
     Hint(-440, "Installed SharedMedia choices appear automatically.\nMissing media uses the default appearance.\n"
-        .. "Warning color marks a due refresh and a missing seal.\nBar options are on the Layout page.")
+        .. "Warning color marks a due refresh and a missing seal.\nBar options are on the Layout page.\n"
+        .. "Only options for the chosen layout are shown.")
 
     section = pages.presets.content
-    Hint(-10, "Presets replace only appearance settings.\nTiming, sounds, position, and visibility are kept.")
-    for index, choice in ipairs(addon.PresetChoices) do
+    local presetHint = Hint(-10, "")
+    local presetButtons = {}
+    for _, choice in ipairs(addon.PresetChoices) do
         local preset = CreateFrame("Button", nil, section, "UIPanelButtonTemplate")
         preset:SetSize(106, 26)
-        local column = (index - 1) % 3
-        local row = math.floor((index - 1) / 3)
-        preset:SetPoint("TOPLEFT", 26 + column * 112, -50 - row * 34)
         preset:SetText(choice.label)
         preset:SetScript("OnClick", function()
             addon.ApplyPreset(db, choice.key)
             apply()
             panel:Synchronize()
         end)
+        presetButtons[#presetButtons + 1] = {button = preset, choice = choice}
+    end
+
+    -- Shows the rows that apply to the chosen layout and closes the gaps.
+    function panel:Relayout()
+        local swing = IsSwing()
+        for _, page in ipairs(pages) do
+            local offset, pageRows = 0, {}
+            for _, row in ipairs(rows) do
+                if row.page == page.content then pageRows[#pageRows + 1] = row end
+            end
+            for index, row in ipairs(pageRows) do
+                local shown = not row.when or row.when() == true
+                for _, region in ipairs(row.frames) do region:SetShown(shown) end
+                if shown then
+                    row.place(row.y + offset)
+                else
+                    local nextRow = pageRows[index + 1]
+                    offset = offset + (nextRow and row.top - nextRow.top or 0)
+                end
+            end
+            page.content:SetHeight(page.height - offset)
+        end
+        for _, choice in ipairs(addon.LayoutChoices) do
+            if choice.key == db.displayStyle then layoutHeading.region:SetText(choice.label .. " options") end
+        end
+        presetHint.region:SetText("Presets replace only appearance settings.\n"
+            .. "Timing, sounds, position, and visibility are kept."
+            .. (swing and "\nOn the swing timer bar they change only text styling;\nthe bar keeps Blizzard's art." or ""))
+        -- Presets that suit the layout fill the grid in order.
+        local shownPresets = {}
+        for _, choice in ipairs(addon.PresetChoicesFor(db)) do shownPresets[choice.key] = true end
+        local index = 0
+        for _, entry in ipairs(presetButtons) do
+            local shown = shownPresets[entry.choice.key] == true
+            entry.button:SetShown(shown)
+            if shown then
+                local column, row = index % 3, math.floor(index / 3)
+                entry.button:ClearAllPoints()
+                entry.button:SetPoint("TOPLEFT", 26 + column * 112, (swing and -64 or -50) - row * 34)
+                index = index + 1
+            end
+        end
     end
 
     function panel:Synchronize()
         syncing = true
         for _, update in ipairs(controls) do update() end
         syncing = false
+        self:Relayout()
     end
     panel.OnRefresh = function() panel:Synchronize() end
     panel.refresh = panel.OnRefresh

@@ -19,7 +19,8 @@ local anchors = {
 }
 
 function addon.NormalizeCooldownManager(db)
-    db.snapToCDM = db.snapToCDM == true
+    -- Snapping is the Essential Cooldowns icon's behavior, not a setting.
+    db.snapToCDM = nil
     if not anchors[db.snapSide] then db.snapSide = "right" end
     for key, limits in pairs({cdmIconSize = {0, 80, 0}, snapGap = {0, 20, 2}}) do
         local value = db[key]
@@ -84,7 +85,8 @@ end
 
 -- Anchors the tracker to the Essential bar. Returns false to keep the free position.
 function addon.SnapToCooldownViewer(frame, db)
-    if not db.snapToCDM then return false end
+    -- Only the Essential Cooldowns icon snaps; other layouts keep their position.
+    if db.displayStyle ~= "essential" then return false end
     local viewer = addon.CooldownViewer()
     if not viewer then return false end
     local anchor = anchors[db.snapSide]

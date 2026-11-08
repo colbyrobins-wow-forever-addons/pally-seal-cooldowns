@@ -38,7 +38,11 @@ local function CreateWidgets(parent)
         view.mask:SetAtlas("UI-HUD-CoolDownManager-Mask")
         view.masked = false
     end
+    view.swing = addon.CreateSwingArt(parent, view.bar)
     view.name = view.overlay:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    -- The swing bar's fixed label. Never bound natively, so its text stays put.
+    view.label = view.overlay:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    view.label:SetJustifyH("LEFT")
     view.timer = view.overlay:CreateFontString(nil, "OVERLAY", "GameFontHighlightHugeOutline")
     view.status = view.overlay:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     return view
@@ -51,13 +55,15 @@ end
 
 local function Dimensions(db, iconSize)
     if db.displayStyle == "bar" then return db.barWidth + 32, 30 end
+    if db.displayStyle == "swing" then return addon.SwingSize(db) end
     -- The matched style has no padding, so snapped icons sit flush.
     local size = db.displayStyle == "essential" and iconSize or 56
     return size, size
 end
 
 local function StyleBorder(view, db, missing, iconSize)
-    local path = addon.MediaPath("border", db.border)
+    -- The swing timer bar draws its own frame instead of an icon border.
+    local path = db.displayStyle ~= "swing" and addon.MediaPath("border", db.border) or nil
     local size = db.borderSize
     local span = math.max(1, iconSize + 4 - 2 * size)
     local definitions = {
@@ -104,7 +110,27 @@ local function Style(view, db, missing, iconSize)
     for _, region in ipairs({view.icon, view.cooldown, view.bar, view.name, view.timer, view.status}) do
         region:ClearAllPoints()
     end
-    if db.displayStyle == "bar" then
+    local swing = db.displayStyle == "swing"
+    -- Alpha, not Hide: the native button still drives the bound icon and swipe.
+    view.icon:SetAlpha(swing and 0 or 1)
+    view.cooldown:SetAlpha(swing and 0 or 1)
+    view.back:SetAlpha(swing and 0 or 1)
+    view.name:SetFontObject(swing and "GameFontHighlightSmall" or "GameFontNormalSmall")
+    if swing then
+        -- Blizzard_SwingTimer geometry: bar inset 5/4, labels 10 px inside it.
+        local insetX, insetY = addon.SwingInsetX, addon.SwingInsetY
+        view.icon:SetSize(height - 2 * insetY, height - 2 * insetY)
+        view.icon:SetPoint("LEFT", view.frame, "LEFT", insetX, 0)
+        view.bar:SetSize(width - 2 * insetX, height - 2 * insetY)
+        view.bar:SetPoint("TOPLEFT", view.frame, "TOPLEFT", insetX, -insetY)
+        view.name:SetPoint("LEFT", view.bar, "LEFT", 10, 0)
+        view.name:SetWidth(db.barWidth - 40)
+        view.name:SetJustifyH("LEFT")
+        view.timer:SetFontObject("GameFontHighlightSmall")
+        view.timer:SetPoint("RIGHT", view.bar, "RIGHT", -10, 0)
+        view.status:SetPoint("TOPLEFT", view.frame, "BOTTOMLEFT", 6, -5)
+        view.status:SetJustifyH("LEFT")
+    elseif db.displayStyle == "bar" then
         view.icon:SetSize(30, 30)
         view.icon:SetPoint("LEFT", view.frame, "LEFT")
         view.bar:SetSize(db.barWidth, 19)
@@ -131,19 +157,26 @@ local function Style(view, db, missing, iconSize)
     end
     view.cooldown:SetAllPoints(view.icon)
     -- Alpha, not Hide: the native button drives the bound bar's updates.
-    view.bar:SetAlpha((db.displayStyle == "bar" or db.showIconBar ~= false) and 1 or 0)
+    view.bar:SetAlpha((db.displayStyle == "bar" or swing or db.showIconBar ~= false) and 1 or 0)
     local masked = db.displayStyle == "essential"
     if view.mask and view.masked ~= masked then
         if masked then view.icon:AddMaskTexture(view.mask)
         else view.icon:RemoveMaskTexture(view.mask) end
         view.masked = masked
     end
-    view.bar:SetStatusBarTexture(addon.MediaPath("statusbar", db.statusbar)
-        or "Interface\\TargetingFrame\\UI-StatusBar")
-    view.bar:SetStatusBarColor(1, 0.72, 0.25)
+    view.bar:SetStatusBarTexture((swing and addon.SwingFill(db))
+        or addon.MediaPath("statusbar", db.statusbar) or "Interface\\TargetingFrame\\UI-StatusBar")
+    view.bar:SetStatusBarColor(addon.ActiveBarRGB(db))
     -- Missing-seal text also needs its own toggle; active text ignores it.
     local missingText = not missing or db.showMissingText ~= false
-    view.name:SetShown(db.showSealName and missingText)
+    view.name:SetShown(db.showSealName and missingText and not swing)
+    view.label:ClearAllPoints()
+    view.label:SetPoint("LEFT", view.bar, "LEFT", 10, 0)
+    view.label:SetText(addon.SwingLabel)
+    -- A fixed title like Blizzard's "Main Hand": seal-name and missing-text
+    -- options do not hide it.
+    view.label:SetShown(swing)
+    addon.ApplyFont(view.label, db, db.nameSize)
     view.status:SetShown(db.showStatusText and missingText)
     addon.ApplyFont(view.name, db, db.nameSize)
     addon.ApplyFont(view.timer, db, db.timerSize)
@@ -154,9 +187,10 @@ local function Style(view, db, missing, iconSize)
     local outsetY = math.floor(7 * iconSize / 52 + 0.5)
     view.border:SetPoint("TOPLEFT", view.icon, "TOPLEFT", -outsetX, outsetY)
     view.border:SetPoint("BOTTOMRIGHT", view.icon, "BOTTOMRIGHT", outsetX, -outsetY)
-    view.border:SetShown(db.border == "default")
+    view.border:SetShown(db.border == "default" and not swing)
     view.border:SetVertexColor(addon.BorderRGB(db, missing))
     StyleBorder(view, db, missing, iconSize)
+    addon.StyleSwingArt(view.swing, view.frame, view.bar, db, missing)
     if missing then
         view.icon:SetTexture(addon.MissingIconPath(db))
         view.icon:SetDesaturated(true)
@@ -173,28 +207,31 @@ end
 
 -- Plain countdown numbers: the native default appends a unit ("12s").
 -- Whole seconds round up like the game's countdown; a minute or more is M:SS.
-local countdownFormatter
-local function CountdownFormatter()
-    if countdownFormatter ~= nil then return countdownFormatter or nil end
-    countdownFormatter = false
+-- The swing timer bar shows tenths ("12.3"), like the swing timer.
+local countdownFormatters = {}
+local function CountdownFormatter(tenths)
+    local key = tenths and "tenths" or "whole"
+    if countdownFormatters[key] ~= nil then return countdownFormatters[key] or nil end
+    countdownFormatters[key] = false
     if not (C_StringUtil and C_StringUtil.CreateNumericRuleFormatter
         and Enum and Enum.NumericRuleFormatRounding) then return nil end
     local up = Enum.NumericRuleFormatRounding.Up
     local ok, formatter = pcall(function()
         local created = C_StringUtil.CreateNumericRuleFormatter()
         created:SetBreakpoints({
-            {threshold = 0, format = "%d", step = 1, rounding = up},
+            tenths and {threshold = 0, format = "%.1f"}
+                or {threshold = 0, format = "%d", step = 1, rounding = up},
             {threshold = 60, format = "%d:%02d", step = 1, rounding = up,
                 components = {{div = 60}, {mod = 60}}},
         })
         return created
     end)
-    if ok and formatter then countdownFormatter = formatter end
-    return countdownFormatter or nil
+    if ok and formatter then countdownFormatters[key] = formatter end
+    return countdownFormatters[key] or nil
 end
 
 local function BindDurationText(button, view, db)
-    local options = {textFormatter = CountdownFormatter()}
+    local options = {textFormatter = CountdownFormatter(db.displayStyle == "swing")}
     local statusOptions
     if C_CurveUtil and CreateColor and Enum and Enum.LuaCurveType
         and Enum.DurationTextBindingProperty then
@@ -323,13 +360,16 @@ function methods:Apply(db)
         barOptions.direction = Enum.StatusBarTimerDirection.RemainingTime
     end
     self.button:SetDurationBar(self.present.bar, barOptions)
-    if db.showSealName then self.button:SetSpellName(self.present.name)
+    -- The swing timer bar shows its own fixed label instead of the bound seal name.
+    if db.showSealName and db.displayStyle ~= "swing" then self.button:SetSpellName(self.present.name)
     else self.button:ClearSpellName() end
     local warningOptions = BindDurationText(self.button, self.present, db)
     self.present.status:Hide()
     self.warningText:ClearAllPoints()
     if db.displayStyle == "bar" then
         self.warningText:SetPoint("TOPLEFT", self.root, "BOTTOMLEFT", 37, -7)
+    elseif db.displayStyle == "swing" then
+        self.warningText:SetPoint("TOPLEFT", self.root, "BOTTOMLEFT", 6, -5)
     else
         self.warningText:SetPoint("TOP", self.root, "BOTTOM", 0, -25)
     end
@@ -345,6 +385,12 @@ function methods:Apply(db)
     -- Hiding the missing clip's contents leaves nothing on screen without a
     -- seal; the native presence gate still decides when they would appear.
     self.missing.frame:SetAlpha(db.hideWhenMissing and 0 or 1)
+    -- The glow surrounds the whole swing bar, which has no visible icon.
+    local swing = db.displayStyle == "swing"
+    local glowTarget, glowOut = swing and self.missing.frame or self.missing.icon, swing and 12 or 20
+    self.glow:ClearAllPoints()
+    self.glow:SetPoint("TOPLEFT", glowTarget, "TOPLEFT", -glowOut, glowOut)
+    self.glow:SetPoint("BOTTOMRIGHT", glowTarget, "BOTTOMRIGHT", glowOut, -glowOut)
     -- Restart the combat alert with the chosen parts on the next update.
     self.alertGlow, self.alertBounce = addon.MissingAlertParts(db)
     self.glow:Hide()

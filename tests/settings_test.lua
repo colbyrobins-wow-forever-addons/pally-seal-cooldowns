@@ -115,7 +115,6 @@ local placement = {
     {"Slider", "Bar width: ", "layout"},
     {"Button", "Bar texture: ", "layout"},
     {"CheckButton", "Bar counts down", "layout"},
-    {"CheckButton", "Snap to Essential Cooldowns bar", "layout"},
     {"Button", "Snap position: ", "layout"},
     {"Slider", "Gap from bar: ", "layout"},
     {"Button", "Combat alert: ", "alerts"},
@@ -153,7 +152,7 @@ for _, widget in ipairs(widgets) do
     counts[widget.kind] = (counts[widget.kind] or 0) + 1
     assert(widget.kind ~= "EditBox", "Custom seal input must be removed")
 end
-assert(counts.CheckButton == 15 and counts.Slider == 8, "No controls are lost in the split")
+assert(counts.CheckButton == 14 and counts.Slider == 8, "No controls are lost in the split")
 assert(counts.ScrollFrame == 5, "Each page scrolls independently")
 
 -- General page.
@@ -177,9 +176,11 @@ assert(layout.value == "Layout: Small icon with timer bar  >")
 layout.scripts.OnClick(layout, "LeftButton")
 assert(db.displayStyle == "essential")
 layout.scripts.OnClick(layout, "LeftButton")
+assert(db.displayStyle == "swing" and layout.value == "Layout: Swing timer bar  >")
+layout.scripts.OnClick(layout, "LeftButton")
 assert(db.displayStyle == "icon", "Layouts cycle back to the large icon")
 layout.scripts.OnClick(layout, "RightButton")
-assert(db.displayStyle == "essential", "Right-click cycles layouts backward")
+assert(db.displayStyle == "swing", "Right-click cycles layouts backward")
 db.displayStyle = "icon"
 panel:Synchronize()
 local hide = Find("CheckButton", "Hide outside combat")
@@ -206,17 +207,15 @@ Click(iconBar, false)
 assert(db.showIconBar == false)
 Click(iconBar, true)
 assert(db.showIconBar == true)
--- Essential Cooldowns bar options default off and apply live.
-assert(db.snapToCDM == false and db.snapSide == "right")
+-- Essential Cooldowns icon placement: it always snaps, so there is no
+-- on/off setting; position and gap apply live.
+assert(db.snapToCDM == nil and db.snapSide == "right")
 assert(db.cdmIconSize == 0 and db.snapGap == 2)
-local snap = Find("CheckButton", "Snap to Essential Cooldowns bar")
 local beforeSnap = applied
-Click(snap, true)
-assert(db.snapToCDM == true and applied == beforeSnap + 1)
 local side = Find("Button", "Snap position: ")
 assert(side.value == "Snap position: Right of bar  >")
 side.scripts.OnClick(side, "LeftButton")
-assert(db.snapSide == "left")
+assert(db.snapSide == "left" and applied == beforeSnap + 1)
 side.scripts.OnClick(side, "RightButton")
 side.scripts.OnClick(side, "RightButton")
 assert(db.snapSide == "bottom", "Right-click cycles snap sides backward")
@@ -228,8 +227,8 @@ assert(db.cdmIconSize == 0, "Sizes below 16 return to following Blizzard")
 Find("Slider", "Gap from bar: "):SetValue(6)
 assert(db.snapGap == 6)
 panel:Synchronize()
-assert(snap.value == true, "Snap preferences restore in the window")
-db.snapToCDM, db.snapSide, db.snapGap = false, "right", 2
+assert(side.value == "Snap position: Below bar  >", "Snap preferences restore in the window")
+db.snapSide, db.snapGap = "right", 2
 panel:Synchronize()
 
 -- Alerts page: missing-seal behavior.
@@ -466,6 +465,63 @@ assert(db.border == "none" and db.timerSize == 16)
 Preset("Default")
 assert(db.font == "default" and db.timerSize == 0 and db.border == "default")
 assert(db.threshold == 8 and db.counterMode == "refresh", "Presets preserve gameplay settings")
+
+-- Only settings that apply to the chosen layout are shown, without gaps.
+local function Shown(kind, label) return Find(kind, label).shown end
+local function Choose(style)
+    db.displayStyle = style
+    panel:Synchronize()
+end
+local layoutHeading
+for _, widget in ipairs(widgets) do
+    if widget.kind == "Region" and widget.parent == pages.layout.content
+        and type(widget.value) == "string" and widget.value:find(" options$") then layoutHeading = widget end
+end
+db.showIconBar, db.border = true, "solid"
+Choose("icon")
+assert(layoutHeading.value == "Large icon options")
+assert(Shown("CheckButton", "Show duration bar under icon") and not Shown("Slider", "Essential icon size: "))
+assert(not Shown("Slider", "Bar width: ") and Shown("Button", "Bar texture: "),
+    "Icon layouts keep texture options for their thin bar")
+assert(Shown("CheckButton", "Show seal name") and Shown("Button", "Placeholder icon: "))
+assert(Shown("Button", "Border color: ") and Shown("Slider", "Custom border thickness: "))
+Click(Find("CheckButton", "Show duration bar under icon"), false)
+assert(not Shown("Button", "Bar texture: ") and not Shown("CheckButton", "Bar counts down"),
+    "Hiding the icon bar hides its options immediately")
+Click(Find("CheckButton", "Show duration bar under icon"), true)
+Choose("essential")
+assert(layoutHeading.value == "Essential Cooldowns icon options" and Shown("Slider", "Essential icon size: "))
+assert(Shown("Button", "Snap position: ") and Shown("Slider", "Gap from bar: "),
+    "Snap placement belongs to the Essential Cooldowns icon")
+Choose("bar")
+assert(Shown("Slider", "Bar width: ") and not Shown("CheckButton", "Show duration bar under icon"))
+assert(Shown("Slider", "Bar width: ") and Find("Slider", "Bar width: ").point[3] == -158,
+    "Bar width moves up into the space of the hidden icon options")
+Choose("swing")
+assert(layoutHeading.value == "Swing timer bar options")
+assert(Shown("Slider", "Bar width: ") and Shown("Button", "Bar texture: ") and Shown("CheckButton", "Bar counts down"))
+assert(not Shown("CheckButton", "Show seal name"), "Seal Timer label replaces the seal name")
+assert(not Shown("Button", "Placeholder icon: ") and Shown("Button", "Missing symbol: "))
+assert(not Shown("Button", "Border color: ") and not Shown("Slider", "Custom border thickness: "))
+assert(Shown("Button", "Border: ") and Shown("Button", "Warning color: "))
+assert(Find("Slider", "Label font size: "), "The name size slider names the swing label")
+assert(Find("Button", "Warning color: ").point[3] == -403 + 100,
+    "Warning color closes the gap left by both border options")
+assert(not Shown("Button", "Classic Gold") and not Shown("Button", "Paladin Pink"))
+assert(not Shown("Button", "Snap position: ") and not Shown("Slider", "Gap from bar: "),
+    "Snapping is not offered for the swing bar")
+assert(Shown("Button", "Minimal") and Shown("Button", "Clean Text"))
+Choose("icon")
+db.border = "none"
+panel:Synchronize()
+assert(not Shown("Button", "Border color: ") and not Shown("Slider", "Custom border thickness: "))
+db.border = "default"
+panel:Synchronize()
+assert(Shown("Button", "Border color: ") and not Shown("Slider", "Custom border thickness: "),
+    "The default border has a color but no thickness")
+assert(Shown("CheckButton", "Show seal name") and Shown("Button", "Classic Gold"))
+assert(not Shown("Button", "Snap position: ") and not Shown("Slider", "Gap from bar: "),
+    "Only the Essential Cooldowns icon snaps")
 
 -- Standalone window hosts every page behind tabs.
 local tabs = {}

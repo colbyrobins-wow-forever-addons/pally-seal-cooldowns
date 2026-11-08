@@ -77,6 +77,25 @@ for _, choice in ipairs(addon.PresetChoices) do
 end
 addon.ApplyPreset(db, "unknown")
 assert(db.font == "arial" and db.border == "none", "Unknown presets must not change settings")
+-- Swing timer bar: presets change only text and keep Blizzard's bar art.
+local swingDb = {displayStyle = "swing", statusbar = "default", border = "default",
+    borderColor = "white", borderSize = 2}
+addon.NormalizeAppearance(swingDb)
+addon.ApplyPreset(swingDb, "minimal")
+assert(swingDb.statusbar == "default" and swingDb.border == "default" and swingDb.borderSize == 2,
+    "Swing presets keep the atlas fill and frame")
+assert(swingDb.outline == "none" and swingDb.fontShadow == false, "Swing presets still style text")
+swingDb.statusbar = "flat"
+addon.ApplyPreset(swingDb, "default")
+assert(swingDb.statusbar == "flat", "A chosen bar texture is the user's, not the preset's")
+local function Keys(list)
+    local keys = {}
+    for _, choice in ipairs(list) do keys[#keys + 1] = choice.key end
+    return table.concat(keys, ",")
+end
+assert(Keys(addon.PresetChoicesFor(swingDb)) == "default,minimal,contrast,clean",
+    "Border-look presets are hidden for the swing bar")
+assert(Keys(addon.PresetChoicesFor({displayStyle = "icon"})) == "default,minimal,contrast,gold,pink,clean")
 -- Layout and missing-seal options normalize independently of presets.
 local display = {displayStyle = "wide", missingAlert = "spin", missingSymbol = 3,
     missingIcon = "unknown", showIconBar = false, hideWhenMissing = "yes"}
@@ -85,6 +104,9 @@ assert(display.displayStyle == "icon" and display.missingAlert == "both")
 assert(display.missingSymbol == "bang" and display.missingIcon == "might")
 assert(display.showIconBar == false and display.showMissingText == true)
 assert(display.hideWhenMissing == false, "Only a true value hides the missing tracker")
+local swing = {displayStyle = "swing"}
+addon.NormalizeDisplayOptions(swing)
+assert(swing.displayStyle == "swing", "The swing timer bar layout is kept")
 local migrated = {displayStyle = "icon", cdmStyle = true}
 addon.NormalizeDisplayOptions(migrated)
 assert(migrated.displayStyle == "essential" and migrated.cdmStyle == nil,

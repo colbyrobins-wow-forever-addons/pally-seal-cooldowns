@@ -36,6 +36,7 @@ addon.LayoutChoices = {
     {key = "icon", label = "Large icon"},
     {key = "bar", label = "Small icon with timer bar"},
     {key = "essential", label = "Essential Cooldowns icon"},
+    {key = "swing", label = "Swing timer bar"},
 }
 addon.MissingAlertChoices = {
     {key = "both", label = "Glow and bounce"},
@@ -66,10 +67,23 @@ addon.PresetChoices = {
     {key = "default", label = "Default"},
     {key = "minimal", label = "Minimal"},
     {key = "contrast", label = "High Contrast"},
-    {key = "gold", label = "Classic Gold"},
-    {key = "pink", label = "Paladin Pink"},
+    -- These two are mostly an icon border look, which the swing bar lacks.
+    {key = "gold", label = "Classic Gold", iconBorder = true},
+    {key = "pink", label = "Paladin Pink", iconBorder = true},
     {key = "clean", label = "Clean Text"},
 }
+-- Bar artwork a preset leaves alone in the swing layout, so Blizzard's swing
+-- timer art (fill and frame) survives; presets there change only text.
+local swingKept = {"statusbar", "border", "borderColor", "borderSize"}
+
+-- The presets that suit the chosen layout.
+function addon.PresetChoicesFor(db)
+    local choices = {}
+    for _, choice in ipairs(addon.PresetChoices) do
+        if not (choice.iconBorder and db.displayStyle == "swing") then choices[#choices + 1] = choice end
+    end
+    return choices
+end
 local defaults = {font = "default", border = "default", statusbar = "default",
     outline = "default", fontShadow = true, timerSize = 0, nameSize = 0,
     borderSize = 2, borderColor = "white", warningColor = "red"}
@@ -137,6 +151,10 @@ function addon.ApplyPreset(db, preset)
         if choice.key == preset then valid = true; break end
     end
     if not valid then return end
+    local kept = {}
+    if db.displayStyle == "swing" then
+        for _, key in ipairs(swingKept) do kept[key] = db[key] end
+    end
     for key, value in pairs(defaults) do db[key] = value end
     if preset == "minimal" then
         db.border, db.statusbar, db.outline = "solid", "flat", "none"
@@ -155,6 +173,7 @@ function addon.ApplyPreset(db, preset)
         db.outline, db.fontShadow = "none", true
         db.timerSize, db.nameSize = 16, 12
     end
+    for key, value in pairs(kept) do db[key] = value end
 end
 
 local function Choice(choices, key)
@@ -204,6 +223,126 @@ function addon.BorderRGB(db, warning)
         if choice.key == db.borderColor then return unpack(choice.rgb) end
     end
     return 1, 1, 1
+end
+
+-- Swing timer bar layout: Forever's main-hand swing timer (Blizzard_SwingTimer)
+-- rebuilt from the same atlases, with no Blizzard template or Edit Mode hooks.
+-- Sizes come from settings, never from frame geometry, so the art is safe on
+-- native aura buttons. Clients without the atlases get a drawn bronze frame.
+addon.SwingInsetX, addon.SwingInsetY = 5, 4
+addon.SwingLabel = "Seal Timer"
+addon.SwingAtlas = {
+    background = "ui-swingtimerbar-background",
+    frame = "ui-swingtimerbar-frame",
+    fill = "ui-swingtimerbar-filling-mainhand",
+    pip = "ui-swingtimerbar-pip",
+    shadow = "ui-swingtimerbar-textshadow-left",
+}
+local swingRings = {
+    -- inset, thickness, color
+    {0, 1, {0.15, 0.1, 0.04}},
+    {1, 2, {0.34, 0.26, 0.17}},
+    {3, 1, {0.04, 0.01, 0}},
+}
+local swingCorners = {"TOPLEFT", "TOPRIGHT", "BOTTOMLEFT", "BOTTOMRIGHT"}
+
+function addon.HasSwingAtlas()
+    return C_Texture and C_Texture.GetAtlasInfo
+        and C_Texture.GetAtlasInfo(addon.SwingAtlas.frame) and true or false
+end
+
+-- Blizzard's default bar is 213 wide; the 188 px default bar width matches it.
+function addon.SwingSize(db)
+    return db.barWidth + 25, 30
+end
+
+-- Fill texture for the bar: the main-hand fill unless a texture is chosen.
+function addon.SwingFill(db)
+    if db.statusbar == "default" and addon.HasSwingAtlas() then return addon.SwingAtlas.fill end
+end
+
+-- Active fill color: the atlas fill keeps its own color; plain fills are gold.
+function addon.ActiveBarRGB(db)
+    if db.displayStyle == "swing" and addon.SwingFill(db) then return 1, 1, 1 end
+    return 1, 0.72, 0.25
+end
+
+function addon.CreateSwingArt(parent, bar)
+    local art = {back = parent:CreateTexture(nil, "BACKGROUND"),
+        frame = parent:CreateTexture(nil, "BACKGROUND", nil, 1), edges = {}, corners = {},
+        shadow = bar:CreateTexture(nil, "OVERLAY"), pip = bar:CreateTexture(nil, "OVERLAY", nil, 1)}
+    for index = 1, #swingRings * 4 do art.edges[index] = parent:CreateTexture(nil, "BORDER") end
+    for index = 1, #swingCorners do art.corners[index] = parent:CreateTexture(nil, "BORDER", nil, 1) end
+    return art
+end
+
+local function StyleDrawnFrame(art, parent, shown)
+    for _, texture in ipairs(art.edges) do texture:SetShown(shown) end
+    for _, texture in ipairs(art.corners) do texture:SetShown(shown) end
+    if not shown then return end
+    for ring, definition in ipairs(swingRings) do
+        local inset, size, rgb = unpack(definition)
+        local top, bottom, left, right = unpack(art.edges, ring * 4 - 3, ring * 4)
+        for _, texture in ipairs({top, bottom, left, right}) do
+            texture:ClearAllPoints()
+            texture:SetColorTexture(rgb[1], rgb[2], rgb[3], 1)
+        end
+        top:SetPoint("TOPLEFT", parent, "TOPLEFT", inset, -inset)
+        top:SetPoint("TOPRIGHT", parent, "TOPRIGHT", -inset, -inset)
+        top:SetHeight(size)
+        bottom:SetPoint("BOTTOMLEFT", parent, "BOTTOMLEFT", inset, inset)
+        bottom:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", -inset, inset)
+        bottom:SetHeight(size)
+        left:SetPoint("TOPLEFT", parent, "TOPLEFT", inset, -inset - size)
+        left:SetPoint("BOTTOMLEFT", parent, "BOTTOMLEFT", inset, inset + size)
+        left:SetWidth(size)
+        right:SetPoint("TOPRIGHT", parent, "TOPRIGHT", -inset, -inset - size)
+        right:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", -inset, inset + size)
+        right:SetWidth(size)
+    end
+    -- Bright gold glints sit on the bronze band at each corner.
+    for index, point in ipairs(swingCorners) do
+        local texture = art.corners[index]
+        texture:ClearAllPoints()
+        texture:SetSize(2, 2)
+        texture:SetPoint(point, parent, point, point:find("LEFT", 1, true) and 1 or -1,
+            point:find("TOP", 1, true) and -1 or 1)
+        texture:SetColorTexture(0.95, 0.83, 0.66, 1)
+    end
+end
+
+-- Call after the bar's fill texture is set; the pip follows the fill's edge.
+function addon.StyleSwingArt(art, parent, bar, db, missing)
+    local shown = db.displayStyle == "swing"
+    local atlas = shown and addon.HasSwingAtlas()
+    local framed = shown and db.border ~= "none"
+    art.back:SetShown(shown)
+    art.frame:SetShown(atlas and framed)
+    art.shadow:SetShown(atlas)
+    -- Like Blizzard's, the pip shows only while a timer runs.
+    art.pip:SetShown(atlas and not missing)
+    StyleDrawnFrame(art, parent, framed and not atlas)
+    if not shown then return end
+    art.back:ClearAllPoints()
+    if atlas then
+        art.back:SetAtlas(addon.SwingAtlas.background)
+        art.back:SetAllPoints(parent)
+        art.frame:SetAtlas(addon.SwingAtlas.frame)
+        art.frame:ClearAllPoints()
+        art.frame:SetAllPoints(parent)
+        art.shadow:SetAtlas(addon.SwingAtlas.shadow)
+        art.shadow:ClearAllPoints()
+        art.shadow:SetPoint("TOPLEFT", bar, "TOPLEFT")
+        art.shadow:SetPoint("BOTTOMLEFT", bar, "BOTTOMLEFT")
+        art.shadow:SetWidth(math.min(171, db.barWidth + 25 - 2 * addon.SwingInsetX))
+        art.pip:SetAtlas(addon.SwingAtlas.pip, true)
+        art.pip:ClearAllPoints()
+        art.pip:SetPoint("RIGHT", bar:GetStatusBarTexture(), "RIGHT", 0, 0)
+    else
+        art.back:SetPoint("TOPLEFT", parent, "TOPLEFT", 1, -1)
+        art.back:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", -1, 1)
+        art.back:SetColorTexture(0.05, 0.04, 0.03, 0.85)
+    end
 end
 
 function addon.ApplyFont(region, db, size)

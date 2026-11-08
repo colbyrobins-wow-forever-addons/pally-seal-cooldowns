@@ -3,7 +3,7 @@
 Development follows [the test-before-version workflow](DEVELOPMENT.md): changes
 are tracked in Git and tested in game before a new release version is assigned.
 
-Version **0.1.23** uses Blizzard-managed aura displays for the main
+Version **0.1.24** uses Blizzard-managed aura displays for the main
 icon and bar when supported by the client. Seal visibility, name, countdown, and
 bar progress update natively, including removal during restricted combat. The
 missing-seal icon/text and combat animation use native layout clipping, without
@@ -109,8 +109,10 @@ Changes apply immediately and are saved automatically.
 Enable **Hide outside combat** to show the tracker only during combat. The
 minimap settings button stays available. This setting is off by default.
 
-The **Layout** page picks one of three layouts and groups each layout's options
-under its own heading. Display size on the General page scales every layout.
+The **Layout** page picks one of four layouts. Each page shows only the
+settings that apply to the chosen layout (and hides, for example, border color
+when Border is None), so changing layout changes which options are listed.
+Display size on the General page scales every layout.
 - **Large icon** (default): a 52-pixel icon. Uncheck **Show duration bar under
   icon** to remove the thin bar beneath it.
 - **Small icon with timer bar**: a 30-pixel icon with a horizontal duration bar
@@ -118,15 +120,26 @@ under its own heading. Display size on the General page scales every layout.
 - **Essential Cooldowns icon**: matches the icons on Blizzard's Essential
   Cooldowns bar, with no padding or background and Blizzard's icon mask and
   overlay. **Essential icon size** at 0 follows Blizzard's icon size, or 50
-  pixels until one is visible. Any other value (16–80) sets the size.
+  pixels until one is visible. Any other value (16–80) sets the size. This
+  layout always attaches to Blizzard's bar (see below).
+- **Swing timer bar**: built from the same artwork as Forever's main-hand
+  swing timer (frame, background, fill, edge pip, and label shadow), with no
+  icon, "Seal Timer" on the left (a fixed title like Blizzard's "Main Hand",
+  shown even when **Show seal name** is off), and the time left in tenths of a
+  second on the right. It is 213 pixels wide at the default bar width, like Blizzard's.
+  It uses **Bar width**, **Bar texture** (Game default keeps the main-hand
+  fill), and **Bar counts down**; setting **Border** to None on the
+  Appearance page removes the frame.
 
-**Bar texture** and **Bar counts down** apply to both duration bars. Bar counts
+**Bar texture** and **Bar counts down** apply to all duration bars. Bar counts
 down starts the bar full and drains it from right to left; by default it fills
-up instead. `/psc style icon`, `/psc style bar`, and `/psc style essential`
-switch layouts.
-**Snap to Essential Cooldowns bar** works with any layout. It attaches the tracker
-to the right, left, top, or bottom of Blizzard's bar with an adjustable gap.
-While snapped, the tracker moves with the bar in Edit Mode and cannot be dragged.
+up instead. `/psc style icon`, `/psc style bar`, `/psc style essential`, and
+`/psc style swing` switch layouts.
+The **Essential Cooldowns icon** always attaches to Blizzard's Essential
+Cooldowns bar; this is no longer a setting, and the other layouts never attach.
+**Snap position** puts it on the right, left, top, or bottom of the bar, and
+**Gap from bar** sets the spacing. It moves with the bar in Edit Mode and
+cannot be dragged.
 If the bar is missing (for example, the Cooldown Manager is disabled), the saved
 position is used and chat notes it once. `/psc status` reports whether the bar
 was found.
@@ -184,7 +197,9 @@ Three additional presets are included: **Classic Gold** uses a gold tooltip
 border with outlined text; **Paladin Pink** uses Arial Narrow and a pink solid
 border; **Clean Text** uses Arial Narrow, text shadows, and no border. All six
 preset buttons are on the **Presets** sub-page and work without extra media
-packs.
+packs. On the **Swing timer bar** layout, presets change only text styling and
+keep Blizzard's bar art (fill and frame), and Classic Gold and Paladin Pink,
+which are border looks, are hidden.
 
 Optional **LibSharedMedia-3.0** support adds fonts, border textures, and bar
 textures registered by installed media packs. The library is not bundled;

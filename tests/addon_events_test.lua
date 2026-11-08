@@ -3,6 +3,7 @@ local trackerFrame
 local animationPlays, animationStops = 0, 0
 local now, cooldownStart, cooldownDuration = 100, nil, nil
 local counterText, trackerShown, cooldownShown, barValue
+local smallTexts, smallStrings = {}, {}
 local widget = {}
 setmetatable(widget, {__index = function(_, name)
     if name == "CreateAnimationGroup" or name == "CreateAnimation"
@@ -29,6 +30,15 @@ setmetatable(widget, {__index = function(_, name)
             if font == "GameFontHighlightHugeOutline" then
                 return setmetatable({SetText = function(_, text) counterText = text end},
                     {__index = widget})
+            end
+            -- Seal name (title) and status text use this font.
+            if font == "GameFontNormalSmall" then
+                local fontString = setmetatable({SetText = function(self, text)
+                    smallTexts[text] = true
+                    self.text = text
+                end, SetShown = function(self, shown) self.shown = shown end}, {__index = widget})
+                smallStrings[#smallStrings + 1] = fontString
+                return fontString
             end
             return widget
         end
@@ -109,6 +119,22 @@ assert(cooldownStart == 100 and cooldownDuration == 30)
 SlashCmdList.PALLYSEALCOOLDOWNS("style bar")
 assert(PallySealCooldownsDB.displayStyle == "bar")
 assert(counterText == "30", "Changing layout must preserve the running timer")
+assert(smallTexts["Seal 20154"], "Other layouts show the seal name")
+smallTexts = {}
+SlashCmdList.PALLYSEALCOOLDOWNS("style swing")
+assert(PallySealCooldownsDB.displayStyle == "swing")
+assert(counterText == "30.0", "Swing timer bar shows tenths")
+assert(smallTexts["Seal Timer"] and not smallTexts["Seal 20154"], "Swing bar label reads Seal Timer")
+-- Reported in game: Show seal name off hid the label.
+PallySealCooldownsDB.showSealName = false
+scripts.OnUpdate(widget, 0.1)
+local labelShown = false
+for _, fontString in ipairs(smallStrings) do
+    if fontString.text == "Seal Timer" and fontString.shown then labelShown = true end
+end
+assert(labelShown, "Seal Timer stays visible with Show seal name off")
+PallySealCooldownsDB.showSealName = true
+SlashCmdList.PALLYSEALCOOLDOWNS("style bar")
 SlashCmdList.PALLYSEALCOOLDOWNS("style invalid")
 assert(PallySealCooldownsDB.displayStyle == "bar")
 SlashCmdList.PALLYSEALCOOLDOWNS("style icon")
@@ -360,16 +386,19 @@ repaired = ReloadWithSettings({soundChoice = "media:None", missingSoundChoice = 
 assert(repaired.soundChoice == "chime" and repaired.missingSoundChoice == "raid",
     "Silent SharedMedia None sounds are repaired to defaults")
 
--- Snapping anchors to Blizzard's Essential bar, blocks dragging, and falls
--- back to the saved position with a single warning once the world is up.
+-- The Essential Cooldowns icon always snaps to Blizzard's Essential bar,
+-- blocks dragging, and falls back to the saved position with a single warning
+-- once the world is up. Other layouts never snap.
 local chat = {}
 DEFAULT_CHAT_FRAME = {AddMessage = function(_, text) chat[#chat + 1] = text end}
 EssentialCooldownViewer = nil
 local iconBarDB = ReloadWithSettings({})
 assert(iconBarDB.showIconBar == true, "Icon bar defaults to shown")
 assert(ReloadWithSettings({showIconBar = false}).showIconBar == false, "Hidden icon bar persists")
-local snapDB = ReloadWithSettings({snapToCDM = true, snapSide = "top", snapGap = 4,
-    locked = false, x = 10, y = 20})
+-- An old saved snap checkbox is dropped; the layout decides.
+local snapDB = ReloadWithSettings({displayStyle = "essential", snapToCDM = false, snapSide = "top",
+    snapGap = 4, locked = false, x = 10, y = 20})
+assert(snapDB.snapToCDM == nil, "The old snap setting is removed")
 assert(trackerFrame.point[1] == "CENTER" and trackerFrame.point[4] == 10,
     "Bar not loaded yet keeps the saved position")
 assert(#chat == 0, "No warning before the world has loaded")
@@ -381,17 +410,30 @@ EssentialCooldownViewer = essential
 scripts.OnEvent(widget, "ADDON_LOADED", "Blizzard_CooldownViewer")
 assert(trackerFrame.point[1] == "BOTTOM" and trackerFrame.point[2] == essential
     and trackerFrame.point[3] == "TOP" and trackerFrame.point[5] == 4,
-    "Blizzard's bar loading late still snaps the tracker")
+    "Blizzard's bar loading late still snaps the Essential icon")
 assert(trackerFrame.mouse == false, "Snapped tracker ignores the mouse")
 trackerFrame.moving = false
 scripts.OnDragStart(trackerFrame)
 assert(not trackerFrame.moving, "Snapped tracker cannot be dragged")
-snapDB.snapToCDM = false
+-- Other layouts stay free and draggable and never warn about the bar.
+local warnings = #chat
+for _, style in ipairs({"icon", "bar", "swing"}) do
+    snapDB.displayStyle = style
+    scripts.OnEvent(widget, "EDIT_MODE_LAYOUTS_UPDATED")
+    assert(trackerFrame.point[1] == "CENTER" and trackerFrame.mouse == true,
+        style .. " keeps its saved position")
+end
+EssentialCooldownViewer = nil
 scripts.OnEvent(widget, "EDIT_MODE_LAYOUTS_UPDATED")
-assert(trackerFrame.point[1] == "CENTER" and trackerFrame.mouse == true,
-    "Turning snapping off restores the free, draggable position")
+assert(#chat == warnings, "Only the Essential icon warns that the bar is missing")
+EssentialCooldownViewer = essential
+snapDB.displayStyle = "essential"
+scripts.OnEvent(widget, "EDIT_MODE_LAYOUTS_UPDATED")
+assert(trackerFrame.point[2] == essential, "Switching back to Essential snaps again")
+snapDB.displayStyle = "icon"
+scripts.OnEvent(widget, "EDIT_MODE_LAYOUTS_UPDATED")
 scripts.OnDragStart(trackerFrame)
-assert(trackerFrame.moving)
+assert(trackerFrame.moving, "Leaving Essential makes the tracker draggable")
 EssentialCooldownViewer = nil
 DEFAULT_CHAT_FRAME = widget
 
