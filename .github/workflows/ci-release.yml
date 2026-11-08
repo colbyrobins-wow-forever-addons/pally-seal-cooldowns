@@ -26,28 +26,8 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq --no-install-recommends lua5.1 lua-check
 
-      - name: Run luacheck
-        run: luacheck PallySealCooldowns
-
-      - name: Run Lua tests
-        run: |
-          for test in tests/*_test.lua; do
-            echo "Running $test"
-            lua5.1 "$test"
-          done
-
-      - name: Run Python tests
-        run: python3 -m unittest tests.test_export_diagnostics
-
-      - name: Check TOC files exist
-        run: |
-          grep -vE '^[[:space:]]*(#|$)' PallySealCooldowns/PallySealCooldowns.toc | tr -d '\r' |
-            while read -r file; do
-              if [ ! -f "PallySealCooldowns/$file" ]; then
-                echo "::error::TOC lists a missing file: $file"
-                exit 1
-              fi
-            done
+      - name: Run checks
+        run: bash scripts/check.sh
 
   release:
     needs: check

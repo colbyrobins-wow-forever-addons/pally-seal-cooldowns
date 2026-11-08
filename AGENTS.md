@@ -11,9 +11,10 @@
   build archives, deployment backups, and local dependencies.
 - Add focused regression tests for behavior changes and record verification
   results honestly. Distinguish local tests from in-game confirmation.
-- Deployment for in-game testing is separate from creating a release. Deploy
-  when requested, with a backup of the target addon directory; do not infer
-  deployment authorization from a request to implement a feature.
+- In-game testing is separate from creating a release. The client loads the
+  addon through a junction to the source folder. Create or change that link only
+  when requested, with a backup of any real folder it replaces; do not infer
+  authorization from a request to implement a feature.
 - Only assign a new version, create release archives or tags, or publish after
   the user accepts in-game results and requests release preparation or publishing
   as applicable. Do not automatically publish when preparing a release.
