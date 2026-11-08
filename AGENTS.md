@@ -17,6 +17,8 @@
 - Only assign a new version, create release archives or tags, or publish after
   the user accepts in-game results and requests release preparation or publishing
   as applicable. Do not automatically publish when preparing a release.
+- Pushing a `v*` tag publishes: CI creates the GitHub Release and uploads to
+  CurseForge. Push a tag only when the user asks to publish that version.
 - Keep changes surgical, preserve existing patterns, and do not log secrets.
 - This repository is public. Never commit personal information: write local
   paths outside the game folder as `<workspace>/...` (for example,

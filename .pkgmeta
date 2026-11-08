@@ -1,0 +1,21 @@
+# BigWigsMods/packager settings. Use spaces, not tabs.
+package-as: PallySealCooldowns
+
+# The addon lives in a subfolder, so lift it to the top of the ZIP.
+move-folders:
+  PallySealCooldowns/PallySealCooldowns: PallySealCooldowns
+
+# Written by the release workflow from release/changelog-<version>.md.
+manual-changelog:
+  filename: release/changelog-current.md
+  markup-type: markdown
+
+# Everything outside the addon folder stays out of the ZIP.
+ignore:
+  - AGENTS.md
+  - DEVELOPMENT.md
+  - LICENSE
+  - README.md
+  - release
+  - scripts
+  - tests

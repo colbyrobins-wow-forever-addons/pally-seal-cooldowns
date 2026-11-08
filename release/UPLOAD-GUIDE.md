@@ -3,6 +3,10 @@
 Current prepared release: **0.1.24**. Follow `../DEVELOPMENT.md` for development,
 in-game acceptance, and release preparation. Public upload is a separate step.
 
+## Automated upload
+
+Pushing a `v<version>` tag runs `.github/workflows/ci-release.yml`, which creates the GitHub Release and uploads `PallySealCooldowns-v<version>-forever.zip` to CurseForge as Forever / 1.60.1, type Release, with `changelog-<version>.md` as its changelog. CurseForge upload needs the `CF_API_TOKEN` repository secret and `## X-Curse-Project-ID` in the TOC; without them the job warns and skips CurseForge. The file upload fields below are for manual uploads. The project description, logo, and other project fields are still updated by hand.
+
 ## Project fields
 
 | Field | Value |

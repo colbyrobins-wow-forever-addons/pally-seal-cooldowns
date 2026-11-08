@@ -49,8 +49,27 @@ After in-game acceptance and a request to prepare a release:
    matching archive under ignored `dist/`. Include only the addon folder and its
    required assets.
 4. Publish only when requested. Record publication separately from preparation.
+   Pushing a `v*` tag is the publish step: `.github/workflows/ci-release.yml`
+   reruns the checks, requires the tag to match the TOC version and
+   `release/changelog-<version>.md`, then creates the GitHub Release and uploads
+   to CurseForge. Push one tag by name, and never push a tag while preparing.
 
 ## Current unreleased work
+
+### 2026-11-08: CI and release pipeline
+
+- Added `.github/workflows/ci-release.yml`, `.pkgmeta`, and `.luacheckrc`. Pushes
+  and pull requests run luacheck, the Lua and Python tests, and the TOC check.
+  Pushing a `v*` tag also packages with `BigWigsMods/packager`.
+- The TOC keeps its literal version, not `@project-version@`, so test deployments
+  still show the last released version.
+- Tested in an Ubuntu 24.04 container: the check steps and `release.sh -d` pass,
+  and the failure cases (Lua test, lint typo, missing TOC file, tag mismatch,
+  missing changelog) each stop the job. The ZIP matches the addon folder apart
+  from CRLF line endings added by the packager. No GitHub Actions run or
+  CurseForge upload has been verified yet.
+- Pending: the `CF_API_TOKEN` secret and `X-Curse-Project-ID` in the TOC. No
+  runtime changes, version change, or in-game testing needed.
 
 ### 2026-11-07: 0.1.24 release preparation
 

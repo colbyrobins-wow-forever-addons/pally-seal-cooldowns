@@ -1,0 +1,91 @@
+name: CI & Release
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Install Lua 5.1 and luacheck
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends lua5.1 lua-check
+
+      - name: Run luacheck
+        run: luacheck PallySealCooldowns
+
+      - name: Run Lua tests
+        run: |
+          for test in tests/*_test.lua; do
+            echo "Running $test"
+            lua5.1 "$test"
+          done
+
+      - name: Run Python tests
+        run: python3 -m unittest tests.test_export_diagnostics
+
+      - name: Check TOC files exist
+        run: |
+          grep -vE '^[[:space:]]*(#|$)' PallySealCooldowns/PallySealCooldowns.toc | tr -d '\r' |
+            while read -r file; do
+              if [ ! -f "PallySealCooldowns/$file" ]; then
+                echo "::error::TOC lists a missing file: $file"
+                exit 1
+              fi
+            done
+
+  release:
+    needs: check
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write # Create the GitHub Release
+    steps:
+      # The packager needs the full tag history.
+      - name: Check out full history
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Verify tag and prepare changelog
+        env:
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          toc=PallySealCooldowns/PallySealCooldowns.toc
+          toc_version="$(sed -n 's/^## Version: *//p' "$toc" | tr -d '\r')"
+          if [ "$toc_version" != "$version" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match TOC version $toc_version"
+            exit 1
+          fi
+          if [ ! -f "release/changelog-$version.md" ]; then
+            echo "::error::Missing release/changelog-$version.md"
+            exit 1
+          fi
+          # .pkgmeta reads this fixed name; it exists only on the runner.
+          cp "release/changelog-$version.md" release/changelog-current.md
+          # The packager skips CurseForge silently without both of these.
+          if [ -z "$CF_API_TOKEN" ] || ! grep -q '^## X-Curse-Project-ID:' "$toc"; then
+            echo "::warning::CurseForge upload will be skipped: needs the CF_API_TOKEN secret and X-Curse-Project-ID in the TOC."
+          fi
+
+      - name: Package and upload
+        uses: BigWigsMods/packager@v2
+        env:
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
