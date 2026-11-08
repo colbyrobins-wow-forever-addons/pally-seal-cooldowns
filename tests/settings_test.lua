@@ -294,6 +294,17 @@ for label, key in pairs({["Refresh sound only in combat"] = "refreshCombatOnly",
     Click(Find("CheckButton", label), true)
     assert(db[key] == true)
 end
+-- The combat-only option cannot apply to the native display's missing sound.
+assert(Find("CheckButton", "Missing sound only in combat").shown ~= false,
+    "Estimated tracker keeps the missing sound combat-only option")
+addon.NativeDisplayActive = true
+panel:Synchronize()
+assert(Find("CheckButton", "Missing sound only in combat").shown == false,
+    "Native display hides the missing sound combat-only option")
+assert(Find("CheckButton", "Refresh sound only in combat").shown ~= false,
+    "Refresh sound keeps its combat-only option")
+addon.NativeDisplayActive = nil
+panel:Synchronize()
 
 -- Appearance page.
 local countdown = Find("CheckButton", "Bar counts down")

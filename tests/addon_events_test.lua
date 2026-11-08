@@ -704,3 +704,44 @@ scripts.OnUpdate(widget, 0.5)
 scripts.OnUpdate(widget, 0.5)
 assert(soundCount == nativeSounds + 4, "Out-of-combat warning plays once with tracker hidden")
 io.write("Native refresh sound regression tests passed.\n")
+
+-- The native display cannot detect a missing seal in combat, so the combat-only
+-- default must not silence its missing-seal sound. Reproduces default settings.
+local liveSeal
+C_UnitAuras.GetAuraDataBySpellName = function(_, name)
+    if name == "Seal 20154" then return liveSeal end
+end
+local missingBefore = soundCount
+local nativeMissingDB = ReloadWithSettings({sound = false, missingSound = true})
+assert(nativeMissingDB.missingCombatOnly == true, "Test covers the default setting")
+scripts.OnEvent(widget, "PLAYER_ENTERING_WORLD")
+scripts.OnUpdate(widget, 0.5)
+assert(soundCount == missingBefore, "Login or reload without a seal stays silent")
+now = 3000
+liveSeal = {duration = 30, expirationTime = 3030, auraInstanceID = 501}
+scripts.OnEvent(widget, "UNIT_AURA", "player")
+liveSeal = nil
+scripts.OnEvent(widget, "UNIT_AURA", "player")
+scripts.OnUpdate(widget, 0.5)
+scripts.OnUpdate(widget, 0.5)
+assert(soundCount == missingBefore + 1, "A seal ending outside combat warns once")
+-- A seal lost in combat cannot be detected until combat ends.
+liveSeal = {duration = 30, expirationTime = 3030, auraInstanceID = 502}
+scripts.OnEvent(widget, "UNIT_AURA", "player")
+scripts.OnEvent(widget, "PLAYER_REGEN_DISABLED")
+liveSeal = nil
+scripts.OnEvent(widget, "UNIT_AURA", "player", {removedAuraInstanceIDs = {502}})
+scripts.OnUpdate(widget, 0.5)
+assert(soundCount == missingBefore + 1, "Native display stays silent in combat")
+scripts.OnEvent(widget, "PLAYER_REGEN_ENABLED")
+scripts.OnUpdate(widget, 0.5)
+assert(soundCount == missingBefore + 2, "A seal lost in combat warns once after combat")
+-- The enable checkbox still applies.
+nativeMissingDB.missingSound = false
+liveSeal = {duration = 30, expirationTime = 3030, auraInstanceID = 503}
+scripts.OnEvent(widget, "UNIT_AURA", "player")
+liveSeal = nil
+scripts.OnEvent(widget, "UNIT_AURA", "player")
+scripts.OnUpdate(widget, 0.5)
+assert(soundCount == missingBefore + 2, "Disabled missing sound stays silent")
+io.write("Native missing-seal sound regression tests passed.\n")

@@ -434,13 +434,13 @@ function addon.CreateSettings(db, apply)
     When(Selector("Placeholder icon: ", -378, "missingIcon", addon.MissingIcons),
         function() return not IsSwing() end)
     Checkbox("Play missing-seal sound", -410, "missingSound", true, false)
-    Checkbox("Missing sound only in combat", -445, "missingCombatOnly", true, false)
+    -- The native display can only confirm a missing seal outside combat.
+    When(Checkbox("Missing sound only in combat", -445, "missingCombatOnly", true, false),
+        function() return not addon.NativeDisplayActive end)
     Selector("Missing sound: ", -485, "missingSoundChoice", addon.SoundOptions,
         function() addon.PlayWarning(db, "missing") end)
     ActionButton("Test missing sound", -520, 170, function() addon.PlayWarning(db, "missing") end)
-    Hint(-560, "Both alerts share the audio channel. Installed\nSharedMedia sounds appear after the built-in ones.\n"
-        .. "Choosing a sound plays it. Tests play even when\nalerts are off or combat-only.\n"
-        .. "Missing-seal text also follows Show seal name and\nShow status text on the General page.")
+    local alertsHint = Hint(-560, "")
 
     section = pages.appearance.content
     Hint(-10, (useDropdowns and "Changes apply live." or "Changes apply live. Left/right-click choices to cycle.")
@@ -500,6 +500,11 @@ function addon.CreateSettings(db, apply)
         for _, choice in ipairs(addon.LayoutChoices) do
             if choice.key == db.displayStyle then layoutHeading.region:SetText(choice.label .. " options") end
         end
+        alertsHint.region:SetText((addon.NativeDisplayActive
+                and "The missing sound plays once outside combat after a\nseal ends, including one lost during combat.\n" or "")
+            .. "Both alerts share the audio channel. Installed\nSharedMedia sounds appear after the built-in ones.\n"
+            .. "Choosing a sound plays it. Tests play even when\nalerts are off or combat-only.\n"
+            .. "Missing-seal text also follows Show seal name and\nShow status text on the General page.")
         presetHint.region:SetText("Presets replace only appearance settings.\n"
             .. "Timing, sounds, position, and visibility are kept."
             .. (swing and "\nOn the swing timer bar they change only text styling;\nthe bar keeps Blizzard's art." or ""))

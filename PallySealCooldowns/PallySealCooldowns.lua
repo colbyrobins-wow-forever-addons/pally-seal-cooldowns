@@ -334,12 +334,15 @@ frame:SetScript("OnDragStop", function(self)
 end)
 
 local function UpdateSoundAlerts(state)
+    -- The native display can only confirm a missing seal outside combat, so its
+    -- sound ignores the combat-only option, which would otherwise silence it.
+    local missingCombatOnly = db.missingCombatOnly and not nativeDisplay
     if state == "active" or state == "refresh" or state == "permanent"
-        or (db.missingCombatOnly and not inCombat) then
+        or (missingCombatOnly and not inCombat) then
         missingSoundPlayed = false
     end
     if state == "missing" and db.missingSound and not missingSoundPlayed
-        and (not db.missingCombatOnly or inCombat) then
+        and (not missingCombatOnly or inCombat) then
         missingSoundPlayed = true
         addon.PlayWarning(db, "missing")
     end
@@ -362,6 +365,13 @@ HideLegacyDisplay = function()
     pulse:Stop()
     bounce:Stop()
     missingAlertPlaying = false
+end
+
+local function OnNativeDisplayReady()
+    HideLegacyDisplay()
+    addon.NativeDisplayActive = true
+    -- Logging in without a seal is not a lost seal: stay quiet until one was active.
+    missingSoundPlayed = true
 end
 
 -- The swing timer bar keeps a fixed label, like Blizzard's "Main Hand".
@@ -648,7 +658,7 @@ frame:SetScript("OnEvent", function(_, event, unit, castGUID, spellID)
         if addon.CreateNativeDisplay then
             nativeDisplay = addon.CreateNativeDisplay(frame, db, Message)
             nativeAttempted = not (InCombatLockdown and InCombatLockdown())
-            if nativeDisplay then HideLegacyDisplay() end
+            if nativeDisplay then OnNativeDisplayReady() end
         end
         addon.CreateMinimapButton(db, OpenSettings)
         addon.RegisterSettings(db, ApplySettings)
@@ -741,7 +751,7 @@ frame:SetScript("OnEvent", function(_, event, unit, castGUID, spellID)
             and not (InCombatLockdown and InCombatLockdown()) then
             nativeAttempted = true
             nativeDisplay = addon.CreateNativeDisplay(frame, db, Message)
-            if nativeDisplay then HideLegacyDisplay() end
+            if nativeDisplay then OnNativeDisplayReady() end
         end
         if nativeDisplay and pendingNativeSettings then ApplyPosition() end
         addon.RegisterSettings(db, ApplySettings)

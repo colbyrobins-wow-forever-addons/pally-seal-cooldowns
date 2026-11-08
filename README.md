@@ -22,17 +22,21 @@ readable removal cancels it, and a new seal cast replaces the deadline.
 Refresh sounds default to combat-only; uncheck **Refresh sound only in combat**
 to hear them outside combat. Sound previews still work. Automatic cancellation/
 dispel sounds and combat-entry missing sounds are pending native sound
-integration; they are not driven by the restricted native display. Outside
-combat, confirmed missing-seal sounds still honor the existing settings.
+integration; they are not driven by the restricted native display. The
+missing-seal sound plays once outside combat after a seal ends, including one
+lost during combat. It stays quiet at login until a seal has been active.
+**Missing sound only in combat** applies only to the older tracker, so it is
+hidden on this display.
 
 A lightweight paladin seal refresh tracker targeting WoW Forever beta interface
 16001. Tracks buff expiration, rather than spell cast cooldowns: the time you
 need for refreshing a seal.
 
-The display uses a compact 56-pixel cooldown-manager-style icon with native
+The display uses a compact 52-pixel cooldown-manager-style icon with native
 rounded mask and metallic border when available, a radial duration swipe,
-centered countdown, and a thin duration bar. The border and timer turn red at
-the refresh threshold. The seal name and status appear beneath the icon.
+centered countdown, and a thin duration bar. The border and timer turn the
+warning color (red by default) at the refresh threshold. The seal name and
+status appear beneath the icon.
 In combat, a confirmed missing or expired seal makes the icon glow and bounce
 until a seal is detected or combat ends. Unavailable seal data does not trigger
 this alert. The animation does not change the saved position.
@@ -166,19 +170,23 @@ built-in choices; if a chosen SharedMedia sound is later removed, the alert
 falls back to raid warning. New settings use
 the bundled gentle chime for refresh and raid warning for a missing seal;
 existing refresh sound selections are preserved. Each alert has its own enable
-and combat-only checkbox. Both default to combat-only. If refresh sounds were
+and combat-only checkbox (the Blizzard-managed display has none for the missing
+sound). Both default to combat-only. If refresh sounds were
 previously disabled, the new missing-seal sound starts disabled too.
 A refresh warning plays once per seal timer when the warning threshold is reached.
-The missing-seal warning plays once for a confirmed missing or expired seal,
-including combat entry without a seal, and rearms when a seal becomes active.
-With combat-only enabled, it also rearms after leaving combat. Restricted aura
-data and expired estimates do not trigger missing-seal sounds. Audio settings
-apply even when the tracker is hidden outside combat.
+On the older estimated tracker, the missing-seal warning plays once for a
+confirmed missing or expired seal, including combat entry without a seal, and
+rearms when a seal becomes active. With combat-only enabled, it also rearms after
+leaving combat. The Blizzard-managed display plays it only outside combat, as
+described at the top of this page. Restricted aura data and expired estimates do not trigger
+missing-seal sounds. Audio settings apply even when the tracker is hidden outside
+combat.
 Choosing a sound from its dropdown plays it once so you can hear it. Use **Test refresh
 sound** or **Test missing sound** to preview on the shared Master, SFX, or Dialog
 channel. Previews work regardless of enable and combat-only settings.
 The bar style uses Retail cooldown-manager bar and frame textures when present,
-with a compact 220-by-30 layout, gold fill, white name, and right-aligned timer.
+with a compact layout (220 by 30 pixels at the default bar width), gold fill,
+white name, and right-aligned timer.
 The window includes position lock, sound, countdown visibility, warning time,
 size, and position reset. `/psc` also opens it.
 
@@ -188,7 +196,7 @@ the layout's original size, and custom sizes start at 8 pixels. Choices such as
 font, border, and colors are dropdown menus; on a client without Blizzard's
 dropdown menu, left-click a choice to advance or right-click to go back. Border colors include white,
 gold, black, and paladin pink. Thickness applies to custom borders; the default
-icon artwork keeps its original shape. Refresh warnings still use red.
+icon artwork keeps its original shape.
 
 **Default**, **Minimal**, and **High Contrast** apply built-in appearance
 presets immediately, without changing timing, sounds, positioning, or visibility.
@@ -225,7 +233,7 @@ after combat ends.
 - `/psc reset`: reset position and size.
 - `/psc status`: report the client version, build, interface, and aura API.
 
-The display turns red when a seal needs refreshing and shows **CAST A SEAL**
+The display turns the warning color when a seal needs refreshing and shows **CAST A SEAL**
 when none is found. Recasting or switching seals starts a new cast estimate;
 readable buff data corrects the timer both in and out of combat.
 Base spell IDs resolve localized names for Righteousness, Command, Justice,
@@ -275,7 +283,8 @@ Manual checks before relying on it:
 5. Move/scale the frame, `/reload`, and confirm saved settings.
 6. Log into a non-paladin and confirm the tracker stays hidden.
 
-Focused timer regression tests: `lua tests/seal_logic_test.lua` (Lua 5.1 or newer).
+To run all local checks, including the Lua tests, use `scripts/check.ps1` with
+Docker Desktop running. See [DEVELOPMENT.md](DEVELOPMENT.md).
 
 API reference:
 [Blizzard UI aura API declarations](https://github.com/Gethe/wow-ui-source/blob/live/Interface/AddOns/Blizzard_APIDocumentationGenerated/UnitAuraDocumentation.lua).
