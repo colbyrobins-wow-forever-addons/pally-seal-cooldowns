@@ -123,18 +123,22 @@ Display size on the General page scales every layout.
 - **Small icon with timer bar**: a 30-pixel icon with a horizontal duration bar
   (120–360 pixels wide before scaling) on its right.
 - **Essential Cooldowns icon**: matches the icons on Blizzard's Essential
-  Cooldowns bar, with no padding or background and Blizzard's icon mask and
-  overlay. **Essential icon size** at 0 follows Blizzard's icon size, or 50
-  pixels until one is visible. Any other value (16–80) sets the size. This
-  layout always attaches to Blizzard's bar (see below).
+  Cooldowns bar, using Blizzard's icon mask, overlay, and rounded dark swipe. It
+  has nothing below the icon by default. **Show seal name**, **Show status text**,
+  and **Show duration bar under icon** add those back, saved separately from the
+  other layouts.
+  **Essential icon size** at 0 follows Blizzard's icon size, or 50 pixels until
+  one is visible. Any other value (16–80) sets the size. This layout always
+  attaches to Blizzard's bar (see below).
 - **Swing timer bar**: built from the same artwork as Forever's main-hand
   swing timer (frame, background, fill, edge pip, and label shadow), with no
   icon, "Seal Timer" on the left (a fixed title like Blizzard's "Main Hand",
   shown even when **Show seal name** is off), and the time left in tenths of a
-  second on the right. It is 213 pixels wide at the default bar width, like Blizzard's.
-  It uses **Bar width**, **Bar texture** (Game default keeps the main-hand
-  fill), and **Bar counts down**; setting **Border** to None on the
-  Appearance page removes the frame.
+  second on the right. It defaults to 426 by 30 pixels, the size of Blizzard's
+  main-hand timer in the Modern Edit Mode layout. It uses **Swing bar width**
+  (213–852 pixels), **Bar texture** (Game default keeps the main-hand fill), and
+  **Bar counts down**; setting **Border** to None on the Appearance page removes
+  the frame.
 
 **Bar texture** and **Bar counts down** apply to all duration bars. Bar counts
 down starts the bar full and drains it from right to left; by default it fills
@@ -156,7 +160,8 @@ missing-seal state:
   Missing-seal sounds still play.
 - **Show missing-seal text**: hides "No active seal" and "CAST A SEAL" without
   hiding the seal name or status while a seal is active.
-- **Missing symbol**: the red "!", or none.
+- **Missing symbol**: the red "!", none, or a white "0.0" like Blizzard's idle
+  swing timer.
 - **Placeholder icon**: the default icon or one of the seal icons.
 
 **Warning color** on the Appearance page sets the color for a due refresh and a
@@ -189,7 +194,9 @@ The bar style uses Retail cooldown-manager bar and frame textures when present,
 with a compact layout (220 by 30 pixels at the default bar width), gold fill,
 white name, and right-aligned timer.
 The window includes position lock, sound, countdown visibility, warning time,
-size, and position reset. `/psc` also opens it.
+size, and position reset. **Reset position and size** also restores the current
+layout's bar width, or the Essential icon's size, snap position, and gap. `/psc`
+also opens it.
 
 Use the **Appearance** sub-page for font, outline, shadow, border, and bar
 texture controls. Countdown and seal-name font sizes are independent; 0 keeps
@@ -231,7 +238,7 @@ after combat ends.
 - `/psc counter always`: always show the countdown number (default).
 - `/psc sound`: toggle the refresh warning sound (default on); the missing-seal sound has a separate settings checkbox.
 - `/psc scale 1`: set size, from 0.5 to 2.
-- `/psc reset`: reset position and size.
+- `/psc reset`: reset position, size, and the current layout's size and placement.
 - `/psc status`: report the client version, build, interface, and aura API.
 
 The display turns the warning color when a seal needs refreshing and shows **CAST A SEAL**

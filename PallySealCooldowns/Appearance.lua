@@ -47,6 +47,8 @@ addon.MissingAlertChoices = {
 addon.MissingSymbols = {
     {key = "bang", label = "Exclamation (!)", text = "!"},
     {key = "none", label = "None", text = ""},
+    -- Reads like Blizzard's idle swing timer, including its white text.
+    {key = "zero", label = "Zero time (0.0)", text = "0.0", rgb = {1, 1, 1}},
 }
 addon.MissingIcons = {
     {key = "might", label = "Default", path = "Interface\\Icons\\Spell_Holy_SealOfMight"},
@@ -197,6 +199,8 @@ function addon.NormalizeDisplayOptions(db)
     db.showIconBar = db.showIconBar ~= false
     db.showMissingText = db.showMissingText ~= false
     db.hideWhenMissing = db.hideWhenMissing == true
+    local width = addon.IsFiniteNumber(db.swingWidth) and db.swingWidth or addon.SwingDefaultWidth
+    db.swingWidth = math.floor(math.max(213, math.min(852, width)) + 0.5)
 end
 
 function addon.WarningRGB(db)
@@ -209,6 +213,12 @@ end
 
 function addon.MissingSymbol(db)
     return (Choice(addon.MissingSymbols, db.missingSymbol) or addon.MissingSymbols[1]).text
+end
+
+function addon.MissingSymbolRGB(db)
+    local choice = Choice(addon.MissingSymbols, db.missingSymbol)
+    if choice and choice.rgb then return unpack(choice.rgb) end
+    return addon.WarningRGB(db)
 end
 
 -- Returns whether the in-combat missing alert glows and whether it bounces.
@@ -230,6 +240,9 @@ end
 -- Sizes come from settings, never from frame geometry, so the art is safe on
 -- native aura buttons. Clients without the atlases get a drawn bronze frame.
 addon.SwingInsetX, addon.SwingInsetY = 5, 4
+-- Edit Mode's Modern main-hand timer: stored 213 x 15, added to the sliders' 213
+-- and 15 minimums (Blizzard_EditMode's ConvertValueDiffFromMin).
+addon.SwingDefaultWidth = 426
 addon.SwingLabel = "Seal Timer"
 addon.SwingAtlas = {
     background = "ui-swingtimerbar-background",
@@ -251,9 +264,8 @@ function addon.HasSwingAtlas()
         and C_Texture.GetAtlasInfo(addon.SwingAtlas.frame) and true or false
 end
 
--- Blizzard's default bar is 213 wide; the 188 px default bar width matches it.
 function addon.SwingSize(db)
-    return db.barWidth + 25, 30
+    return db.swingWidth, 30
 end
 
 -- Fill texture for the bar: the main-hand fill unless a texture is chosen.
@@ -334,7 +346,7 @@ function addon.StyleSwingArt(art, parent, bar, db, missing)
         art.shadow:ClearAllPoints()
         art.shadow:SetPoint("TOPLEFT", bar, "TOPLEFT")
         art.shadow:SetPoint("BOTTOMLEFT", bar, "BOTTOMLEFT")
-        art.shadow:SetWidth(math.min(171, db.barWidth + 25 - 2 * addon.SwingInsetX))
+        art.shadow:SetWidth(math.min(171, db.swingWidth - 2 * addon.SwingInsetX))
         art.pip:SetAtlas(addon.SwingAtlas.pip, true)
         art.pip:ClearAllPoints()
         art.pip:SetPoint("RIGHT", bar:GetStatusBarTexture(), "RIGHT", 0, 0)

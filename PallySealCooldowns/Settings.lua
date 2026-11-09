@@ -76,7 +76,7 @@ end
 
 addon.SettingsPages = {
     {key = "general", label = "General", height = 360},
-    {key = "layout", label = "Layout", height = 490},
+    {key = "layout", label = "Layout", height = 545},
     {key = "alerts", label = "Alerts", height = 700},
     {key = "appearance", label = "Appearance", height = 520},
     {key = "presets", label = "Presets", height = 140},
@@ -117,9 +117,16 @@ function addon.CreateSettings(db, apply)
 
     -- Every change can alter which settings apply, so relayout after it.
     local applySettings = apply
+    local appliedStyle = db.displayStyle
     apply = function()
         applySettings()
-        panel:Relayout()
+        if db.displayStyle ~= appliedStyle then
+            -- Visibility checkboxes follow each layout's own saved values.
+            appliedStyle = db.displayStyle
+            panel:Synchronize()
+        else
+            panel:Relayout()
+        end
     end
     local syncing = false
     local controls = {}
@@ -203,17 +210,19 @@ function addon.CreateSettings(db, apply)
     local function Style() return db.displayStyle end
     local function IsSwing() return db.displayStyle == "swing" end
 
+    -- A key may be a function so one checkbox can follow each layout's own setting.
     local function Checkbox(label, y, key, checkedValue, uncheckedValue)
+        local function Key() return type(key) == "function" and key() or key end
         local button = CreateFrame("CheckButton", nil, section, "UICheckButtonTemplate")
         button:SetPoint("TOPLEFT", 18, y)
         local text = button:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
         text:SetPoint("LEFT", button, "RIGHT", 3, 0)
         text:SetText(label)
         button:SetScript("OnClick", function(self)
-            db[key] = self:GetChecked() and checkedValue or uncheckedValue
+            db[Key()] = self:GetChecked() and checkedValue or uncheckedValue
             apply()
         end)
-        controls[#controls + 1] = function() button:SetChecked(db[key] == checkedValue) end
+        controls[#controls + 1] = function() button:SetChecked(db[Key()] == checkedValue) end
         return Row(y, y, {button}, function(at)
             button:ClearAllPoints()
             button:SetPoint("TOPLEFT", 18, at)
@@ -377,12 +386,13 @@ function addon.CreateSettings(db, apply)
     Checkbox("Show countdown only when refresh is due", -45, "counterMode", "refresh", "always")
     Checkbox("Hide outside combat", -80, "hideOutOfCombat", true, false)
     -- The swing bar shows the fixed "Seal Timer" title instead.
-    When(Checkbox("Show seal name", -115, "showSealName", true, false), function() return not IsSwing() end)
-    Checkbox("Show status text", -150, "showStatusText", true, false)
+    When(Checkbox("Show seal name", -115, function() return addon.PartKey(db, "showSealName") end, true, false),
+        function() return not IsSwing() end)
+    Checkbox("Show status text", -150, function() return addon.PartKey(db, "showStatusText") end, true, false)
     Slider("Refresh warning: ", -220, "threshold", 1, 30, 1, "%d seconds")
     Slider("Display size: ", -275, "scale", 0.5, 2, 0.05, "%.2fx")
     ActionButton("Reset position and size", -310, 170, function()
-        db.x, db.y, db.scale = 0, -160, 1
+        addon.ResetLayout(db)
         apply()
         panel:Synchronize()
     end)
@@ -399,8 +409,9 @@ function addon.CreateSettings(db, apply)
     local function Essential() return Style() == "essential" end
     local function BarLayout() return Style() == "bar" or IsSwing() end
     -- Texture and countdown also style the thin bar under an icon layout.
-    local function HasBar() return BarLayout() or db.showIconBar ~= false end
-    When(Checkbox("Show duration bar under icon", -133, "showIconBar", true, false), IconLayout)
+    local function HasBar() return BarLayout() or addon.ShowsPart(db, "showIconBar") end
+    When(Checkbox("Show duration bar under icon", -133, function() return addon.PartKey(db, "showIconBar") end,
+        true, false), IconLayout)
     When(Slider("Essential icon size: ", -195, "cdmIconSize", 0, 80, 1, "%d px (0 follows Blizzard)"), Essential)
     -- The Essential Cooldowns icon always snaps to Blizzard's bar; these place it.
     When(Selector("Snap position: ", -220, "snapSide", addon.SnapSides), Essential)
@@ -408,10 +419,12 @@ function addon.CreateSettings(db, apply)
     When(Hint(-302, "The icon attaches to Blizzard's Essential Cooldowns bar,\n"
         .. "follows it in Edit Mode, and cannot be dragged. If the bar\n"
         .. "is unavailable, the saved position is used."), Essential)
-    When(Slider("Bar width: ", -375, "barWidth", 120, 360, 1, "%d px"), BarLayout)
-    When(Selector("Bar texture: ", -410, "statusbar", function() return addon.MediaChoices("statusbar") end),
+    When(Slider("Bar width: ", -375, "barWidth", 120, 360, 1, "%d px"), function() return Style() == "bar" end)
+    -- Edit Mode's range for Blizzard's swing timer.
+    When(Slider("Swing bar width: ", -430, "swingWidth", 213, 852, 1, "%d px"), IsSwing)
+    When(Selector("Bar texture: ", -465, "statusbar", function() return addon.MediaChoices("statusbar") end),
         HasBar)
-    When(Checkbox("Bar counts down (starts full, drains right to left)", -445, "barCountdown", true, false),
+    When(Checkbox("Bar counts down (starts full, drains right to left)", -500, "barCountdown", true, false),
         HasBar)
 
     section = pages.alerts.content

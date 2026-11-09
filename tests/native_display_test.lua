@@ -51,6 +51,10 @@ local function Widget(kind)
             self.points[#self.points + 1] = {...}
         end end
         if key == "SetAlpha" then return function(self, alpha) self.alpha = alpha end end
+        if key == "SetSwipeTexture" then return function(self, texture) self.swipeTexture = texture end end
+        if key == "SetSwipeColor" then return function(self, ...) self.swipeColor = {...} end end
+        if key == "SetReverse" then return function(self, reverse) self.reverse = reverse end end
+        if key == "SetParent" then return function(self, parent) self.parent = parent end end
         if key == "SetSize" then return function(self, w, h) self.width, self.height = w, h end end
         if key == "Show" then return function(self) self.shown = true end end
         if key == "Hide" then return function(self) self.shown = false end end
@@ -161,19 +165,51 @@ assert(display.present.icon.masks == 1 and display.missing.icon.masks == 1)
 assert(display:Apply(db) and display.present.icon.masks == 1, "Re-applying does not stack masks")
 db.cdmIconSize = 0
 assert(display:Apply(db) and display.present.frame.width == 50, "Auto size defaults to Blizzard's 50 px")
+-- Blizzard's Essential icon has only its art: values from CooldownViewer.xml and
+-- ITEM_COOLDOWN_COLOR.
+local function SameColor(actual, ...)
+    local expected = {...}
+    for index = 1, #expected do
+        if actual[index] ~= expected[index] then return false end
+    end
+    return #actual == #expected
+end
+local matched = display.present
+assert(matched.border.point[4] == 9 and matched.border.point[5] == -8, "Overlay margins match Blizzard's at 50 px")
+assert(matched.cooldown.swipeTexture == "Interface\\HUD\\UI-HUD-CoolDownManager-Icon-Swipe")
+assert(SameColor(matched.cooldown.swipeColor, 0, 0, 0, 0.7) and matched.cooldown.reverse == false)
+assert(matched.border.parent == matched.frame, "The swipe draws over the overlay, like Blizzard's")
+assert(matched.bar.alpha == 0 and matched.name.shown == false and matched.status.shown == false,
+    "No bar or text below the icon by default")
+assert(slots.Seal.spellName == false and display.warningText.shown == false,
+    "The hidden name and refresh text are not bound")
+db.cdmIconSize = 40
+assert(display:Apply(db) and matched.border.point[4] == 7 and matched.border.point[5] == -6,
+    "Overlay margins scale with the icon")
+db.cdmIconSize = 0
+db.cdmShowBar, db.cdmShowName, db.cdmShowStatus = true, true, true
+assert(display:Apply(db) and matched.bar.alpha == 1 and matched.name.shown == true)
+assert(slots.Seal.spellName == matched.name and display.warningText.shown == true,
+    "The Essential layout's own options add the extras back")
+db.cdmShowBar, db.cdmShowName, db.cdmShowStatus = nil, nil, nil
 db.displayStyle = "bar"
 assert(display:Apply(db) and display.present.icon.masks == 0, "Bar style is unaffected by the matched style")
 db.displayStyle = "icon"
 assert(display:Apply(db) and display.present.frame.width == 56 and display.present.icon.width == 52)
+-- Other layouts keep the cooldown template's look and their own text options.
+assert(matched.cooldown.swipeTexture == "Interface\\Buttons\\WHITE8X8")
+assert(SameColor(matched.cooldown.swipeColor, 0, 0, 0, 0.64) and matched.cooldown.reverse == true)
+assert(matched.border.parent == matched.overlay and matched.border.point[4] == 8 and matched.border.point[5] == -7)
+assert(matched.name.shown == true and slots.Seal.spellName == matched.name)
 -- Swing timer bar: Blizzard's swing timer atlases, no visible icon, tenths.
-db.displayStyle, db.barWidth = "swing", 188
+db.displayStyle, db.swingWidth = "swing", 426
 assert(display:Apply(db))
 local swingArt = display.present.swing
-assert(display.present.frame.width == 213 and display.present.frame.height == 30,
-    "Default width matches Blizzard's 213 px bar")
-assert(display.missing.frame.width == 213 and groups.Presence.layout.elementHeight == 30,
+assert(display.present.frame.width == 426 and display.present.frame.height == 30,
+    "Default size matches Blizzard's main-hand timer")
+assert(display.missing.frame.width == 426 and groups.Presence.layout.elementHeight == 30,
     "Missing gate follows the swing bar size")
-assert(display.present.bar.width == 203 and display.present.bar.height == 22,
+assert(display.present.bar.width == 416 and display.present.bar.height == 22,
     "Bar uses Blizzard's 5/4 px insets")
 assert(display.present.icon.alpha == 0 and display.present.cooldown.alpha == 0,
     "Icon and swipe stay bound but invisible")
@@ -278,6 +314,12 @@ assert(slots.Seal.textOptions.textColor.curve.points[1][2][2] == 0.9,
     "Countdown warning uses the warning color")
 db.missingSymbol, db.missingIcon, db.warningColor = "bang", "might", "red"
 assert(display:Apply(db) and display.missing.timer.text == "!")
+-- A zero time reads like Blizzard's idle swing timer: "0.0" in white.
+db.missingSymbol = "zero"
+assert(display:Apply(db) and display.missing.timer.text == "0.0")
+assert(SameColor(display.missing.timer.color, 1, 1, 1), "Zero time is white, not the warning color")
+db.missingSymbol = "bang"
+assert(display:Apply(db) and display.missing.timer.color[2] ~= 1, "The symbol keeps the warning color")
 failGroup = true
 assert(addon.CreateNativeDisplay(root, db, Message) == nil)
 assert(messages[#messages]:find("using estimated tracker", 1, true))

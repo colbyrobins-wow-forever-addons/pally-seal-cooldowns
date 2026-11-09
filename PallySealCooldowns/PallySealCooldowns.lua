@@ -136,8 +136,6 @@ cooldown:SetAllPoints(icon)
 cooldown:SetFrameLevel(5)
 cooldown:SetDrawEdge(false)
 cooldown:SetHideCountdownNumbers(true)
-cooldown:SetReverse(true)
-cooldown:SetSwipeColor(0, 0, 0, 0.65)
 
 local swingArt = addon.CreateSwingArt(frame, bar)
 
@@ -171,6 +169,9 @@ ApplyLayout = function()
     bar:ClearAllPoints()
     border:ClearAllPoints()
     glow:ClearAllPoints()
+    -- Blizzard's Essential icon draws its swipe over the overlay art.
+    border:SetParent(db.displayStyle == "essential" and frame or overlay)
+    addon.StyleCooldownSwipe(cooldown, db)
     border:SetPoint("TOPLEFT", icon, "TOPLEFT", -8, 7)
     border:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", 8, -7)
     glow:SetPoint("TOPLEFT", icon, "TOPLEFT", -20, 20)
@@ -195,7 +196,7 @@ ApplyLayout = function()
         bar:SetAlpha(1)
         bar:SetStatusBarTexture(addon.SwingFill(db) or "Interface\\TargetingFrame\\UI-StatusBar")
         title:SetPoint("LEFT", bar, "LEFT", 10, 0)
-        title:SetWidth(db.barWidth - 40)
+        title:SetWidth(width - 65)
         title:SetFontObject("GameFontHighlightSmall")
         title:SetTextColor(1, 1, 1)
         title:SetJustifyH("LEFT")
@@ -241,13 +242,12 @@ ApplyLayout = function()
         bar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
         icon:SetSize(iconSize, iconSize)
         icon:SetPoint("CENTER", frame, "CENTER")
-        local outsetX = math.floor(8 * iconSize / 52 + 0.5)
-        local outsetY = math.floor(7 * iconSize / 52 + 0.5)
+        local outsetX, outsetY = addon.IconOverlayOutsets(db, iconSize)
         border:ClearAllPoints()
         border:SetPoint("TOPLEFT", icon, "TOPLEFT", -outsetX, outsetY)
         border:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", outsetX, -outsetY)
         bar:SetSize(frameSize, 2)
-        bar:SetAlpha(db.showIconBar and 1 or 0)
+        bar:SetAlpha(addon.ShowsPart(db, "showIconBar") and 1 or 0)
         bar:SetPoint("TOPLEFT", frame, "BOTTOMLEFT", 0, -2)
         title:SetPoint("TOP", frame, "BOTTOM", 0, -8)
         title:SetWidth(180)
@@ -308,7 +308,8 @@ local function SetVisualState(state)
     border:SetVertexColor(addon.BorderRGB(db, warning))
     customBorder:SetBackdropBorderColor(addon.BorderRGB(db, warning))
     if warning then
-        timer:SetTextColor(addon.WarningRGB(db))
+        if state == "missing" then timer:SetTextColor(addon.MissingSymbolRGB(db))
+        else timer:SetTextColor(addon.WarningRGB(db)) end
         status:SetTextColor(addon.WarningRGB(db))
     else
         timer:SetTextColor(1, 1, 1)
@@ -317,8 +318,8 @@ local function SetVisualState(state)
     -- Only the missing state hides its own text; other states keep the base toggles.
     local missingText = state ~= "missing" or db.showMissingText
     -- The swing bar's "Seal Timer" title is fixed, like Blizzard's "Main Hand".
-    title:SetShown(db.displayStyle == "swing" or (db.showSealName and missingText))
-    status:SetShown(db.showStatusText and missingText)
+    title:SetShown(db.displayStyle == "swing" or (addon.ShowsPart(db, "showSealName") and missingText))
+    status:SetShown(addon.ShowsPart(db, "showStatusText") and missingText)
     barBackground:SetVertexColor(1, warning and 0.45 or 1, warning and 0.35 or 1)
 end
 frame:SetScript("OnDragStart", function(self)
@@ -412,8 +413,8 @@ local function Render()
         state = accessRestricted and "restricted" or "missing"
     end
     UpdateSoundAlerts(state)
-    title:SetShown(db.showSealName or db.displayStyle == "swing")
-    status:SetShown(db.showStatusText)
+    title:SetShown(addon.ShowsPart(db, "showSealName") or db.displayStyle == "swing")
+    status:SetShown(addon.ShowsPart(db, "showStatusText"))
     if (db.hideOutOfCombat and not inCombat) or (state == "missing" and db.hideWhenMissing) then
         UpdateMissingAlert("active")
         frame:Hide()
@@ -595,7 +596,7 @@ SlashCmdList.PALLYSEALCOOLDOWNS = function(input)
         if command == "warn" then db.threshold = value else db.scale = value end
         ApplyPosition()
     elseif command == "reset" then
-        db.x, db.y, db.scale = 0, -160, 1
+        addon.ResetLayout(db)
         ApplyPosition()
     elseif command == "status" then
         local version, build, _, interface = GetBuildInfo()

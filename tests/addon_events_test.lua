@@ -443,6 +443,11 @@ DEFAULT_CHAT_FRAME = widget
 local missingDB = ReloadWithSettings({missingSymbol = "none", missingAlert = "glow"})
 scripts.OnUpdate(widget, 0.1)
 assert(counterText == "", "Missing symbol None removes the exclamation mark")
+missingDB.missingSymbol = "zero"
+scripts.OnUpdate(widget, 0.5)
+assert(counterText == "0.0", "Zero time replaces the exclamation mark")
+missingDB.missingSymbol = "none"
+scripts.OnUpdate(widget, 0.5)
 local playsBefore = animationPlays
 scripts.OnEvent(widget, "PLAYER_REGEN_DISABLED")
 assert(animationPlays == playsBefore + 1, "Glow only starts one animation")
@@ -764,4 +769,8 @@ liveSeal = nil
 scripts.OnEvent(widget, "UNIT_AURA", "player")
 scripts.OnUpdate(widget, 0.5)
 assert(soundCount == missingBefore + 3, "A later seal rearms the warning")
+-- The slash command resets the same settings as the settings button.
+local resetDB = ReloadWithSettings({displayStyle = "essential", cdmIconSize = 40, snapGap = 9, scale = 1.5})
+SlashCmdList.PALLYSEALCOOLDOWNS("reset")
+assert(resetDB.cdmIconSize == 0 and resetDB.snapGap == 1 and resetDB.scale == 1, "/psc reset covers the layout")
 io.write("Native missing-seal sound regression tests passed.\n")

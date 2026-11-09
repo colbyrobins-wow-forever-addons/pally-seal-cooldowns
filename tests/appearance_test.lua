@@ -118,6 +118,22 @@ for alert, parts in pairs({both = {true, true}, glow = {true, false},
 end
 assert(addon.MissingSymbol({missingSymbol = "bang"}) == "!")
 assert(addon.MissingSymbol({missingSymbol = "none"}) == "")
+assert(addon.MissingSymbol({missingSymbol = "zero"}) == "0.0")
+-- The swing bar defaults to Blizzard's Modern main-hand size, within its Edit Mode range.
+local swingSize = {}
+addon.NormalizeDisplayOptions(swingSize)
+assert(swingSize.swingWidth == 426, "Default width is Blizzard's")
+local swingWidth, swingHeight = addon.SwingSize(swingSize)
+assert(swingWidth == 426 and swingHeight == 30)
+swingSize.swingWidth = 9000
+addon.NormalizeDisplayOptions(swingSize)
+assert(swingSize.swingWidth == 852)
+swingSize.swingWidth = 10
+addon.NormalizeDisplayOptions(swingSize)
+assert(swingSize.swingWidth == 213)
+swingSize.swingWidth = 0 / 0
+addon.NormalizeDisplayOptions(swingSize)
+assert(swingSize.swingWidth == 426, "An invalid width repairs to the default")
 assert(addon.MissingIconPath({missingIcon = "might"}):find("Spell_Holy_SealOfMight", 1, true))
 assert(addon.MissingIconPath({missingIcon = "command"}):find("Ability_Warrior_InnerRage", 1, true))
 io.write("Appearance tests passed.\n")

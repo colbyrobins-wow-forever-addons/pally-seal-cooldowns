@@ -66,6 +66,50 @@ After in-game acceptance and a request to prepare a release:
 Log what Git cannot show: in-game results, uncommitted test builds, and release
 status. Entries from shipped releases are in `docs/development-history.md`.
 
+### 2026-11-08: Swing bar size and zero time when no seal is active
+
+- The swing bar was half the width of Blizzard's main-hand timer: 213 was the stored
+  Edit Mode value, which `ConvertValueDiffFromMin` adds to the slider's 213 minimum.
+  The Modern layout's default is 426 x 30 (the Classic layout's would be 333 x 21).
+  Forever source 1.60.1.70862. New `swingWidth` setting, default 426, range 213–852
+  like Edit Mode, shown as **Swing bar width**. **Bar width** now applies only to the
+  small icon layout. Existing swing bars move to 426, including customized ones.
+- New **Missing symbol** choice, **Zero time (0.0)**, in white like Blizzard's idle
+  swing timer, on every layout. The default stays "!".
+- Added regression tests, which failed before the changes. `scripts/check.ps1` passes.
+- User reported "love it" after a checklist covering the size beside the main-hand
+  timer, "0.0" with no seal, and **Swing bar width** and reset. No per-item results
+  were reported.
+
+### 2026-11-08: Essential Cooldowns icon matches Blizzard's by default
+
+- Matched `CooldownViewerEssentialItemTemplate` from Blizzard's public UI source. The
+  values were first read from retail 12.1.5.70783, then confirmed unchanged in the
+  Forever branch (1.60.1.70862): overlay margins of 9/8 px at 50 px, scaling with the icon; the rounded swipe
+  texture; the swipe drawn over the overlay; and `ITEM_COOLDOWN_COLOR` unreversed.
+  The user first chose Blizzard's gold active-buff color, then decided against it.
+  Other layouts keep their look.
+- The bar, seal name, and status text below the icon now default off on this layout.
+  New `cdmShowBar`, `cdmShowName`, and `cdmShowStatus` hold its choices, so existing
+  Essential users lose those extras until they re-enable them, and other layouts'
+  settings are unchanged. Choosing a layout now refreshes the settings checkboxes.
+- Kept on purpose: the missing-seal state (placeholder icon, warning-colored overlay,
+  "!", combat alert), which Blizzard's icons have no equivalent for; the countdown
+  turning the warning color at the refresh threshold; and the saved border and font
+  choices.
+- **Gap from bar** now defaults to 1 px, Blizzard's default icon spacing in that
+  source (`iconPadding` 5, offset -4). A saved 2 px, the old default, updates to 1 px
+  once, chosen by the user.
+- User reported that reset does not work for all layouts. It reset only position and
+  scale, which the Essential icon ignores or compensates for, and never bar width.
+  **Reset position and size** and `/psc reset` now also restore the current layout's
+  bar width, or the Essential icon's size, snap position, and gap.
+- Added regression tests, which failed before the changes. `scripts/check.ps1`
+  passes. Mock tests cannot show how it looks.
+- User reported "i like it hkow it is" after a checklist covering the icon beside the
+  bar's icons, the swipe, nothing below the icon, reset on each layout, and other
+  layouts unchanged. No per-item results were reported.
+
 ### 2026-11-08: no missing-seal sound on death
 
 - On the native display, the missing-seal sound now stays silent when a seal is

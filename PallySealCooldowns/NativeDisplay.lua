@@ -124,7 +124,7 @@ local function Style(view, db, missing, iconSize)
         view.bar:SetSize(width - 2 * insetX, height - 2 * insetY)
         view.bar:SetPoint("TOPLEFT", view.frame, "TOPLEFT", insetX, -insetY)
         view.name:SetPoint("LEFT", view.bar, "LEFT", 10, 0)
-        view.name:SetWidth(db.barWidth - 40)
+        view.name:SetWidth(width - 65)
         view.name:SetJustifyH("LEFT")
         view.timer:SetFontObject("GameFontHighlightSmall")
         view.timer:SetPoint("RIGHT", view.bar, "RIGHT", -10, 0)
@@ -157,7 +157,8 @@ local function Style(view, db, missing, iconSize)
     end
     view.cooldown:SetAllPoints(view.icon)
     -- Alpha, not Hide: the native button drives the bound bar's updates.
-    view.bar:SetAlpha((db.displayStyle == "bar" or swing or db.showIconBar ~= false) and 1 or 0)
+    view.bar:SetAlpha((db.displayStyle == "bar" or swing or addon.ShowsPart(db, "showIconBar")) and 1 or 0)
+    addon.StyleCooldownSwipe(view.cooldown, db)
     local masked = db.displayStyle == "essential"
     if view.mask and view.masked ~= masked then
         if masked then view.icon:AddMaskTexture(view.mask)
@@ -169,7 +170,7 @@ local function Style(view, db, missing, iconSize)
     view.bar:SetStatusBarColor(addon.ActiveBarRGB(db))
     -- Missing-seal text also needs its own toggle; active text ignores it.
     local missingText = not missing or db.showMissingText ~= false
-    view.name:SetShown(db.showSealName and missingText and not swing)
+    view.name:SetShown(addon.ShowsPart(db, "showSealName") and missingText and not swing)
     view.label:ClearAllPoints()
     view.label:SetPoint("LEFT", view.bar, "LEFT", 10, 0)
     view.label:SetText(addon.SwingLabel)
@@ -177,14 +178,14 @@ local function Style(view, db, missing, iconSize)
     -- options do not hide it.
     view.label:SetShown(swing)
     addon.ApplyFont(view.label, db, db.nameSize)
-    view.status:SetShown(db.showStatusText and missingText)
+    view.status:SetShown(addon.ShowsPart(db, "showStatusText") and missingText)
     addon.ApplyFont(view.name, db, db.nameSize)
     addon.ApplyFont(view.timer, db, db.timerSize)
     addon.ApplyFont(view.status, db, 0)
     view.border:ClearAllPoints()
-    -- Overlay art margins scale with the icon (8/7 px at the 52 px default).
-    local outsetX = math.floor(8 * iconSize / 52 + 0.5)
-    local outsetY = math.floor(7 * iconSize / 52 + 0.5)
+    -- Blizzard's Essential icon draws its swipe over the overlay art.
+    view.border:SetParent(masked and view.frame or view.overlay)
+    local outsetX, outsetY = addon.IconOverlayOutsets(db, iconSize)
     view.border:SetPoint("TOPLEFT", view.icon, "TOPLEFT", -outsetX, outsetY)
     view.border:SetPoint("BOTTOMRIGHT", view.icon, "BOTTOMRIGHT", outsetX, -outsetY)
     view.border:SetShown(db.border == "default" and not swing)
@@ -197,7 +198,7 @@ local function Style(view, db, missing, iconSize)
         view.name:SetText("No active seal")
         view.timer:SetText(addon.MissingSymbol(db))
         view.status:SetText("CAST A SEAL")
-        view.timer:SetTextColor(addon.WarningRGB(db))
+        view.timer:SetTextColor(addon.MissingSymbolRGB(db))
         view.status:SetTextColor(addon.WarningRGB(db))
         view.bar:SetMinMaxValues(0, 1)
         view.bar:SetValue(0)
@@ -361,7 +362,7 @@ function methods:Apply(db)
     end
     self.button:SetDurationBar(self.present.bar, barOptions)
     -- The swing timer bar shows its own fixed label instead of the bound seal name.
-    if db.showSealName and db.displayStyle ~= "swing" then self.button:SetSpellName(self.present.name)
+    if addon.ShowsPart(db, "showSealName") and db.displayStyle ~= "swing" then self.button:SetSpellName(self.present.name)
     else self.button:ClearSpellName() end
     local warningOptions = BindDurationText(self.button, self.present, db)
     self.present.status:Hide()
@@ -375,7 +376,7 @@ function methods:Apply(db)
     end
     addon.ApplyFont(self.warningText, db, 0)
     self.warningButton:ClearDurationText()
-    if warningOptions and db.showStatusText then
+    if warningOptions and addon.ShowsPart(db, "showStatusText") then
         self.warningButton:SetDurationText(self.warningText, warningOptions)
         self.warningText:Show()
     else self.warningText:Hide() end

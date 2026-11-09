@@ -113,6 +113,7 @@ local placement = {
     {"CheckButton", "Show duration bar under icon", "layout"},
     {"Slider", "Essential icon size: ", "layout"},
     {"Slider", "Bar width: ", "layout"},
+    {"Slider", "Swing bar width: ", "layout"},
     {"Button", "Bar texture: ", "layout"},
     {"CheckButton", "Bar counts down", "layout"},
     {"Button", "Snap position: ", "layout"},
@@ -152,7 +153,7 @@ for _, widget in ipairs(widgets) do
     counts[widget.kind] = (counts[widget.kind] or 0) + 1
     assert(widget.kind ~= "EditBox", "Custom seal input must be removed")
 end
-assert(counts.CheckButton == 14 and counts.Slider == 8, "No controls are lost in the split")
+assert(counts.CheckButton == 14 and counts.Slider == 9, "No controls are lost in the split")
 assert(counts.ScrollFrame == 5, "Each page scrolls independently")
 
 -- General page.
@@ -210,7 +211,7 @@ assert(db.showIconBar == true)
 -- Essential Cooldowns icon placement: it always snaps, so there is no
 -- on/off setting; position and gap apply live.
 assert(db.snapToCDM == nil and db.snapSide == "right")
-assert(db.cdmIconSize == 0 and db.snapGap == 2)
+assert(db.cdmIconSize == 0 and db.snapGap == 1)
 local beforeSnap = applied
 local side = Find("Button", "Snap position: ")
 assert(side.value == "Snap position: Right of bar  >")
@@ -228,7 +229,7 @@ Find("Slider", "Gap from bar: "):SetValue(6)
 assert(db.snapGap == 6)
 panel:Synchronize()
 assert(side.value == "Snap position: Below bar  >", "Snap preferences restore in the window")
-db.snapSide, db.snapGap = "right", 2
+db.snapSide, db.snapGap = "right", 1
 panel:Synchronize()
 
 -- Alerts page: missing-seal behavior.
@@ -252,6 +253,8 @@ Click(missingText, true)
 local symbol = Find("Button", "Missing symbol: ")
 symbol.scripts.OnClick(symbol, "LeftButton")
 assert(db.missingSymbol == "none" and symbol.value == "Missing symbol: None  >")
+symbol.scripts.OnClick(symbol, "LeftButton")
+assert(db.missingSymbol == "zero" and symbol.value == "Missing symbol: Zero time (0.0)  >")
 symbol.scripts.OnClick(symbol, "LeftButton")
 assert(db.missingSymbol == "bang")
 local placeholder = Find("Button", "Placeholder icon: ")
@@ -282,6 +285,13 @@ assert(playedKit == 2, "Explicit preview works when automatic sounds are disable
 Find("Button", "Reset position and size").scripts.OnClick()
 assert(db.x == 0 and db.y == -160 and db.scale == 1)
 assert(Find("Slider", "Display size: ").value == 1, "Reset refreshes the general page")
+local styleBeforeReset, widthBeforeReset = db.displayStyle, db.barWidth
+db.displayStyle, db.barWidth = "bar", 250
+panel:Synchronize()
+Find("Button", "Reset position and size").scripts.OnClick()
+assert(db.barWidth == 188 and Find("Slider", "Bar width: ").value == 188, "Reset covers the layout's bar width")
+db.displayStyle, db.barWidth = styleBeforeReset, widthBeforeReset
+panel:Synchronize()
 db.missingSoundChoice = "raid"
 panel:Synchronize()
 missingButton.scripts.OnClick()
@@ -504,13 +514,48 @@ Choose("essential")
 assert(layoutHeading.value == "Essential Cooldowns icon options" and Shown("Slider", "Essential icon size: "))
 assert(Shown("Button", "Snap position: ") and Shown("Slider", "Gap from bar: "),
     "Snap placement belongs to the Essential Cooldowns icon")
+-- The same checkboxes control the Essential icon's own values, off by default.
+db.cdmShowBar, db.cdmShowName, db.cdmShowStatus = false, false, false
+db.showSealName, db.showStatusText = true, true
+panel:Synchronize()
+local essentialName = Find("CheckButton", "Show seal name")
+local essentialStatus = Find("CheckButton", "Show status text")
+local essentialBar = Find("CheckButton", "Show duration bar under icon")
+assert(essentialName.value == false and essentialStatus.value == false and essentialBar.value == false,
+    "Essential checkboxes show its values, not other layouts'")
+assert(not Shown("Button", "Bar texture: "), "Without the Essential bar its options are hidden")
+Click(essentialName, true)
+Click(essentialStatus, true)
+Click(essentialBar, true)
+assert(db.cdmShowName == true and db.cdmShowStatus == true and db.cdmShowBar == true)
+assert(Shown("Button", "Bar texture: "), "The Essential bar brings back its options")
+Click(essentialName, false)
+Click(essentialStatus, false)
+Click(essentialBar, false)
+assert(db.showSealName == true and db.showStatusText == true and db.showIconBar == true,
+    "Other layouts' values are untouched")
+Choose("icon")
+assert(essentialBar.value == true)
+local layoutSelector = Find("Button", "Layout: ")
+layoutSelector.scripts.OnClick(layoutSelector, "LeftButton")
+layoutSelector.scripts.OnClick(layoutSelector, "LeftButton")
+assert(db.displayStyle == "essential" and essentialBar.value == false,
+    "Choosing a layout refreshes its checkboxes")
 Choose("bar")
 assert(Shown("Slider", "Bar width: ") and not Shown("CheckButton", "Show duration bar under icon"))
 assert(Shown("Slider", "Bar width: ") and Find("Slider", "Bar width: ").point[3] == -158,
     "Bar width moves up into the space of the hidden icon options")
 Choose("swing")
 assert(layoutHeading.value == "Swing timer bar options")
-assert(Shown("Slider", "Bar width: ") and Shown("Button", "Bar texture: ") and Shown("CheckButton", "Bar counts down"))
+assert(Shown("Slider", "Swing bar width: ") and not Shown("Slider", "Bar width: "),
+    "The swing bar has its own wider range")
+assert(Shown("Button", "Bar texture: ") and Shown("CheckButton", "Bar counts down"))
+local swingSlider = Find("Slider", "Swing bar width: ")
+local barBeforeSwing = db.barWidth
+swingSlider:SetValue(500)
+assert(db.swingWidth == 500 and db.barWidth == barBeforeSwing, "Swing width is separate from Bar width")
+db.swingWidth = 426
+panel:Synchronize()
 assert(not Shown("CheckButton", "Show seal name"), "Seal Timer label replaces the seal name")
 assert(not Shown("Button", "Placeholder icon: ") and Shown("Button", "Missing symbol: "))
 assert(not Shown("Button", "Border color: ") and not Shown("Slider", "Custom border thickness: "))
