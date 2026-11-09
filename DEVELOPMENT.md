@@ -66,6 +66,17 @@ After in-game acceptance and a request to prepare a release:
 Log what Git cannot show: in-game results, uncommitted test builds, and release
 status. Entries from shipped releases are in `docs/development-history.md`.
 
+### 2026-11-08: 0.1.25 release preparation
+
+- User accepted the in-game results ("love it") and requested a new version. Chose
+  patch version 0.1.25 following the 0.1.x pattern. Scope since `v0.1.24`: the
+  entries below.
+- Updated the TOC, `release/changelog-0.1.25.md`, `release/curseforge-description.md`
+  (also its stale sound limitations and client folder), and `release/UPLOAD-GUIDE.md`.
+- `v0.1.24` was tagged locally but never pushed, and GitHub had no releases, so this
+  is the pipeline's first real upload. Which versions CurseForge already has was not
+  checked.
+
 ### 2026-11-08: Swing bar size and zero time when no seal is active
 
 - The swing bar was half the width of Blizzard's main-hand timer: 213 was the stored

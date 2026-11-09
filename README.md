@@ -3,7 +3,7 @@
 Development follows [the test-before-version workflow](DEVELOPMENT.md): changes
 are tracked in Git and tested in game before a new release version is assigned.
 
-Version **0.1.24** uses Blizzard-managed aura displays for the main
+Version **0.1.25** uses Blizzard-managed aura displays for the main
 icon and bar when supported by the client. Seal visibility, name, countdown, and
 bar progress update natively, including removal during restricted combat. The
 missing-seal icon/text and combat animation use native layout clipping, without

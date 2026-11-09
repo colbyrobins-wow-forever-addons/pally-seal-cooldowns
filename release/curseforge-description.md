@@ -4,12 +4,12 @@ Keep track of your paladin seals with clear countdowns, refresh reminders, and a
 
 ## Features
 
-- **Four display layouts:** a large icon with a radial timer, a compact horizontal duration bar, an icon that matches Blizzard's Essential Cooldowns bar, or a **Swing timer bar** built from the artwork of Forever's main-hand swing timer, labeled "Seal Timer" with a countdown in tenths of a second.
+- **Four display layouts:** a large icon with a radial timer, a compact horizontal duration bar, an icon that matches Blizzard's Essential Cooldowns bar, or a **Swing timer bar** built from the artwork of Forever's main-hand swing timer and matching its default size, labeled "Seal Timer" with a countdown in tenths of a second.
 - **Attaches to the Essential Cooldowns bar:** the Essential Cooldowns icon layout attaches to any side of Blizzard's bar with an adjustable gap and follows the bar when you move it in Edit Mode.
 - **Native seal tracking:** Blizzard manages the main icon and bar directly, including removal while combat aura data is restricted. Unsupported clients retain estimated tracking.
 - **Seal changes:** native bindings update the icon, name, countdown, and bar when the active seal changes. The fallback tracker uses cast estimates.
 - **Refresh reminders:** configurable warning threshold, a choice of warning colors, a warning sound that works in combat, and optional countdown numbers that appear only when a refresh is due.
-- **Missing-seal visuals:** shows a placeholder icon, text, glow, and bounce without reading restricted buff state in addon Lua. Choose the combat alert (glow, bounce, both, or none), the placeholder icon, and whether the "!" and text appear, or hide the tracker until a seal is cast.
+- **Missing-seal visuals:** shows a placeholder icon, text, glow, and bounce without reading restricted buff state in addon Lua. Choose the combat alert (glow, bounce, both, or none), the placeholder icon, a "!" or "0.0" symbol or none, and whether the text appears, or hide the tracker until a seal is cast.
 - **Sound settings:** separate refresh/missing sounds chosen from dropdown menus, with 17 built-in choices: game sounds (raid warning, whisper, soft UI click, ready check, alarm clock) and original bundled sounds (gentle chime, double chime, bright bell, glass ping, rising arpeggio, holy shimmer, harp pluck, soft gong, wood block, bubble pop, urgent beeps, and a cat meow). Installed SharedMedia sounds are listed too. Picking a sound plays it; audio-channel selection and test buttons are included. Combat sound limitations are described below.
 - **Flexible layout:** movable tracker, adjustable scale and bar width, a duration bar that fills up or counts down, an optional thin bar under the large icon, optional combat-only visibility, and separate toggles for the seal name and status text.
 - **Saved preferences:** settings and minimap button position persist between sessions. No additional addons are required.
@@ -55,7 +55,7 @@ On supported Forever clients, Blizzard's native aura container filters paladin s
 
 Clients without the required native display retain the previous estimated tracker. Empty combat lookups can retain a live estimate until readable data returns. This fallback cannot reliably identify cancellation/dispel when all removal information is restricted.
 
-**Sound limitations:** when the game hides seal timing in combat, the refresh sound uses the timer from your seal cast. If a seal is removed early and the game does not report it (for example, an unseen dispel), the refresh sound can still play at the expected time; recasting or switching seals resets it. Combat-entry missing sounds are pending native sound integration. Sound previews and readable out-of-combat missing sounds remain available. Saved sound choices are preserved.
+**Sound limitations:** when the game hides seal timing in combat, the refresh sound uses the timer from your seal cast. If a seal is removed early and the game does not report it (for example, an unseen dispel), the refresh sound can still play at the expected time; recasting or switching seals resets it. The missing-seal sound plays once outside combat after a seal ends, including one lost during combat. It cannot play at the moment a seal is lost in combat, and it stays quiet at login and when a seal is lost to death. Sound previews remain available. Saved sound choices are preserved.
 
 **The addon never casts or refreshes spells automatically.** No WeakAuras or ForeverAuras installation is required.
 
@@ -71,7 +71,7 @@ Clients without the required native display retain the previous estimated tracke
 | `/psc counter always` | Always show countdown numbers (default) |
 | `/psc sound` | Toggle the refresh warning sound |
 | `/psc scale 1` | Set display scale; accepts 0.5–2 |
-| `/psc reset` | Reset position and size |
+| `/psc reset` | Reset position, size, and the current layout's size and placement |
 | `/psc style icon` | Use the large icon layout (also `bar`, `essential`, or `swing`) |
 | `/psc status` | Show client version, build, interface, aura API, and Essential Cooldowns bar status |
 
@@ -79,7 +79,7 @@ The default warning threshold is **5 seconds**, sound is enabled, and position i
 
 ## Manual installation
 
-Extract the `PallySealCooldowns` folder into your Forever client's `_classic_beta_/Interface/AddOns` directory. Restart WoW and enable **Pally Seal Cooldowns** on the character selection AddOns screen. Log into a paladin; the tracker stays hidden on other classes.
+Extract the `PallySealCooldowns` folder into your Forever client's `_forever_/Interface/AddOns` directory. Restart WoW and enable **Pally Seal Cooldowns** on the character selection AddOns screen. Log into a paladin; the tracker stays hidden on other classes.
 
 ## Feedback
 
