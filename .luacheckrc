@@ -51,5 +51,6 @@ read_globals = {
     "UnitAffectingCombat",
     "UnitClass",
     "UnitGUID",
+    "UnitIsDeadOrGhost",
     "wipe",
 }

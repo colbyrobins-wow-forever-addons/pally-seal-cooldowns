@@ -36,6 +36,10 @@ This runs `scripts/check.sh` in the same Ubuntu release and packages as CI:
 luacheck, the Lua and Python tests, and the TOC check. Test dependencies are not
 shipped with the addon.
 
+Without Docker, run each `tests/*_test.lua` from the repository root with any Lua
+5.1 runtime, such as `lua` or Lupa's `lupa.lua51.LuaRuntime().execute(...)`. This
+skips luacheck, so say so when recording results.
+
 ## Release gate
 
 After in-game acceptance and a request to prepare a release:
@@ -61,6 +65,24 @@ After in-game acceptance and a request to prepare a release:
 
 Log what Git cannot show: in-game results, uncommitted test builds, and release
 status. Entries from shipped releases are in `docs/development-history.md`.
+
+### 2026-11-08: no missing-seal sound on death
+
+- On the native display, the missing-seal sound now stays silent when a seal is
+  lost to death, and after resurrection until a seal has been active again. Added a
+  regression test, which failed before the fix. `scripts/check.ps1` passes.
+- CI now installs `python3` explicitly, matching `scripts/check.ps1`.
+- From a code review, not seen in game and deliberately not fixed. Fix one only if
+  it shows up in play:
+  - One empty lookup at combat exit, on zoning, or during a seal switch could play a
+    false alert. A one-second confirmation handled this in a discarded build.
+  - After a `/reload` in combat, a seal lost in that fight may not warn.
+  - A loss seen with the sound off can play when the sound is enabled.
+  - With **Hide outside combat** on, the hidden tracker stops polling, so the
+    out-of-combat sound checks run only on aura events.
+- In game pending: dying with a seal up plays no sound. The check relies on the game
+  reporting death by the time the seal's removal is seen. Committed at the user's
+  request before this in-game result. No version change.
 
 ### 2026-11-08: missing-seal sound on the native display
 

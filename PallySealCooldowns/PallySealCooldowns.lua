@@ -393,7 +393,13 @@ local function Render()
                 UpdateSoundAlerts(state)
             end
         elseif not inCombat and not accessRestricted and not activeAura then
-            UpdateSoundAlerts("missing")
+            if UnitIsDeadOrGhost("player") then
+                -- Death removes the seal, but none can be cast and the player knows.
+                -- This also keeps it quiet after resurrection until a seal is active.
+                missingSoundPlayed = true
+            else
+                UpdateSoundAlerts("missing")
+            end
         end
         return
     end

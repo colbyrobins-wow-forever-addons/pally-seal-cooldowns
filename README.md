@@ -24,7 +24,8 @@ to hear them outside combat. Sound previews still work. Automatic cancellation/
 dispel sounds and combat-entry missing sounds are pending native sound
 integration; they are not driven by the restricted native display. The
 missing-seal sound plays once outside combat after a seal ends, including one
-lost during combat. It stays quiet at login until a seal has been active.
+lost during combat. It stays quiet at login until a seal has been active, and
+when a seal is lost to death.
 **Missing sound only in combat** applies only to the older tracker, so it is
 hidden on this display.
 

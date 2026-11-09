@@ -71,6 +71,8 @@ UISpecialFrames = {}
 wipe = function(values) for key in pairs(values) do values[key] = nil end end
 UnitClass = function() return "Paladin", "PALADIN" end
 UnitAffectingCombat = function() return false end
+local playerDead = false
+UnitIsDeadOrGhost = function() return playerDead end
 GetTime = function() return now end
 C_Spell = {GetSpellName = function(id) return "Seal " .. id end}
 C_UnitAuras = {GetAuraDataBySpellName = function()
@@ -744,4 +746,22 @@ liveSeal = nil
 scripts.OnEvent(widget, "UNIT_AURA", "player")
 scripts.OnUpdate(widget, 0.5)
 assert(soundCount == missingBefore + 2, "Disabled missing sound stays silent")
+-- Death removes the seal, but none can be cast and the player already knows.
+nativeMissingDB.missingSound = true
+liveSeal = {duration = 30, expirationTime = 3030, auraInstanceID = 504}
+scripts.OnEvent(widget, "UNIT_AURA", "player")
+playerDead = true
+liveSeal = nil
+scripts.OnEvent(widget, "UNIT_AURA", "player")
+scripts.OnUpdate(widget, 0.5)
+assert(soundCount == missingBefore + 2, "Dying does not play the missing sound")
+playerDead = false
+scripts.OnUpdate(widget, 0.5)
+assert(soundCount == missingBefore + 2, "Resurrecting does not play the missing sound")
+liveSeal = {duration = 30, expirationTime = 3030, auraInstanceID = 505}
+scripts.OnEvent(widget, "UNIT_AURA", "player")
+liveSeal = nil
+scripts.OnEvent(widget, "UNIT_AURA", "player")
+scripts.OnUpdate(widget, 0.5)
+assert(soundCount == missingBefore + 3, "A later seal rearms the warning")
 io.write("Native missing-seal sound regression tests passed.\n")
