@@ -4,7 +4,7 @@ Keep track of your paladin seals with clear countdowns, refresh reminders, and a
 
 ## Features
 
-- **Four display layouts:** a large icon with a radial timer, a compact horizontal duration bar, an icon that matches Blizzard's Essential Cooldowns bar, or a **Swing timer bar** built from the artwork of Forever's main-hand swing timer and matching its default size, labeled "Seal Timer" with a countdown in tenths of a second.
+- **Five display layouts:** a large icon with a radial timer, a compact horizontal duration bar, an icon that matches Blizzard's Essential Cooldowns bar, a **Swing timer bar** built from the artwork of Forever's main-hand swing timer and matching its default size, labeled "Seal Timer" with a countdown in tenths of a second, or **Blizzard Cooldown Manager**, which leaves the display to Blizzard's own Cooldown Manager and keeps only the refresh and missing-seal sounds.
 - **Attaches to the Essential Cooldowns bar:** the Essential Cooldowns icon layout attaches to any side of Blizzard's bar with an adjustable gap and follows the bar when you move it in Edit Mode.
 - **Native seal tracking:** Blizzard manages the main icon and bar directly, including removal while combat aura data is restricted. Unsupported clients retain estimated tracking.
 - **Seal changes:** native bindings update the icon, name, countdown, and bar when the active seal changes. The fallback tracker uses cast estimates.
@@ -36,7 +36,7 @@ Open **Options > AddOns > Pally Seal Cooldowns**, type **`/psc`**, or click the 
 Settings are organized into pages:
 
 - **General:** position lock, combat-only visibility, text toggles, warning time, and size.
-- **Layout:** the four layouts with each one's options: bar width, texture, and direction, and where the Essential Cooldowns icon attaches to Blizzard's bar.
+- **Layout:** the five layouts with each one's options: bar width, texture, and direction, and where the Essential Cooldowns icon attaches to Blizzard's bar.
 - **Alerts:** refresh and missing-seal sounds, combat-only options, audio channel, sound previews, and what the tracker shows when no seal is active.
 - **Appearance:** fonts, outlines, borders, and warning color.
 - **Presets:** the six built-in styles.
@@ -72,7 +72,7 @@ Clients without the required native display retain the previous estimated tracke
 | `/psc sound` | Toggle the refresh warning sound |
 | `/psc scale 1` | Set display scale; accepts 0.5–2 |
 | `/psc reset` | Reset position, size, and the current layout's size and placement |
-| `/psc style icon` | Use the large icon layout (also `bar`, `essential`, or `swing`) |
+| `/psc style icon` | Use the large icon layout (also `bar`, `essential`, `swing`, or `blizzard`) |
 | `/psc status` | Show client version, build, interface, aura API, and Essential Cooldowns bar status |
 
 The default warning threshold is **5 seconds**, sound is enabled, and position is locked.

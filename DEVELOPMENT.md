@@ -66,6 +66,37 @@ After in-game acceptance and a request to prepare a release:
 Log what Git cannot show: in-game results, uncommitted test builds, and release
 status. Entries from shipped releases are in `docs/development-history.md`.
 
+### 2026-11-11: 0.1.26 release preparation
+
+- User requested a release ("push a new release") without reporting in-game
+  results. Recorded as release authorization, not in-game confirmation: the
+  Blizzard Cooldown Manager layout below is untested in game.
+- Chose patch version 0.1.26 following the 0.1.x pattern. Scope since `v0.1.25`:
+  the entry below.
+- Updated the TOC, README version, `release/changelog-0.1.26.md`,
+  `release/curseforge-description.md`, and `release/UPLOAD-GUIDE.md`.
+- Local Lua suites pass under Lupa; luacheck runs in CI because Docker Desktop was
+  not running.
+
+### 2026-11-11: Blizzard Cooldown Manager layout (alerts only)
+
+- New fifth layout, **Blizzard Cooldown Manager** (`/psc style blizzard`), for
+  seals tracked by Blizzard's own Cooldown Manager. The addon draws nothing: the
+  tracker frame is set to alpha 0, is not clickable, and ignores **Hide outside
+  combat** and **Hide tracker when no seal is active**, so its update loop keeps
+  polling auras. The refresh and missing-seal sounds and the **Refresh warning**
+  time still apply. Settings pages hide every option for the tracker's look and
+  position. Presets are not offered. A missing-seal placeholder was tried and
+  removed at the user's request.
+- Local tests: all Lua suites pass under Lupa. Docker Desktop was not running, so
+  luacheck was not run.
+- In game, pending: Blizzard's Cooldown Manager shows the seal while this addon
+  shows nothing; refresh and missing-seal sounds still play on the native display
+  and the estimated tracker; Refresh warning changes when the refresh sound plays;
+  switching to and from the layout outside combat; settings pages list only the
+  alert options.
+- No version change. Uncommitted.
+
 ### 2026-11-08: Carried forward from 0.1.25
 
 - Published `v0.1.25` by tag. GitHub Actions passed and created the GitHub Release
