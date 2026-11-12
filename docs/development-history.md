@@ -6,6 +6,62 @@ was then. Current process and open work are in `DEVELOPMENT.md`.
 
 ## Development log
 
+### 2026-11-11: 0.1.26 release preparation
+
+- User requested a release ("push a new release") without reporting in-game
+  results. Recorded as release authorization, not in-game confirmation: the
+  Blizzard Cooldown Manager layout below is untested in game.
+- Chose patch version 0.1.26 following the 0.1.x pattern. Scope since `v0.1.25`:
+  the entry below.
+- Updated the TOC, README version, `release/changelog-0.1.26.md`,
+  `release/curseforge-description.md`, and `release/UPLOAD-GUIDE.md`.
+- Local Lua suites pass under Lupa; luacheck runs in CI because Docker Desktop was
+  not running.
+
+### 2026-11-11: Blizzard Cooldown Manager layout (alerts only)
+
+- New fifth layout, **Blizzard Cooldown Manager** (`/psc style blizzard`), for
+  seals tracked by Blizzard's own Cooldown Manager. The addon draws nothing: the
+  tracker frame is set to alpha 0, is not clickable, and ignores **Hide outside
+  combat** and **Hide tracker when no seal is active**, so its update loop keeps
+  polling auras. The refresh and missing-seal sounds and the **Refresh warning**
+  time still apply. Settings pages hide every option for the tracker's look and
+  position. Presets are not offered. A missing-seal placeholder was tried and
+  removed at the user's request.
+- Local tests: all Lua suites pass under Lupa. Docker Desktop was not running, so
+  luacheck was not run.
+- In game, pending: Blizzard's Cooldown Manager shows the seal while this addon
+  shows nothing; refresh and missing-seal sounds still play on the native display
+  and the estimated tracker; Refresh warning changes when the refresh sound plays;
+  switching to and from the layout outside combat; settings pages list only the
+  alert options.
+- No version change. Uncommitted.
+
+### 2026-11-08: Carried forward from 0.1.25
+
+- Published `v0.1.25` by tag. GitHub Actions passed and created the GitHub Release
+  with `PallySealCooldowns-v0.1.25-forever.zip`. The upload step passed with no
+  skipped-upload warning, but the public CurseForge listing still showed 0.1.24
+  right after the run, so the file was not confirmed there.
+- The CurseForge project description is updated by hand from
+  `release/curseforge-description.md`; not done yet.
+- In game, with no specific result reported: dying with a seal up plays no sound.
+- Known limitations from code review, not seen in game; fix only if they show up:
+  - One empty lookup at combat exit, on zoning, or during a seal switch could play a
+    false missing-seal alert.
+  - After a `/reload` in combat, a seal lost in that fight may not warn.
+  - A loss seen with the sound off can play when the sound is enabled.
+  - With **Hide outside combat** on, the hidden tracker stops polling, so the
+    out-of-combat sound checks run only on aura events.
+- Older items with no specific later confirmation; they may be stale:
+  - Command damage (spell 20424) no longer resets the seal timer: retest.
+  - Sound checks: how each bundled sound sounds and its volume against game audio,
+    Ready check and Alarm clock on Forever 1.60.1, and SharedMedia listing and
+    playback.
+  - Essential Cooldowns icon: no taint in combat, and Edit Mode follow behavior.
+  - Combat cancellation and dispel: which removal signals the client provides.
+    Enemy dispel remains a documented limitation.
+
 ### 2026-11-08: 0.1.25 release preparation
 
 - User accepted the in-game results ("love it") and requested a new version. Chose
