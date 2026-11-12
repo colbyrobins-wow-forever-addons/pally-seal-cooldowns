@@ -55,7 +55,11 @@ local function ApplyPosition()
             .. "Enable the Cooldown Manager in Options to snap.")
     end
     if snapped then snapWarned = false end
-    frame:EnableMouse(not db.locked and not snapped)
+    -- Blizzard's Cooldown Manager layout draws nothing. Alpha, not Hide: the
+    -- frame's OnUpdate keeps polling the auras that drive the sound alerts.
+    local alertsOnly = addon.AlertsOnly(db)
+    frame:SetAlpha(alertsOnly and 0 or 1)
+    frame:EnableMouse(not db.locked and not snapped and not alertsOnly)
     appliedIconSize = db.displayStyle == "essential" and addon.IconLayoutSize(db) or nil
     if ApplyLayout then ApplyLayout() end
     if nativeDisplay then
@@ -323,7 +327,7 @@ local function SetVisualState(state)
     barBackground:SetVertexColor(1, warning and 0.45 or 1, warning and 0.35 or 1)
 end
 frame:SetScript("OnDragStart", function(self)
-    if not db.locked and not snapped then self:StartMoving() end
+    if not db.locked and not snapped and not addon.AlertsOnly(db) then self:StartMoving() end
 end)
 frame:SetScript("OnDragStop", function(self)
     self:StopMovingOrSizing()
@@ -383,7 +387,8 @@ end
 local function Render()
     if nativeDisplay then
         nativeDisplay:UpdateCombat(inCombat)
-        frame:SetShown(not db.hideOutOfCombat or inCombat)
+        -- An alerts-only frame is invisible but must keep polling.
+        frame:SetShown(addon.AlertsOnly(db) or not db.hideOutOfCombat or inCombat)
         -- Native widgets own presentation, but successful casts still provide
         -- a refresh deadline when combat aura timing is unavailable. Confirmed
         -- removals clear activeAura; an unobservable early removal can leave
@@ -413,6 +418,13 @@ local function Render()
         state = accessRestricted and "restricted" or "missing"
     end
     UpdateSoundAlerts(state)
+    if addon.AlertsOnly(db) then
+        -- Blizzard's Cooldown Manager shows the seal; only the sounds above apply.
+        -- Keep the invisible frame shown so its OnUpdate keeps polling.
+        UpdateMissingAlert("active")
+        frame:Show()
+        return
+    end
     title:SetShown(addon.ShowsPart(db, "showSealName") or db.displayStyle == "swing")
     status:SetShown(addon.ShowsPart(db, "showStatusText"))
     if (db.hideOutOfCombat and not inCombat) or (state == "missing" and db.hideWhenMissing) then
@@ -567,8 +579,9 @@ SlashCmdList.PALLYSEALCOOLDOWNS = function(input)
         Message("Refresh sound " .. (db.sound and "enabled." or "disabled."))
     elseif command == "style" then
         argument = argument:lower()
-        if argument ~= "icon" and argument ~= "bar" and argument ~= "essential" and argument ~= "swing" then
-            Message("Use /psc style icon, bar, essential, or swing.")
+        if argument ~= "icon" and argument ~= "bar" and argument ~= "essential" and argument ~= "swing"
+            and argument ~= "blizzard" then
+            Message("Use /psc style icon, bar, essential, swing, or blizzard.")
             return
         end
         db.displayStyle = argument

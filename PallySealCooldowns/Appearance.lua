@@ -37,7 +37,15 @@ addon.LayoutChoices = {
     {key = "bar", label = "Small icon with timer bar"},
     {key = "essential", label = "Essential Cooldowns icon"},
     {key = "swing", label = "Swing timer bar"},
+    -- Blizzard's Cooldown Manager shows the seal; this addon only plays alerts.
+    {key = "blizzard", label = "Blizzard Cooldown Manager"},
 }
+
+-- True when Blizzard's Cooldown Manager displays the seal and this addon draws
+-- nothing, keeping only its sound alerts.
+function addon.AlertsOnly(db)
+    return db.displayStyle == "blizzard"
+end
 addon.MissingAlertChoices = {
     {key = "both", label = "Glow and bounce"},
     {key = "glow", label = "Glow only"},
@@ -81,6 +89,8 @@ local swingKept = {"statusbar", "border", "borderColor", "borderSize"}
 -- The presets that suit the chosen layout.
 function addon.PresetChoicesFor(db)
     local choices = {}
+    -- Nothing of this addon's is drawn, so there is nothing to style.
+    if addon.AlertsOnly(db) then return choices end
     for _, choice in ipairs(addon.PresetChoices) do
         if not (choice.iconBorder and db.displayStyle == "swing") then choices[#choices + 1] = choice end
     end

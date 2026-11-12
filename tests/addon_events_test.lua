@@ -59,6 +59,7 @@ CreateFrame = function(kind, name)
             ClearAllPoints = function(self) self.point = nil end,
             SetPoint = function(self, ...) self.point = {...} end,
             EnableMouse = function(self, enabled) self.mouse = enabled end,
+            SetAlpha = function(self, alpha) self.alpha = alpha end,
             StartMoving = function(self) self.moving = true end}, {__index = widget})
         return trackerFrame
     end
@@ -463,6 +464,34 @@ scripts.OnEvent(widget, "UNIT_SPELLCAST_SUCCEEDED", "player", "hide-missing", 20
 assert(trackerShown == true, "Casting a seal shows the hidden tracker")
 missingDB.hideWhenMissing = false
 missingDB.missingSymbol, missingDB.missingAlert = "bang", "both"
+ReloadWithSettings(missingDB)
+
+-- Blizzard Cooldown Manager layout: Blizzard shows the seal, so this addon draws
+-- nothing, but its invisible frame keeps polling so the sound alerts still play.
+SlashCmdList.PALLYSEALCOOLDOWNS("style blizzard")
+assert(missingDB.displayStyle == "blizzard" and trackerFrame.alpha == 0, "/psc style blizzard hides the tracker")
+SlashCmdList.PALLYSEALCOOLDOWNS("style icon")
+assert(trackerFrame.alpha == 1, "Other layouts draw the tracker again")
+local alertsDB = ReloadWithSettings({displayStyle = "blizzard", hideOutOfCombat = true,
+    hideWhenMissing = true, locked = false, missingSound = true})
+assert(alertsDB.displayStyle == "blizzard", "The layout survives a reload")
+assert(trackerFrame.alpha == 0 and trackerFrame.mouse == false, "Nothing is drawn or clickable")
+trackerFrame.moving = false
+scripts.OnDragStart(trackerFrame)
+assert(not trackerFrame.moving, "The invisible tracker cannot be dragged")
+local alertSounds, alertPlays = soundCount, animationPlays
+scripts.OnUpdate(widget, 0.1)
+assert(trackerShown == true, "Hide options never hide the frame that polls auras")
+scripts.OnEvent(widget, "PLAYER_REGEN_DISABLED")
+assert(soundCount == alertSounds + 1, "The missing-seal sound plays on combat entry")
+assert(animationPlays == alertPlays, "No glow or bounce plays on the invisible tracker")
+assert(trackerShown == true, "Hide when missing does not stop polling")
+scripts.OnEvent(widget, "UNIT_SPELLCAST_SUCCEEDED", "player", "alerts-only", 20154)
+now = now + 26
+scripts.OnUpdate(widget, 0.5)
+assert(soundCount == alertSounds + 2, "The refresh sound plays at the warning threshold")
+assert(trackerFrame.alpha == 0, "An active seal draws nothing either")
+scripts.OnEvent(widget, "PLAYER_REGEN_ENABLED")
 ReloadWithSettings(missingDB)
 
 GetBuildInfo = function() return "test-client", "12345", "date", 16001 end

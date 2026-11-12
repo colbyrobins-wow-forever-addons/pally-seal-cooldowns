@@ -179,9 +179,11 @@ assert(db.displayStyle == "essential")
 layout.scripts.OnClick(layout, "LeftButton")
 assert(db.displayStyle == "swing" and layout.value == "Layout: Swing timer bar  >")
 layout.scripts.OnClick(layout, "LeftButton")
+assert(db.displayStyle == "blizzard" and layout.value == "Layout: Blizzard Cooldown Manager  >")
+layout.scripts.OnClick(layout, "LeftButton")
 assert(db.displayStyle == "icon", "Layouts cycle back to the large icon")
 layout.scripts.OnClick(layout, "RightButton")
-assert(db.displayStyle == "swing", "Right-click cycles layouts backward")
+assert(db.displayStyle == "blizzard", "Right-click cycles layouts backward")
 db.displayStyle = "icon"
 panel:Synchronize()
 local hide = Find("CheckButton", "Hide outside combat")
@@ -578,6 +580,53 @@ assert(Shown("Button", "Border color: ") and not Shown("Slider", "Custom border 
 assert(Shown("CheckButton", "Show seal name") and Shown("Button", "Classic Gold"))
 assert(not Shown("Button", "Snap position: ") and not Shown("Slider", "Gap from bar: "),
     "Only the Essential Cooldowns icon snaps")
+
+-- Blizzard Cooldown Manager layout: Blizzard shows the seal, so only the sound
+-- alerts and the refresh warning time apply.
+local function HintShown(page, text)
+    for _, widget in ipairs(widgets) do
+        if widget.kind == "Region" and widget.parent == pages[page].content and widget.shown
+            and type(widget.value) == "string" and widget.value:find(text, 1, true) then return widget end
+    end
+end
+assert(not HintShown("layout", "draws nothing"), "Other layouts do not show the alerts-only note")
+db.showIconBar = true
+Choose("blizzard")
+assert(not layoutHeading.shown and HintShown("layout", "draws nothing"),
+    "The layout explains that Blizzard's Cooldown Manager shows the seal")
+for _, hidden in ipairs({{"CheckButton", "Lock tracker position"}, {"CheckButton", "Hide outside combat"},
+    {"CheckButton", "Show countdown only"}, {"CheckButton", "Show seal name"}, {"CheckButton", "Show status text"},
+    {"Slider", "Display size: "}, {"Button", "Reset position and size"},
+    {"CheckButton", "Show duration bar under icon"}, {"Button", "Bar texture: "}, {"CheckButton", "Bar counts down"},
+    {"Slider", "Essential icon size: "}, {"Slider", "Bar width: "}, {"Slider", "Swing bar width: "},
+    {"Button", "Combat alert: "}, {"CheckButton", "Hide tracker when no seal"},
+    {"CheckButton", "Show missing-seal text"}, {"Button", "Missing symbol: "}, {"Button", "Placeholder icon: "},
+    {"Button", "Font: "}, {"Button", "Border: "}, {"Button", "Warning color: "}, {"Button", "Minimal"}}) do
+    assert(not Shown(hidden[1], hidden[2]), hidden[2] .. " does not apply when nothing is drawn")
+end
+for _, kept in ipairs({{"Slider", "Refresh warning: "}, {"CheckButton", "Play refresh warning sound"},
+    {"CheckButton", "Refresh sound only in combat"}, {"Button", "Refresh sound: "}, {"Button", "Audio channel: "},
+    {"Button", "Test refresh sound"}, {"CheckButton", "Play missing-seal sound"},
+    {"CheckButton", "Missing sound only in combat"}, {"Button", "Missing sound: "},
+    {"Button", "Test missing sound"}}) do
+    assert(Shown(kept[1], kept[2]), kept[2] .. " stays available for the alerts")
+end
+local warningSlider = Find("Slider", "Refresh warning: ")
+assert(warningSlider.point[3] == -35, "The warning time moves to the top of General")
+warningSlider:SetValue(12)
+assert(db.threshold == 12, "The refresh warning time can be changed in this layout")
+warningSlider:SetValue(8)
+local generalNote = HintShown("general", "only the refresh warning time applies")
+assert(generalNote and generalNote.point[3] == -65, "The General note sits below the warning time")
+assert(Find("CheckButton", "Play missing-seal sound").point[3] == -238,
+    "Missing-seal sounds close the gap left by the visual options")
+assert(HintShown("appearance", "do not apply") and HintShown("presets", "do not apply"))
+assert(#addon.PresetChoicesFor(db) == 0, "No preset applies to the alerts-only layout")
+Choose("icon")
+assert(layoutHeading.shown and Shown("Button", "Combat alert: ") and Shown("Button", "Font: "),
+    "Leaving the layout restores the tracker options")
+assert(not HintShown("general", "only the refresh warning time applies"))
+assert(Find("CheckButton", "Play missing-seal sound").point[3] == -410)
 
 -- Standalone window hosts every page behind tabs.
 local tabs = {}

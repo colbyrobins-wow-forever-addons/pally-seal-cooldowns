@@ -209,6 +209,9 @@ function addon.CreateSettings(db, apply)
     end
     local function Style() return db.displayStyle end
     local function IsSwing() return db.displayStyle == "swing" end
+    -- False when Blizzard's Cooldown Manager shows the seal and only alerts apply.
+    local function OwnDisplay() return not addon.AlertsOnly(db) end
+    local function AlertsOnly() return addon.AlertsOnly(db) end
 
     -- A key may be a function so one checkbox can follow each layout's own setting.
     local function Checkbox(label, y, key, checkedValue, uncheckedValue)
@@ -382,20 +385,23 @@ function addon.CreateSettings(db, apply)
     end
 
     section = pages.general.content
-    Checkbox("Lock tracker position", -10, "locked", true, false)
-    Checkbox("Show countdown only when refresh is due", -45, "counterMode", "refresh", "always")
-    Checkbox("Hide outside combat", -80, "hideOutOfCombat", true, false)
+    When(Checkbox("Lock tracker position", -10, "locked", true, false), OwnDisplay)
+    When(Checkbox("Show countdown only when refresh is due", -45, "counterMode", "refresh", "always"), OwnDisplay)
+    When(Checkbox("Hide outside combat", -80, "hideOutOfCombat", true, false), OwnDisplay)
     -- The swing bar shows the fixed "Seal Timer" title instead.
     When(Checkbox("Show seal name", -115, function() return addon.PartKey(db, "showSealName") end, true, false),
-        function() return not IsSwing() end)
-    Checkbox("Show status text", -150, function() return addon.PartKey(db, "showStatusText") end, true, false)
+        function() return OwnDisplay() and not IsSwing() end)
+    When(Checkbox("Show status text", -150, function() return addon.PartKey(db, "showStatusText") end, true, false),
+        OwnDisplay)
     Slider("Refresh warning: ", -220, "threshold", 1, 30, 1, "%d seconds")
-    Slider("Display size: ", -275, "scale", 0.5, 2, 0.05, "%.2fx")
-    ActionButton("Reset position and size", -310, 170, function()
+    When(Slider("Display size: ", -275, "scale", 0.5, 2, 0.05, "%.2fx"), OwnDisplay)
+    When(ActionButton("Reset position and size", -310, 170, function()
         addon.ResetLayout(db)
         apply()
         panel:Synchronize()
-    end)
+    end), OwnDisplay)
+    When(Hint(-345, "Blizzard's Cooldown Manager shows your seal (see the\n"
+        .. "Layout page), so only the refresh warning time applies."), AlertsOnly)
 
     -- Only the chosen layout's options appear, under a heading naming it.
     section = pages.layout.content
@@ -403,13 +409,19 @@ function addon.CreateSettings(db, apply)
     Hint(-45, "Large icon: 52 px icon with a thin bar beneath.\n"
         .. "Small icon with timer bar: 30 px icon and a long bar.\n"
         .. "Essential Cooldowns icon: matches and attaches to Blizzard's bar.\n"
-        .. "Swing timer bar: matches Forever's main-hand swing timer.")
-    local layoutHeading = Heading(-115, "Layout options")
+        .. "Swing timer bar: matches Forever's main-hand swing timer.\n"
+        .. "Blizzard Cooldown Manager: Blizzard shows the seal; alerts only.")
+    local layoutHeading = When(Heading(-115, "Layout options"), OwnDisplay)
+    -- Same top as the first layout option, which this layout never shows.
+    When(Hint(-133, "Blizzard's Cooldown Manager displays your seal, so this\n"
+        .. "addon draws nothing. Add seals to the Cooldown Manager in\n"
+        .. "Blizzard's settings. The Alerts page sounds still play, and\n"
+        .. "the refresh warning time on the General page applies."), AlertsOnly)
     local function IconLayout() return Style() == "icon" or Style() == "essential" end
     local function Essential() return Style() == "essential" end
     local function BarLayout() return Style() == "bar" or IsSwing() end
     -- Texture and countdown also style the thin bar under an icon layout.
-    local function HasBar() return BarLayout() or addon.ShowsPart(db, "showIconBar") end
+    local function HasBar() return BarLayout() or (IconLayout() and addon.ShowsPart(db, "showIconBar")) end
     When(Checkbox("Show duration bar under icon", -133, function() return addon.PartKey(db, "showIconBar") end,
         true, false), IconLayout)
     When(Slider("Essential icon size: ", -195, "cdmIconSize", 0, 80, 1, "%d px (0 follows Blizzard)"), Essential)
@@ -439,13 +451,14 @@ function addon.CreateSettings(db, apply)
     Selector("Audio channel: ", -138, "soundChannel", channels)
     ActionButton("Test refresh sound", -173, 170, function() addon.PlayWarning(db) end)
     Heading(-218, "When no seal is active")
-    Selector("Combat alert: ", -238, "missingAlert", addon.MissingAlertChoices)
-    Checkbox("Hide tracker when no seal is active", -270, "hideWhenMissing", true, false)
-    Checkbox("Show missing-seal text", -305, "showMissingText", true, false)
-    Selector("Missing symbol: ", -343, "missingSymbol", addon.MissingSymbols)
+    -- These change the tracker's look, which Blizzard's Cooldown Manager replaces.
+    When(Selector("Combat alert: ", -238, "missingAlert", addon.MissingAlertChoices), OwnDisplay)
+    When(Checkbox("Hide tracker when no seal is active", -270, "hideWhenMissing", true, false), OwnDisplay)
+    When(Checkbox("Show missing-seal text", -305, "showMissingText", true, false), OwnDisplay)
+    When(Selector("Missing symbol: ", -343, "missingSymbol", addon.MissingSymbols), OwnDisplay)
     -- The swing bar has no icon to stand in for.
     When(Selector("Placeholder icon: ", -378, "missingIcon", addon.MissingIcons),
-        function() return not IsSwing() end)
+        function() return OwnDisplay() and not IsSwing() end)
     Checkbox("Play missing-seal sound", -410, "missingSound", true, false)
     -- The native display can only confirm a missing seal outside combat.
     When(Checkbox("Missing sound only in combat", -445, "missingCombatOnly", true, false),
@@ -456,24 +469,27 @@ function addon.CreateSettings(db, apply)
     local alertsHint = Hint(-560, "")
 
     section = pages.appearance.content
-    Hint(-10, (useDropdowns and "Changes apply live." or "Changes apply live. Left/right-click choices to cycle.")
-        .. "\nFont size 0 uses the layout default.")
-    Selector("Font: ", -48, "font", function() return addon.MediaChoices("font") end)
-    Selector("Outline: ", -83, "outline", addon.OutlineChoices)
-    Checkbox("Text shadow", -113, "fontShadow", true, false)
-    Slider("Countdown font size: ", -178, "timerSize", 0, 40, 1, "%d px")
-    Slider(function() return IsSwing() and "Label font size: " or "Seal name font size: " end,
-        -233, "nameSize", 0, 24, 1, "%d px")
-    Selector("Border: ", -268, "border", function() return addon.MediaChoices("border") end)
+    -- Nothing of this addon's is drawn in the Blizzard Cooldown Manager layout.
+    When(Hint(-10, "Blizzard's Cooldown Manager shows your seal,\n"
+        .. "so appearance settings do not apply to this layout."), AlertsOnly)
+    When(Hint(-10, (useDropdowns and "Changes apply live." or "Changes apply live. Left/right-click choices to cycle.")
+        .. "\nFont size 0 uses the layout default."), OwnDisplay)
+    When(Selector("Font: ", -48, "font", function() return addon.MediaChoices("font") end), OwnDisplay)
+    When(Selector("Outline: ", -83, "outline", addon.OutlineChoices), OwnDisplay)
+    When(Checkbox("Text shadow", -113, "fontShadow", true, false), OwnDisplay)
+    When(Slider("Countdown font size: ", -178, "timerSize", 0, 40, 1, "%d px"), OwnDisplay)
+    When(Slider(function() return IsSwing() and "Label font size: " or "Seal name font size: " end,
+        -233, "nameSize", 0, 24, 1, "%d px"), OwnDisplay)
+    When(Selector("Border: ", -268, "border", function() return addon.MediaChoices("border") end), OwnDisplay)
     -- The swing frame is Blizzard's art: Border only turns it on or off.
     When(Selector("Border color: ", -303, "borderColor", addon.BorderColors),
-        function() return not IsSwing() and db.border ~= "none" end)
+        function() return OwnDisplay() and not IsSwing() and db.border ~= "none" end)
     When(Slider("Custom border thickness: ", -368, "borderSize", 1, 16, 1, "%d px"),
-        function() return not IsSwing() and db.border ~= "none" and db.border ~= "default" end)
-    Selector("Warning color: ", -403, "warningColor", addon.WarningColors)
-    Hint(-440, "Installed SharedMedia choices appear automatically.\nMissing media uses the default appearance.\n"
+        function() return OwnDisplay() and not IsSwing() and db.border ~= "none" and db.border ~= "default" end)
+    When(Selector("Warning color: ", -403, "warningColor", addon.WarningColors), OwnDisplay)
+    When(Hint(-440, "Installed SharedMedia choices appear automatically.\nMissing media uses the default appearance.\n"
         .. "Warning color marks a due refresh and a missing seal.\nBar options are on the Layout page.\n"
-        .. "Only options for the chosen layout are shown.")
+        .. "Only options for the chosen layout are shown."), OwnDisplay)
 
     section = pages.presets.content
     local presetHint = Hint(-10, "")
@@ -516,11 +532,17 @@ function addon.CreateSettings(db, apply)
         alertsHint.region:SetText((addon.NativeDisplayActive
                 and "The missing sound plays once outside combat after a\nseal ends, including one lost during combat.\n" or "")
             .. "Both alerts share the audio channel. Installed\nSharedMedia sounds appear after the built-in ones.\n"
-            .. "Choosing a sound plays it. Tests play even when\nalerts are off or combat-only.\n"
-            .. "Missing-seal text also follows Show seal name and\nShow status text on the General page.")
-        presetHint.region:SetText("Presets replace only appearance settings.\n"
-            .. "Timing, sounds, position, and visibility are kept."
-            .. (swing and "\nOn the swing timer bar they change only text styling;\nthe bar keeps Blizzard's art." or ""))
+            .. "Choosing a sound plays it. Tests play even when\nalerts are off or combat-only."
+            .. (addon.AlertsOnly(db) and ""
+                or "\nMissing-seal text also follows Show seal name and\nShow status text on the General page."))
+        if addon.AlertsOnly(db) then
+            presetHint.region:SetText("Blizzard's Cooldown Manager shows your seal,\n"
+                .. "so presets do not apply to this layout.")
+        else
+            presetHint.region:SetText("Presets replace only appearance settings.\n"
+                .. "Timing, sounds, position, and visibility are kept."
+                .. (swing and "\nOn the swing timer bar they change only text styling;\nthe bar keeps Blizzard's art." or ""))
+        end
         -- Presets that suit the layout fill the grid in order.
         local shownPresets = {}
         for _, choice in ipairs(addon.PresetChoicesFor(db)) do shownPresets[choice.key] = true end

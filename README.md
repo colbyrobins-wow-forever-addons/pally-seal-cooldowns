@@ -114,7 +114,7 @@ Changes apply immediately and are saved automatically.
 Enable **Hide outside combat** to show the tracker only during combat. The
 minimap settings button stays available. This setting is off by default.
 
-The **Layout** page picks one of four layouts. Each page shows only the
+The **Layout** page picks one of five layouts. Each page shows only the
 settings that apply to the chosen layout (and hides, for example, border color
 when Border is None), so changing layout changes which options are listed.
 Display size on the General page scales every layout.
@@ -139,11 +139,18 @@ Display size on the General page scales every layout.
   (213–852 pixels), **Bar texture** (Game default keeps the main-hand fill), and
   **Bar counts down**; setting **Border** to None on the Appearance page removes
   the frame.
+- **Blizzard Cooldown Manager**: for seals tracked in Blizzard's own Cooldown
+  Manager. This addon draws nothing and keeps only its sound alerts: the refresh
+  and missing-seal sounds on the Alerts page. **Refresh warning** on the General
+  page still sets how many seconds before the seal ends the refresh sound plays.
+  The settings pages hide every option that only changes the tracker's look or
+  position, and presets do not apply. Add your seals in Blizzard's Cooldown
+  Manager settings.
 
 **Bar texture** and **Bar counts down** apply to all duration bars. Bar counts
 down starts the bar full and drains it from right to left; by default it fills
-up instead. `/psc style icon`, `/psc style bar`, `/psc style essential`, and
-`/psc style swing` switch layouts.
+up instead. `/psc style icon`, `/psc style bar`, `/psc style essential`,
+`/psc style swing`, and `/psc style blizzard` switch layouts.
 The **Essential Cooldowns icon** always attaches to Blizzard's Essential
 Cooldowns bar; this is no longer a setting, and the other layouts never attach.
 **Snap position** puts it on the right, left, top, or bottom of the bar, and
