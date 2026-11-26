@@ -151,8 +151,8 @@ end
 local counts = {}
 for _, widget in ipairs(widgets) do
     counts[widget.kind] = (counts[widget.kind] or 0) + 1
-    assert(widget.kind ~= "EditBox", "Custom seal input must be removed")
 end
+assert(counts.EditBox == counts.Slider, "Every slider has a value box")
 assert(counts.CheckButton == 14 and counts.Slider == 9, "No controls are lost in the split")
 assert(counts.ScrollFrame == 5, "Each page scrolls independently")
 
@@ -556,6 +556,96 @@ local swingSlider = Find("Slider", "Swing bar width: ")
 local barBeforeSwing = db.barWidth
 swingSlider:SetValue(500)
 assert(db.swingWidth == 500 and db.barWidth == barBeforeSwing, "Swing width is separate from Bar width")
+-- Width sliders step by 1 px with arrows and take a typed value.
+local function Beside(slider)
+    local found = {}
+    for _, widget in ipairs(widgets) do
+        local point = rawget(widget, "point")
+        if point and point[2] == slider then
+            found[widget.kind == "EditBox" and "input" or widget.value] = widget
+        end
+    end
+    return found
+end
+local swingFine = Beside(swingSlider)
+assert(swingFine["<"] and swingFine[">"] and swingFine.input, "Swing width has arrows and a value box")
+assert(swingFine.input.shown and swingFine["<"].shown, "Fine controls show with their slider")
+assert(swingFine.input.value == "500", "The value box shows the width")
+swingFine[">"].scripts.OnClick(swingFine[">"])
+assert(db.swingWidth == 501 and swingFine.input.value == "501")
+swingFine["<"].scripts.OnClick(swingFine["<"])
+swingFine["<"].scripts.OnClick(swingFine["<"])
+assert(db.swingWidth == 499, "The left arrow narrows by 1 px")
+swingFine.input.value = "640"
+swingFine.input.scripts.OnEnterPressed(swingFine.input)
+assert(db.swingWidth == 640 and swingSlider.value == 640, "A typed width applies")
+swingFine.input.value = "9000"
+swingFine.input.scripts.OnEnterPressed(swingFine.input)
+assert(db.swingWidth == 852 and swingFine.input.value == "852", "A typed width is clamped to the range")
+swingFine[">"].scripts.OnClick(swingFine[">"])
+assert(db.swingWidth == 852, "The right arrow stops at the maximum")
+swingFine.input.value = ""
+swingFine.input.scripts.OnEnterPressed(swingFine.input)
+assert(db.swingWidth == 852 and swingFine.input.value == "852", "An empty entry restores the width")
+swingFine.input.value = "300"
+swingFine.input.scripts.OnEscapePressed(swingFine.input)
+assert(db.swingWidth == 852 and swingFine.input.value == "852", "Escape discards the typed width")
+local barFine = Beside(Find("Slider", "Bar width: "))
+assert(not barFine.input.shown and not barFine["<"].shown, "Hidden sliders hide their fine controls")
+barFine.input.value = "50"
+barFine.input.scripts.OnEnterPressed(barFine.input)
+assert(db.barWidth == 120 and db.swingWidth == 852, "Bar width has its own box and range")
+-- Every slider has the same fine controls.
+for _, widget in ipairs(widgets) do
+    if widget.kind == "Slider" then
+        local fine = Beside(widget)
+        assert(fine["<"] and fine[">"] and fine.input, "Each slider has arrows and a value box")
+    end
+end
+-- Decimal sliders step by their own step and accept typed decimals.
+local scaleSlider = Find("Slider", "Display size: ")
+local scaleFine = Beside(scaleSlider)
+local scaleBefore = db.scale
+db.scale = 1
+panel:Synchronize()
+assert(scaleFine.input.value == "1.00", "Decimal values show two places")
+scaleFine[">"].scripts.OnClick(scaleFine[">"])
+assert(db.scale == 1.05 and scaleFine.input.value == "1.05", "The right arrow adds one 0.05 step")
+scaleFine.input.value = "1.37"
+scaleFine.input.scripts.OnEnterPressed(scaleFine.input)
+assert(math.abs(db.scale - 1.35) < 1e-9, "A typed decimal rounds to the step")
+scaleFine.input.value = "abc"
+scaleFine.input.scripts.OnEnterPressed(scaleFine.input)
+assert(math.abs(db.scale - 1.35) < 1e-9 and scaleFine.input.value == "1.35", "Text that is not a number is ignored")
+scaleFine.input.value = "0.1"
+scaleFine.input.scripts.OnEnterPressed(scaleFine.input)
+assert(db.scale == 0.5, "A typed decimal is clamped to the range")
+db.scale = scaleBefore
+-- Arrows step across the gap that snaps small sizes to 0.
+local iconFine = Beside(Find("Slider", "Essential icon size: "))
+local iconBefore = db.cdmIconSize
+db.cdmIconSize = 0
+panel:Synchronize()
+iconFine[">"].scripts.OnClick(iconFine[">"])
+assert(db.cdmIconSize == 16, "From 0 the right arrow jumps to the smallest custom size")
+iconFine[">"].scripts.OnClick(iconFine[">"])
+assert(db.cdmIconSize == 17)
+iconFine["<"].scripts.OnClick(iconFine["<"])
+iconFine["<"].scripts.OnClick(iconFine["<"])
+assert(db.cdmIconSize == 0, "Below the smallest custom size the left arrow returns to 0")
+iconFine.input.value = "10"
+iconFine.input.scripts.OnEnterPressed(iconFine.input)
+assert(db.cdmIconSize == 0 and iconFine.input.value == "0", "A typed size in the gap snaps to 0")
+db.cdmIconSize = iconBefore
+local timerFine = Beside(Find("Slider", "Countdown font size: "))
+local timerBefore = db.timerSize
+db.timerSize = 0
+panel:Synchronize()
+timerFine[">"].scripts.OnClick(timerFine[">"])
+assert(db.timerSize == 8, "Font sizes jump from 0 to 8 px")
+db.timerSize = timerBefore
+panel:Synchronize()
+db.barWidth = barBeforeSwing
 db.swingWidth = 426
 panel:Synchronize()
 assert(not Shown("CheckButton", "Show seal name"), "Seal Timer label replaces the seal name")

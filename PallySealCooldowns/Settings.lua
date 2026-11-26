@@ -233,11 +233,23 @@ function addon.CreateSettings(db, apply)
     end
 
     -- A label may be a function so it can name what it sizes in each layout.
+    -- Each slider has one-step arrow buttons and a box to type a value.
+    -- Sizes between 0 (the default) and these minimums snap to 0.
+    local snapMinimums = {timerSize = 8, nameSize = 8, cdmIconSize = 16}
     local function Slider(label, y, key, minimum, maximum, step, format)
         local function Label() return type(label) == "function" and label() or label end
+        local snapMinimum = snapMinimums[key]
+        local function Round(value)
+            local rounded = math.floor(value / step + 0.5) * step
+            if snapMinimum and rounded > 0 and rounded < snapMinimum then rounded = 0 end
+            return rounded
+        end
+        local function Text(value)
+            return step < 1 and string.format("%.2f", value) or tostring(value)
+        end
         local slider = CreateFrame("Slider", nil, section)
-        slider:SetPoint("TOPLEFT", 26, y)
-        slider:SetSize(330, 16)
+        slider:SetPoint("TOPLEFT", 50, y)
+        slider:SetSize(226, 16)
         slider:SetOrientation("HORIZONTAL")
         slider:SetMinMaxValues(minimum, maximum)
         slider:SetValueStep(step)
@@ -247,27 +259,67 @@ function addon.CreateSettings(db, apply)
         track:SetAllPoints()
         track:SetColorTexture(0.2, 0.2, 0.25, 1)
         local text = slider:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-        text:SetPoint("BOTTOMLEFT", slider, "TOPLEFT", 0, 6)
+        text:SetPoint("BOTTOMLEFT", slider, "TOPLEFT", -24, 6)
+        local input = CreateFrame("EditBox", nil, section, "InputBoxTemplate")
         slider:SetScript("OnValueChanged", function(_, value)
-            local rounded = math.floor(value / step + 0.5) * step
-            if (key == "timerSize" or key == "nameSize")
-                and rounded > 0 and rounded < 8 then rounded = 0 end
-            if key == "cdmIconSize" and rounded > 0 and rounded < 16 then rounded = 0 end
+            local rounded = Round(value)
             text:SetText(Label() .. string.format(format, rounded))
+            input:SetText(Text(rounded))
             if syncing then return end
             db[key] = rounded
             addon.NormalizeAppearance(db)
             addon.NormalizeCooldownManager(db)
             apply()
         end)
+        local function SetTo(value)
+            slider:SetValue(Round(math.max(minimum, math.min(maximum, value))))
+            -- The slider skips OnValueChanged when the value is unchanged.
+            input:SetText(Text(db[key]))
+        end
+        local frames = {slider, input}
+        local function Arrow(symbol, delta, point, relative, offset)
+            local arrow = CreateFrame("Button", nil, section, "UIPanelButtonTemplate")
+            arrow:SetSize(20, 20)
+            arrow:SetPoint(point, slider, relative, offset, 0)
+            arrow:SetText(symbol)
+            arrow:SetScript("OnClick", function()
+                local value = db[key] + delta
+                -- Step across the snap gap instead of sticking at 0.
+                if snapMinimum and value > 0 and value < snapMinimum then
+                    value = delta > 0 and snapMinimum or 0
+                end
+                SetTo(value)
+            end)
+            frames[#frames + 1] = arrow
+        end
+        Arrow("<", -step, "RIGHT", "LEFT", -4)
+        Arrow(">", step, "LEFT", "RIGHT", 4)
+        input:SetSize(46, 20)
+        input:SetPoint("LEFT", slider, "RIGHT", 34, 0)
+        input:SetAutoFocus(false)
+        -- Numeric boxes take digits only, so decimal sliders accept any text.
+        input:SetNumeric(step >= 1 and minimum >= 0)
+        input:SetMaxLetters(step >= 1 and #tostring(maximum) or 6)
+        input:SetJustifyH("CENTER")
+        input:SetScript("OnEnterPressed", function(self)
+            local value = tonumber(self:GetText())
+            if value and value == value then SetTo(value) else self:SetText(Text(db[key])) end
+            self:ClearFocus()
+        end)
+        input:SetScript("OnEscapePressed", function(self)
+            self:SetText(Text(db[key]))
+            self:ClearFocus()
+        end)
+        input:SetScript("OnEditFocusLost", function(self) self:SetText(Text(db[key])) end)
         controls[#controls + 1] = function()
             slider:SetValue(db[key])
             text:SetText(Label() .. string.format(format, db[key]))
+            input:SetText(Text(db[key]))
         end
         -- The label sits above the slider, so the row starts 25 px higher.
-        return Row(y + 25, y, {slider}, function(at)
+        return Row(y + 25, y, frames, function(at)
             slider:ClearAllPoints()
-            slider:SetPoint("TOPLEFT", 26, at)
+            slider:SetPoint("TOPLEFT", 50, at)
         end)
     end
 

@@ -66,6 +66,31 @@ After in-game acceptance and a request to prepare a release:
 Log what Git cannot show: in-game results, uncommitted test builds, and release
 status. Entries from shipped releases are in `docs/development-history.md`.
 
+### 2026-11-26: Test session, fine slider controls
+
+- Every settings slider gets < and > buttons (one step each: 1, or 0.05 for
+  **Display size**) and a box to type a value, clamped and rounded to the
+  slider's range and step. For font sizes and **Essential icon size**, the arrows
+  jump between 0 and the smallest custom size (8 px or 16 px). Redeployed
+  `Settings.lua` with this; first deployed with the two width sliders only.
+- Base commit `4f8fd37`; uncommitted: `PallySealCooldowns/Settings.lua`,
+  `tests/settings_test.lua`. The working tree also shows the 12 bundled
+  `Sounds/*.wav` deleted (not part of this change).
+- Local checks passed (luacheck, Lua and Python tests, TOC check) on a copy with
+  the sounds restored from HEAD; with them deleted, the settings test fails at
+  the bundled-sound check.
+- The client addon folder is a real folder, not a junction. It matched HEAD
+  apart from line endings. Backed up to
+  `<workspace>/addon-deployment-backups/PallySealCooldowns-before-fine-width-4f8fd37-7f4a3cf5`
+  (SHA-256 verified), then only `Settings.lua` was copied in.
+- In game: after the redeploy the user replied "sweet" and asked to commit and
+  release, without reporting specific results. Not individually confirmed:
+  arrows and box line up with each slider; arrows step and stop at the range
+  ends; Display size accepts a typed decimal; the snap gap jumps for font and
+  icon sizes; typed values apply on Enter and clamp; Escape or clicking away
+  restores the value; the controls hide with their slider on other layouts;
+  values persist after `/reload`.
+
 ### 2026-11-11: Carried forward from 0.1.26
 
 - Published `v0.1.26` by tag. GitHub Actions passed (luacheck included) and
