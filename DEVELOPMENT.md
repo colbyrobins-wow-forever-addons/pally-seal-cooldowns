@@ -66,6 +66,18 @@ After in-game acceptance and a request to prepare a release:
 Log what Git cannot show: in-game results, uncommitted test builds, and release
 status. Entries from shipped releases are in `docs/development-history.md`.
 
+### 2026-11-26: 0.1.27 release preparation
+
+- User asked to "commit and deploy this as a new version" after testing the
+  redeployed build. Recorded as release and publish authorization; specific
+  in-game results were not reported (see the entry below).
+- Chose patch version 0.1.27 following the 0.1.x pattern. Scope since `v0.1.26`:
+  the entry below.
+- Updated the TOC, README version, `release/changelog-0.1.27.md`,
+  `release/curseforge-description.md`, and `release/UPLOAD-GUIDE.md`.
+- The 12 bundled `Sounds/*.wav` files are deleted in the working tree but not in
+  Git; they stay in the release. Local checks pass on a copy with them restored.
+
 ### 2026-11-26: Test session, fine slider controls
 
 - Every settings slider gets < and > buttons (one step each: 1, or 0.05 for

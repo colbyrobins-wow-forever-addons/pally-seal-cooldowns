@@ -41,7 +41,7 @@ Settings are organized into pages:
 - **Appearance:** fonts, outlines, borders, and warning color.
 - **Presets:** the six built-in styles.
 
-Each page shows only the options that apply to the chosen layout. Changes apply immediately outside combat; native layout/appearance changes made during combat apply afterward. Presets change appearance without altering your timing, sound, position, or visibility settings.
+Each page shows only the options that apply to the chosen layout. Every slider has < and > buttons that move it one step and a box where you can type an exact value. Changes apply immediately outside combat; native layout/appearance changes made during combat apply afterward. Presets change appearance without altering your timing, sound, position, or visibility settings.
 
 ## Compatibility
 
