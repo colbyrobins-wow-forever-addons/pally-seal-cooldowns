@@ -66,52 +66,23 @@ After in-game acceptance and a request to prepare a release:
 Log what Git cannot show: in-game results, uncommitted test builds, and release
 status. Entries from shipped releases are in `docs/development-history.md`.
 
-### 2026-11-26: 0.1.27 release preparation
+### 2026-11-26: Carried forward from 0.1.27
 
-- User asked to "commit and deploy this as a new version" after testing the
-  redeployed build. Recorded as release and publish authorization; specific
-  in-game results were not reported (see the entry below).
-- Chose patch version 0.1.27 following the 0.1.x pattern. Scope since `v0.1.26`:
-  the entry below.
-- Updated the TOC, README version, `release/changelog-0.1.27.md`,
-  `release/curseforge-description.md`, and `release/UPLOAD-GUIDE.md`.
-- The 12 bundled `Sounds/*.wav` files are deleted in the working tree but not in
-  Git; they stay in the release. Local checks pass on a copy with them restored.
-
-### 2026-11-26: Test session, fine slider controls
-
-- Every settings slider gets < and > buttons (one step each: 1, or 0.05 for
-  **Display size**) and a box to type a value, clamped and rounded to the
-  slider's range and step. For font sizes and **Essential icon size**, the arrows
-  jump between 0 and the smallest custom size (8 px or 16 px). Redeployed
-  `Settings.lua` with this; first deployed with the two width sliders only.
-- Base commit `4f8fd37`; uncommitted: `PallySealCooldowns/Settings.lua`,
-  `tests/settings_test.lua`. The working tree also shows the 12 bundled
-  `Sounds/*.wav` deleted (not part of this change).
-- Local checks passed (luacheck, Lua and Python tests, TOC check) on a copy with
-  the sounds restored from HEAD; with them deleted, the settings test fails at
-  the bundled-sound check.
-- The client addon folder is a real folder, not a junction. It matched HEAD
-  apart from line endings. Backed up to
-  `<workspace>/addon-deployment-backups/PallySealCooldowns-before-fine-width-4f8fd37-7f4a3cf5`
-  (SHA-256 verified), then only `Settings.lua` was copied in.
-- In game: after the redeploy the user replied "sweet" and asked to commit and
-  release, without reporting specific results. Not individually confirmed:
-  arrows and box line up with each slider; arrows step and stop at the range
-  ends; Display size accepts a typed decimal; the snap gap jumps for font and
-  icon sizes; typed values apply on Enter and clamp; Escape or clicking away
-  restores the value; the controls hide with their slider on other layouts;
-  values persist after `/reload`.
-
-### 2026-11-11: Carried forward from 0.1.26
-
-- Published `v0.1.26` by tag. GitHub Actions passed (luacheck included) and
-  created the GitHub Release with `PallySealCooldowns-v0.1.26-forever.zip`. The
-  upload step passed with no warning annotations, but the CurseForge file feed
-  still listed 0.1.25 as newest right after the run, so the file was not
-  confirmed there. 0.1.25 also showed up only later.
+- Published `v0.1.27` by tag. GitHub Actions passed on `main` and the tag
+  (luacheck included) and created the GitHub Release with
+  `PallySealCooldowns-v0.1.27-forever.zip`; the upload step passed. Not yet
+  confirmed on the CurseForge file feed.
 - The CurseForge project description is updated by hand from
-  `release/curseforge-description.md`; not done for 0.1.25 or 0.1.26.
+  `release/curseforge-description.md`; not done for 0.1.25, 0.1.26, or 0.1.27.
+- The 12 bundled `Sounds/*.wav` files are deleted in the working tree but remain
+  in Git and in the release; with them deleted, the settings test fails at the
+  bundled-sound check.
+- The client addon folder is a real copy, not a junction. Its 0.1.27
+  `Settings.lua` and TOC were copied in from the repository; the other files
+  match apart from line endings.
+- In game, not individually confirmed for the 0.1.27 slider arrows and value
+  boxes: alignment on every page, decimal entry for Display size, the snap gap
+  for font and icon sizes, Escape and clamping, and values after `/reload`.
 - In game, pending for the **Blizzard Cooldown Manager** layout (shipped untested):
   Blizzard's Cooldown Manager shows the seal while this addon shows nothing;
   refresh and missing-seal sounds still play on the native display and the
